@@ -68,14 +68,7 @@ source venv/bin/activate
 pip install flask Flask-Cors rdkit torch numpy requests
 ```
 
-### 4. Configuration
-Create a `.env` file in the root directory and add your keys:
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-PORT=3001
-```
-
-### 5. Running the Application
+### 4. Running the Application
 Run both the Flask backend and Vite frontend development server:
 
 * **Start Backend (Python/Flask):**
