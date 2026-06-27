@@ -1202,22 +1202,24 @@
       display: grid;
       grid-template-columns: 1.1fr 0.9fr;
       width: 100%;
-      border: 1px solid rgba(19, 138, 165, 0.15);
+      border: 1px solid rgba(19, 138, 165, 0.12);
       background: rgba(244, 244, 246, 0.45);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       padding: 48px;
       box-sizing: border-box;
       border-radius: 0px !important;
-      opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+      opacity: 0.35;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
       pointer-events: auto;
     }
 
     .window-card.active {
       opacity: 1;
-      transform: translateY(0);
+      transform: scale(1);
+      border-color: rgba(19, 138, 165, 0.35);
+      box-shadow: 0 15px 35px rgba(19, 138, 165, 0.08);
     }
 
     .window-image-container {
@@ -1694,6 +1696,34 @@
       const heroSideLeft = document.getElementById('hero-side-left');
       const heroSideRight = document.getElementById('hero-side-right');
 
+      // Cross-fade: once Spline is fully loaded & WASM initialized, fade in live 3D
+      const handleLoad = () => {
+        if (splineViewer) splineViewer.style.opacity = '1';
+        if (placeholder) {
+          placeholder.style.opacity = '0';
+          setTimeout(() => {
+            placeholder.remove(); // Clean up placeholder DOM
+          }, 800);
+        }
+      };
+
+      if (splineViewer) {
+        // Check if it's already loaded, otherwise listen for load
+        if (splineViewer.shadowRoot && (splineViewer.shadowRoot.querySelector('canvas') || splineViewer.loaded)) {
+          handleLoad();
+        } else {
+          splineViewer.addEventListener('load', handleLoad);
+        }
+      }
+
+      // Fail-safe timeout: force reveal after 3 seconds if still loading
+      setTimeout(() => {
+        if (splineViewer && splineViewer.style.opacity !== '1') {
+          console.warn('Spline load event timed out, forcing reveal');
+          handleLoad();
+        }
+      }, 3000);
+
       // Word-by-word reveal splitting
       const revealHeadline = document.getElementById('reveal-headline');
       if (revealHeadline) {
@@ -1816,21 +1846,19 @@
           const currentTranslate = progress * maxTranslate;
           horizontalTrack.style.transform = `translateX(-${currentTranslate}px)`;
 
-          const slideProgress = progress * (slides.length - 1);
-          const activeIndex = Math.max(0, Math.min(slides.length - 1, Math.round(slideProgress)));
-
-          slides.forEach((slide, idx) => {
+          // Viewport center-based card focus for continuous high-end animation
+          slides.forEach((slide) => {
             const card = slide.querySelector('.window-card');
             if (!card) return;
             
-            if (idx === activeIndex && progress > 0 && progress < 1) {
+            const cardRect = card.getBoundingClientRect();
+            const viewportCenter = window.innerWidth / 2;
+            const cardCenter = cardRect.left + cardRect.width / 2;
+            const distanceFromCenter = Math.abs(cardCenter - viewportCenter);
+
+            // Active when close to center viewport (within 35% of viewport width)
+            if (distanceFromCenter < window.innerWidth * 0.35) {
               card.classList.add('active');
-            } else if (idx === activeIndex && (progress === 0 || progress === 1)) {
-              if ((progress === 0 && idx === 0) || (progress === 1 && idx === slides.length - 1)) {
-                card.classList.add('active');
-              } else {
-                card.classList.remove('active');
-              }
             } else {
               card.classList.remove('active');
             }
