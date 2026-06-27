@@ -1,0 +1,955 @@
+{
+  "hantavirus": {
+    "target_protein": "Envelopment Glycoprotein (Gc/Gn)",
+    "uniprot_id": "P08668",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=CC=C(C=C1)C2=CC=CC=C2C3=CC=CC=C3C4=C(C=C(C=C4)C)C(=O)N5CCN(C(C)C)CC5",
+    "pocket_residues": [
+      {
+        "element": "N",
+        "x": -0.2328,
+        "y": 0.16800000000000015,
+        "z": -0.4344000000000001,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -0.6408,
+        "y": -0.6049999999999995,
+        "z": 0.7326000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.3328,
+        "y": 1.5110000000000001,
+        "z": -0.4663999999999999,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.31620000000000004,
+        "y": -0.7169999999999996,
+        "z": -1.4594,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.3752,
+        "y": -0.5129999999999999,
+        "z": 1.8836000000000004,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -0.8098000000000001,
+        "y": 2.15,
+        "z": 0.4735999999999998,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": 1.6261999999999999,
+        "y": -0.1200000000000001,
+        "z": 1.6126,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -0.7818,
+        "y": -2.0359999999999996,
+        "z": 0.2096,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.31220000000000003,
+        "y": -2.1180000000000003,
+        "z": -0.8524,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.16820000000000002,
+        "y": 2.2800000000000002,
+        "z": -1.6994,
+        "charge": 0.0
+      }
+    ]
+  },
+  "influenza": {
+    "target_protein": "Neuraminidase",
+    "uniprot_id": "P03474",
+    "pocket_size_angstrom": 12.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC(=O)NC1C(C=C(OC1C(C(CO)O)O)C(=O)O)N=C(N)N",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -1.4215,
+        "y": -0.7173999999999996,
+        "z": -0.7265000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 1.1455000000000002,
+        "y": 0.3496000000000006,
+        "z": 0.6655000000000002,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.4145000000000003,
+        "y": 0.49960000000000004,
+        "z": 1.8595000000000002,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 1.0515000000000008,
+        "y": -0.9353999999999996,
+        "z": -0.13050000000000006,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.0004999999999997229,
+        "y": -0.9413999999999998,
+        "z": -1.2504999999999997,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -2.0654999999999992,
+        "y": 0.2976000000000001,
+        "z": -1.0005000000000002,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": -1.9455,
+        "y": -1.6763999999999997,
+        "z": 0.03149999999999986,
+        "charge": 0.3
+      },
+      {
+        "element": "N",
+        "x": 0.3185000000000002,
+        "y": 0.04660000000000064,
+        "z": -2.2735000000000003,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 1.9855000000000005,
+        "y": 1.3886000000000003,
+        "z": 0.22250000000000014,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.5175000000000001,
+        "y": 1.6886,
+        "z": 2.6025,
+        "charge": 0.0
+      }
+    ]
+  },
+  "zika": {
+    "target_protein": "Envelope Glycoprotein",
+    "uniprot_id": "Q32ZE1",
+    "pocket_size_angstrom": 14.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "C1=CC=C(C=C1)C(=O)N"
+  },
+  "ebola": {
+    "target_protein": "Glycoprotein",
+    "uniprot_id": "Q05320",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "C1=CC=C(C=C1)C2=NC=CS2",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -0.12140000000000128,
+        "y": -0.7206000000000001,
+        "z": -3.2113000000000014,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 2.078599999999999,
+        "y": 0.3353999999999999,
+        "z": -2.7723000000000013,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.6065999999999985,
+        "y": 0.3133999999999997,
+        "z": -2.353300000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.028400000000001313,
+        "y": 1.7043999999999997,
+        "z": -2.529300000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.1755999999999993,
+        "y": 2.6254,
+        "z": -1.308300000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.6085999999999991,
+        "y": -1.0396,
+        "z": 2.6576999999999984,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -0.7864000000000004,
+        "y": 2.2344,
+        "z": -0.26830000000000176,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 0.4905999999999988,
+        "y": -3.8026,
+        "z": 4.256699999999999,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.5414000000000012,
+        "y": -1.5466000000000006,
+        "z": 3.5526999999999997,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -2.482400000000002,
+        "y": -0.10360000000000014,
+        "z": 1.9756999999999998,
+        "charge": -0.4
+      }
+    ]
+  },
+  "malaria": {
+    "target_protein": "Dihydrofolate Reductase-Thymidylate Synthase (DHFR)",
+    "uniprot_id": "P13922",
+    "pocket_size_angstrom": 13.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CCC1=C(C2=CC=C(C=C2)Cl)N=C(N)N=C1N",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -1.0100000000000016,
+        "y": -0.13980000000000015,
+        "z": -0.12640000000000007,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -0.4170000000000007,
+        "y": 0.002200000000000202,
+        "z": -1.3594,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -0.8820000000000006,
+        "y": 0.8002000000000002,
+        "z": 1.0335999999999999,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -1.7400000000000002,
+        "y": -1.2947999999999995,
+        "z": -0.15639999999999998,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.7630000000000008,
+        "y": -1.0527999999999995,
+        "z": -2.1164,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -1.5620000000000012,
+        "y": -1.8617999999999997,
+        "z": -1.4163999999999999,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 0.39899999999999913,
+        "y": 0.5712000000000002,
+        "z": 1.8405999999999998,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 1.6519999999999992,
+        "y": 0.9192,
+        "z": 1.0126,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": 2.4339999999999993,
+        "y": -0.05379999999999985,
+        "z": 0.5035999999999999,
+        "charge": 0.3
+      },
+      {
+        "element": "O",
+        "x": 1.8889999999999993,
+        "y": 2.1102,
+        "z": 0.7846,
+        "charge": -0.4
+      }
+    ]
+  },
+  "cholera": {
+    "target_protein": "Cholera Toxin B Subunit",
+    "uniprot_id": "P0DJI4",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC1=CC(=O)N(C(=O)N1)C2=CC=CC=C2"
+  },
+  "rabies": {
+    "target_protein": "Glycoprotein",
+    "uniprot_id": "Q9Z0W1",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=C(C(=O)N1C(=O)N)C2=CC=CC=C2C(=O)N"
+  },
+  "marburgvirus": {
+    "target_protein": "Viral RNA-dependent RNA polymerase",
+    "uniprot_id": "Q8I9X8",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=CC(=C(C=C1)C(=O)Nc2ccccc2N)C(=O)Nc3ccccc3N"
+  },
+  "methylisocynate": {
+    "target_protein": "Acetylcholinesterase",
+    "uniprot_id": "P22340",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC(=O)Nc1ccc(cc1)S(=O)(=O)N"
+  },
+  "birdfluvirus": {
+    "target_protein": "Neuraminidase",
+    "uniprot_id": "P03474",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC1=C(C(C(=O)N1C(=O)N)C(=O)N)C(=O)N"
+  },
+  "juninvirus": {
+    "target_protein": "Junin virus Glycoprotein",
+    "uniprot_id": "P30101",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=CC(=C(C=C1)C2=CC=CC=C2)C3=CC(=C(C(=C3)C)C(=O)N)N"
+  },
+  "dengue": {
+    "target_protein": "NS2B-NS3 protease",
+    "uniprot_id": "Q9BZQ8",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=C(C(=O)N1C(=O)N2CCC2=O)C3=CC=CC=C3"
+  },
+  "kyasanurforestvirus": {
+    "target_protein": "NSP15",
+    "uniprot_id": "P0C6W5",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC1=CC(=C(C(=C1)C2=CC=CC=C2)C(=O)N3C(=O)N(C(=O)N3C)C)C(=O)N4C(=O)N(C(=O)N4C)C)C"
+  },
+  "crimeacongofever": {
+    "target_protein": "NSs",
+    "uniprot_id": "Q9H4G4",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC1=C(C(=O)Nc2ccc(cc2)S(=O)(=O)N)C(=O)N1"
+  },
+  "yersiniapestis": {
+    "target_protein": "YopO",
+    "uniprot_id": "Q9Z7E5",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "hydrophobic",
+    "recommended_seed_smiles": "CC1=CC(=O)N(C(=O)N1C(=O)N)C(=O)N"
+  },
+  "isoniazid": {
+    "target_protein": "InhA",
+    "uniprot_id": "Q4TUY1",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "hydrophobic",
+    "recommended_seed_smiles": "CCC1=C(C2=CC=C(C=C2)Cl)N=C(N)N=C1N"
+  },
+  "e.coil": {
+    "target_protein": "Elastase",
+    "uniprot_id": "P08253",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "polar",
+    "recommended_seed_smiles": "CC(C)C1=CC=C(C=C1)C(=O)N",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": 1.6020000000000003,
+        "y": -0.29469999999999974,
+        "z": -1.8178,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 2.7640000000000002,
+        "y": 0.5903,
+        "z": 0.23819999999999997,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.20599999999999952,
+        "y": 2.6963,
+        "z": 2.7172,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 2.846,
+        "y": -0.1086999999999998,
+        "z": -0.9778,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -0.052999999999999936,
+        "y": -1.9176999999999997,
+        "z": -2.6308,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 1.189,
+        "y": -1.7666999999999997,
+        "z": -1.8928,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -2.9130000000000003,
+        "y": -0.09769999999999968,
+        "z": 1.5281999999999998,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": 0.21799999999999997,
+        "y": 1.2293000000000003,
+        "z": 2.7272,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 0.15500000000000025,
+        "y": -2.0576999999999996,
+        "z": 0.2682,
+        "charge": -0.4
+      },
+      {
+        "element": "O",
+        "x": -5.602,
+        "y": 1.7273,
+        "z": -0.15980000000000005,
+        "charge": -0.4
+      }
+    ]
+  },
+  "e.coli": {
+    "target_protein": "Ribosome",
+    "uniprot_id": "P0A8G3",
+    "pocket_size_angstrom": 20.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=CC(=C(C=C1)C(=O)N)C(=O)N",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -0.5178,
+        "y": 1.3202000000000003,
+        "z": 1.2521,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 1.6322,
+        "y": 0.35919999999999996,
+        "z": 0.9051,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": -0.9318,
+        "y": 0.029200000000000115,
+        "z": 1.9800999999999997,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.9952,
+        "y": 1.4202,
+        "z": 1.0451000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.3982,
+        "y": -1.5977999999999999,
+        "z": -1.8299,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -2.3888,
+        "y": 0.4092,
+        "z": -1.9869,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -2.3958,
+        "y": -0.13080000000000003,
+        "z": 1.9371,
+        "charge": 0.3
+      },
+      {
+        "element": "N",
+        "x": 1.7862,
+        "y": -1.6958,
+        "z": -1.7979,
+        "charge": 0.3
+      },
+      {
+        "element": "O",
+        "x": 1.5062000000000002,
+        "y": 2.5672,
+        "z": 1.0160999999999998,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": -0.08379999999999999,
+        "y": -2.6807999999999996,
+        "z": -2.5209,
+        "charge": 0.0
+      }
+    ]
+  },
+  "hepatitisc": {
+    "target_protein": "NS5A",
+    "uniprot_id": "P26662",
+    "pocket_size_angstrom": 15.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC(C)OC(=O)C(C)NP(=O)(OCC1C(C(C(O1)N2C=CC(=O)NC2=O)(C)F)O)OC3=CC=CC=C3",
+    "pocket_residues": [
+      {
+        "element": "N",
+        "x": 0.4632999999999998,
+        "y": 0.3852,
+        "z": -0.2945,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -0.039699999999999847,
+        "y": 1.1162,
+        "z": 0.6935,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 1.5143,
+        "y": -0.6148,
+        "z": -0.1755,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -1.0997000000000001,
+        "y": 2.1431999999999998,
+        "z": 0.2875000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -1.2837,
+        "y": 0.3762,
+        "z": -2.4525,
+        "charge": -0.4
+      },
+      {
+        "element": "O",
+        "x": 0.31930000000000014,
+        "y": 0.9622,
+        "z": 1.8585,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": 0.8853,
+        "y": -2.0158,
+        "z": -0.23549999999999982,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -3.3217,
+        "y": 0.47819999999999996,
+        "z": 0.3055000000000001,
+        "charge": -0.4
+      },
+      {
+        "element": "S",
+        "x": 0.009300000000000086,
+        "y": -2.3998,
+        "z": 1.3045,
+        "charge": -0.2
+      },
+      {
+        "element": "C",
+        "x": 2.5532999999999997,
+        "y": -0.43080000000000007,
+        "z": -1.2915,
+        "charge": 0.0
+      }
+    ]
+  },
+  "nipahvirus": {
+    "target_protein": "Nipah Virus Glycoprotein",
+    "uniprot_id": "Q6GZX4",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "",
+    "pocket_residues": [
+      {
+        "element": "O",
+        "x": 0.8291000000000004,
+        "y": 0.4229000000000003,
+        "z": -1.4564000000000004,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": -1.5168999999999988,
+        "y": 0.8929,
+        "z": 0.1255999999999986,
+        "charge": 0.3
+      },
+      {
+        "element": "O",
+        "x": 0.549100000000001,
+        "y": -1.3670999999999989,
+        "z": 1.3365999999999998,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": 1.6871,
+        "y": -1.1700999999999997,
+        "z": 0.9125999999999994,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": 0.8511000000000006,
+        "y": 1.9679000000000002,
+        "z": 1.3545999999999996,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 2.0011,
+        "y": 0.23990000000000045,
+        "z": -1.7754000000000012,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -1.5728999999999989,
+        "y": 2.0429000000000004,
+        "z": 0.8025999999999991,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -2.6518999999999995,
+        "y": -0.03509999999999991,
+        "z": 0.025599999999998957,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 2.1301000000000014,
+        "y": -1.8041,
+        "z": -0.4074000000000009,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -2.3058999999999994,
+        "y": -1.1901000000000002,
+        "z": -0.9184000000000001,
+        "charge": 0.0
+      }
+    ]
+  },
+  "hiv": {
+    "target_protein": "HIV Protease",
+    "uniprot_id": "P04601",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "CC1=C(C(=CC=C1)C)OCC(=O)NC(CC2=CC=CC=C2)C(CC(CC3=CC=CC=C3)NC(=O)C(C(C)C)N4CCCNC4=O)O",
+    "pocket_residues": [
+      {
+        "element": "O",
+        "x": 0.025900000000000034,
+        "y": 0.4253,
+        "z": 1.454,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": 0.6049000000000002,
+        "y": 1.3653,
+        "z": 0.9080000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 1.9859000000000002,
+        "y": 1.1613000000000002,
+        "z": 0.27900000000000014,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 0.4969000000000001,
+        "y": 0.3843000000000001,
+        "z": -2.066,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": -1.7460999999999998,
+        "y": -1.0577,
+        "z": -1.0410000000000001,
+        "charge": 0.3
+      },
+      {
+        "element": "N",
+        "x": 0.0029000000000003467,
+        "y": 2.5413,
+        "z": 0.714,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 0.06490000000000018,
+        "y": -2.5927,
+        "z": -0.4570000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": -2.0040999999999998,
+        "y": -1.5396999999999998,
+        "z": 1.7710000000000001,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -1.4670999999999998,
+        "y": -2.3827,
+        "z": -0.48399999999999976,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": 2.0359000000000003,
+        "y": 1.6953,
+        "z": -1.078,
+        "charge": 0.3
+      }
+    ]
+  },
+  "poliovirus": {
+    "target_protein": "3C protease",
+    "uniprot_id": "P02677",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "hydrophobic",
+    "recommended_seed_smiles": "",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -1.8055999999999999,
+        "y": -0.583899999999999,
+        "z": 0.9843999999999998,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -1.8985999999999998,
+        "y": 0.4151000000000007,
+        "z": -0.1896000000000002,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -0.5065999999999999,
+        "y": 1.0281000000000002,
+        "z": -0.4646000000000001,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.5694000000000001,
+        "y": -0.03289999999999971,
+        "z": -0.7276000000000002,
+        "charge": 0.0
+      },
+      {
+        "element": "N",
+        "x": 1.7174000000000003,
+        "y": 0.1051000000000002,
+        "z": -0.06360000000000021,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": -2.9306,
+        "y": 1.5211000000000006,
+        "z": 0.13739999999999986,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 0.37240000000000006,
+        "y": -0.9788999999999994,
+        "z": -1.4926000000000001,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": -0.5355999999999999,
+        "y": 1.956100000000001,
+        "z": -1.5976000000000001,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 2.4433999999999996,
+        "y": -1.8908999999999994,
+        "z": 1.1223999999999998,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 2.5744,
+        "y": -1.538899999999999,
+        "z": 2.2914,
+        "charge": -0.4
+      }
+    ]
+  },
+  "variolavirus": {
+    "target_protein": "Thymidine Kinase",
+    "uniprot_id": "P03220",
+    "pocket_size_angstrom": 10.0,
+    "pocket_charge_bias": "mixed",
+    "recommended_seed_smiles": "C1=CN(C(=O)N=C1N)CC(CO)OCP(=O)(O)O",
+    "pocket_residues": [
+      {
+        "element": "C",
+        "x": -0.5859000000000005,
+        "y": -0.12150000000000105,
+        "z": 0.5956999999999995,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -2.7429,
+        "y": 0.3044999999999991,
+        "z": 1.5226999999999995,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": -2.0179000000000005,
+        "y": -0.5485000000000007,
+        "z": 0.9626999999999994,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": 0.2850999999999999,
+        "y": -1.3015000000000008,
+        "z": 0.1386999999999996,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": -2.3849000000000005,
+        "y": -1.718500000000001,
+        "z": 0.7076999999999996,
+        "charge": -0.4
+      },
+      {
+        "element": "C",
+        "x": 1.7721,
+        "y": -0.9605000000000006,
+        "z": 0.05469999999999953,
+        "charge": 0.0
+      },
+      {
+        "element": "O",
+        "x": 2.8041,
+        "y": 1.588499999999999,
+        "z": 0.5206999999999997,
+        "charge": -0.4
+      },
+      {
+        "element": "N",
+        "x": 2.0650999999999993,
+        "y": 0.05349999999999877,
+        "z": -0.9513000000000007,
+        "charge": 0.3
+      },
+      {
+        "element": "C",
+        "x": 2.6560999999999995,
+        "y": 1.1984999999999992,
+        "z": -0.6373000000000006,
+        "charge": 0.0
+      },
+      {
+        "element": "C",
+        "x": -1.8509000000000002,
+        "y": 1.5054999999999996,
+        "z": -2.914300000000001,
+        "charge": 0.0
+      }
+    ]
+  }
+}

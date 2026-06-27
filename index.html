@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantumShield - Antibiotic Discovery</title>
+
+  <!-- Preload Spline viewer library -->
+  <link rel="preload" href="https://unpkg.com/@splinetool/viewer/build/spline-viewer.js" as="script" crossorigin>
+
+  <!-- Preload local Spline scene file for fast loading -->
+  <link rel="preload" href="/assets/dna_scene.splinecode" as="fetch">
+
+  <!-- Load Spline viewer web component -->
+  <script type="module" src="https://unpkg.com/@splinetool/viewer/build/spline-viewer.js"></script>
+
+  <!-- Preload the React dashboard for instant navigation -->
+  <link rel="prefetch" href="/app.html">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      /* Color Palette from user image */
+      --color-light-bg: #f4f4f6;
+      --color-light-grey: #e1e2e4;
+      --color-mid-grey: #c5c6c8;
+      --color-charcoal: #3e4145;
+      --color-slate: #4d5c66;
+      --color-teal: #138aa5;
+
+      --font-primary: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+      --font-mono: 'Courier New', Courier, monospace;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      /* NO ROUNDED STYLES */
+      border-radius: 0px !important;
+    }
+
+    body {
+      background-color: var(--color-light-bg);
+      color: var(--color-charcoal);
+      font-family: var(--font-primary);
+      overflow-x: hidden;
+      overflow-y: scroll;
+      min-height: 450vh;
+      /* extended depth for hero + 4 scrolling features */
+      position: relative;
+    }
+
+    /* ============================================================
+       TRANSITION OVERLAY — Upgraded Cinematic Pathogen HUD
+       ============================================================ */
+    .transition-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .transition-overlay.active {
+      pointer-events: all;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Frosted glass backdrop that fades in */
+    .transition-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(244, 244, 246, 0);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        backdrop-filter 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        -webkit-backdrop-filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .transition-overlay.active .transition-backdrop {
+      background: rgba(244, 244, 246, 0.92);
+      backdrop-filter: blur(35px);
+      -webkit-backdrop-filter: blur(35px);
+    }
+
+    /* Sci-fi layout grid lines overlay */
+    .transition-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(19, 138, 165, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(19, 138, 165, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.8s ease 0.2s;
+      pointer-events: none;
+    }
+
+    .transition-overlay.active .transition-grid {
+      opacity: 1;
+    }
+
+    /* Translucent floating molecule watermarks */
+    .watermark-field {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .watermark-node {
+      position: absolute;
+      font-family: var(--font-mono);
+      color: var(--color-teal);
+      opacity: 0;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+      font-weight: 700;
+      transition: opacity 0.5s ease;
+    }
+
+    /* Centered Pathogen HUD Scanner */
+    .pathogen-hud-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.6);
+      width: 360px;
+      height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
+      z-index: 5;
+    }
+
+    .transition-overlay.active .pathogen-hud-container {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .pathogen-image {
+      width: 220px;
+      height: 220px;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+      /* Blends the white background of the image away */
+      filter: drop-shadow(0 0 15px rgba(19, 138, 165, 0.15));
+      z-index: 3;
+      transition: transform 0.4s ease, filter 0.4s ease;
+    }
+
+    /* Target lock-on brackets */
+    .target-bracket {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: var(--color-teal);
+      border-style: solid;
+      border-width: 0px;
+      transition: border-width 0.4s ease 0.4s, inset 0.4s cubic-bezier(0.25, 1, 0.5, 1) 0.4s;
+      z-index: 4;
+    }
+
+    .bracket-tl {
+      top: 45px;
+      left: 45px;
+      border-top-width: 2px;
+      border-left-width: 2px;
+    }
+
+    .bracket-tr {
+      top: 45px;
+      right: 45px;
+      border-top-width: 2px;
+      border-right-width: 2px;
+    }
+
+    .bracket-bl {
+      bottom: 45px;
+      left: 45px;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+    }
+
+    .bracket-br {
+      bottom: 45px;
+      right: 45px;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+    }
+
+    /* Locks on by contracting inwards when activated */
+    .transition-overlay.active .bracket-tl {
+      top: 55px;
+      left: 55px;
+    }
+
+    .transition-overlay.active .bracket-tr {
+      top: 55px;
+      right: 55px;
+    }
+
+    .transition-overlay.active .bracket-bl {
+      bottom: 55px;
+      left: 55px;
+    }
+
+    .transition-overlay.active .bracket-br {
+      bottom: 55px;
+      right: 55px;
+    }
+
+    /* Scanning circle rings (allowing rounded loading visual styles) */
+    .hud-scanner-rings {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .scanner-ring {
+      position: absolute;
+      border-radius: 50% !important;
+      /* override the global 0px border-radius rule for this HUD */
+      border: 1px dashed rgba(19, 138, 165, 0.2);
+    }
+
+    .ring-outer {
+      width: 330px;
+      height: 330px;
+      border-style: dotted;
+      animation: spin-clockwise 20s linear infinite;
+    }
+
+    .ring-middle {
+      width: 290px;
+      height: 290px;
+      border: 1px solid rgba(19, 138, 165, 0.15);
+      border-left-color: var(--color-teal);
+      border-right-color: var(--color-teal);
+      animation: spin-counter-clockwise 8s linear infinite;
+    }
+
+    .ring-inner {
+      width: 250px;
+      height: 250px;
+      border-style: dashed;
+      border-top-color: var(--color-teal);
+      animation: spin-clockwise 4s linear infinite;
+    }
+
+    @keyframes spin-clockwise {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes spin-counter-clockwise {
+      from {
+        transform: rotate(360deg);
+      }
+
+      to {
+        transform: rotate(0deg);
+      }
+    }
+
+    /* Vertical scanner laser bar */
+    .scanner-sweep-line {
+      position: absolute;
+      left: 15%;
+      width: 70%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--color-teal), transparent);
+      box-shadow: 0 0 10px var(--color-teal);
+      top: 60px;
+      z-index: 4;
+      animation: laser-sweep 2s ease-in-out infinite alternate;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .transition-overlay.active .scanner-sweep-line {
+      opacity: 0.85;
+    }
+
+    @keyframes laser-sweep {
+      from {
+        top: 60px;
+      }
+
+      to {
+        top: 300px;
+      }
+    }
+
+    .target-stats-overlay {
+      position: absolute;
+      bottom: 5px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      color: var(--color-teal);
+      text-align: center;
+      line-height: 1.5;
+      letter-spacing: 1px;
+      font-weight: bold;
+      opacity: 0.8;
+    }
+
+    /* Progress Bar (Loading Bar) below the HUD */
+    .progress-bar-container {
+      position: absolute;
+      top: calc(50% + 210px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .progress-bar-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--color-teal);
+      font-weight: 700;
+      transition: color 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(19, 138, 165, 0.12);
+      border: 1px solid rgba(19, 138, 165, 0.2);
+      overflow: hidden;
+      border-radius: 3px !important;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--color-teal);
+      box-shadow: 0 0 8px var(--color-teal);
+      transition: width 0.1s linear;
+      border-radius: 3px !important;
+    }
+
+    /* Particle burst — tiny teal dots that radiate outward */
+    .particle-field {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3px;
+      height: 3px;
+      background: var(--color-teal);
+      box-shadow: 0 0 6px var(--color-teal);
+      opacity: 0;
+    }
+
+    /* Final white-out flash before navigation */
+    .flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--color-light-bg);
+      opacity: 0;
+      transition: opacity 0.25s cubic-bezier(0.4, 0, 1, 1);
+      z-index: 100;
+    }
+
+    .transition-overlay.flash .flash-overlay {
+      opacity: 1;
+    }
+
+    /* Fixed background container for DNA */
+    .dna-viewport {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Live Spline viewer starts hidden and fades in when loaded */
+    spline-viewer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform: scale(1.25);
+      /* Zoom to crop logo and keep DNA clean */
+      transform-origin: center center;
+      pointer-events: none !important;
+      opacity: 0;
+      /* hidden on start, cross-fades when ready */
+      transition: opacity 0.35s ease;
+      --spline-viewer-logo-display: none !important;
+    }
+
+    spline-viewer::part(logo) {
+      display: none !important;
+    }
+
+    /* Static preview placeholder — animated CSS DNA helix shown instantly */
+    .dna-placeholder {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--color-light-bg);
+      z-index: 2;
+      opacity: 1;
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* CSS-only animated DNA double helix placeholder */
+    .css-dna {
+      position: relative;
+      width: 80px;
+      height: 400px;
+    }
+
+    .css-dna .base-pair {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: dna-helix-rotate 2.8s ease-in-out infinite;
+    }
+
+    .css-dna .base-pair .node {
+      width: 10px;
+      height: 10px;
+      border-radius: 50% !important;
+      flex-shrink: 0;
+    }
+
+    .css-dna .base-pair .node-left {
+      background: var(--color-teal);
+      box-shadow: 0 0 8px rgba(19, 138, 165, 0.4);
+    }
+
+    .css-dna .base-pair .node-right {
+      background: var(--color-mid-grey);
+      box-shadow: 0 0 6px rgba(197, 198, 200, 0.5);
+    }
+
+    .css-dna .base-pair .bridge {
+      flex: 1;
+      height: 1.5px;
+      background: linear-gradient(90deg, var(--color-teal), var(--color-light-grey), var(--color-mid-grey));
+      opacity: 0.5;
+      margin: 0 2px;
+    }
+
+    @keyframes dna-helix-rotate {
+      0% {
+        transform: translateX(-50%) scaleX(1);
+      }
+
+      25% {
+        transform: translateX(-50%) scaleX(0.15);
+      }
+
+      50% {
+        transform: translateX(-50%) scaleX(-1);
+      }
+
+      75% {
+        transform: translateX(-50%) scaleX(0.15);
+      }
+
+      100% {
+        transform: translateX(-50%) scaleX(1);
+      }
+    }
+
+    /* Loading indicator text below the DNA */
+    .placeholder-loading {
+      position: absolute;
+      bottom: calc(50% - 240px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--color-teal);
+      font-weight: 600;
+      opacity: 0.6;
+      animation: loadPulse 1.5s ease-in-out infinite;
+      white-space: nowrap;
+    }
+
+    @keyframes loadPulse {
+
+      0%,
+      100% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 0.8;
+      }
+    }
+
+    /* SVG Connector Overlay */
+    .connector-svg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .connector-line {
+      fill: none;
+      stroke: var(--color-mid-grey);
+      stroke-width: 1.5;
+      stroke-dasharray: 4, 4;
+      opacity: 0;
+      /* Smooth path growth animation */
+      transition: stroke-dashoffset 0.3s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
+    }
+
+    .connector-line.active {
+      stroke: var(--color-teal);
+      stroke-width: 2;
+      opacity: 0.85;
+      filter: drop-shadow(0 0 4px var(--color-teal));
+    }
+
+    /* UI Header Overlay */
+    .header-ui {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      padding: 30px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .title-area {
+      pointer-events: auto;
+    }
+
+    .title-area h1 {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--color-charcoal);
+    }
+
+    .nav-area {
+      pointer-events: auto;
+    }
+
+    .btn-view {
+      display: inline-block;
+      padding: 10px 20px;
+      border: 1px solid var(--color-charcoal);
+      background: transparent;
+      color: var(--color-charcoal);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-view::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(19, 138, 165, 0.15), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn-view:hover {
+      background-color: var(--color-charcoal);
+      color: var(--color-light-bg);
+      border-color: var(--color-charcoal);
+      box-shadow: 0 4px 20px rgba(62, 65, 69, 0.25);
+    }
+
+    .btn-view:hover::before {
+      left: 100%;
+    }
+
+    /* Landing Page Hero Container (Screen 1 - Big and Centered) */
+    .hero-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 780px;
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      background: rgba(244, 244, 246, 0.4);
+      padding: 40px;
+      backdrop-filter: blur(2px);
+    }
+
+    .hero-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--color-teal);
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-size: 60px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: var(--color-charcoal);
+      margin-bottom: 24px;
+      line-height: 1.1;
+    }
+
+    .hero-description {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--color-slate);
+      font-weight: 400;
+    }
+
+    /* Left and Right Side Panels for Hero Screen */
+    .hero-side-panel {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 300px;
+      z-index: 10;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .side-left {
+      left: 40px;
+      text-align: left;
+    }
+
+    .side-right {
+      right: 40px;
+      text-align: right;
+    }
+
+    .side-section {
+      margin-bottom: 28px;
+    }
+
+    .side-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .side-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--color-teal);
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .side-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--color-charcoal);
+      margin-bottom: 6px;
+    }
+
+    .side-desc {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--color-slate);
+    }
+
+    /* Sci-fi details boxes */
+    .info-boxes-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* Single dynamic box with rapid transitions */
+    .info-box {
+      position: absolute;
+      width: 480px;
+      background: rgba(244, 244, 246, 0.4);
+      padding: 24px;
+      backdrop-filter: blur(2px);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      opacity: 0;
+      transform: scale(0);
+      pointer-events: auto;
+      box-shadow: 0 10px 30px rgba(19, 138, 165, 0.08);
+    }
+
+    /* Positioning classes applied dynamically */
+    .box-left-top {
+      top: 140px;
+      left: 60px;
+    }
+
+    .box-right-top {
+      top: 140px;
+      right: 60px;
+    }
+
+    .box-left-bottom {
+      bottom: 60px;
+      left: 60px;
+    }
+
+    .box-right-bottom {
+      bottom: 60px;
+      right: 60px;
+    }
+
+    /* Box Typography */
+    .box-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-teal);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .box-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--color-charcoal);
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(19, 138, 165, 0.2);
+      padding-bottom: 8px;
+    }
+
+    .box-body {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--color-charcoal);
+    }
+
+    .box-body p {
+      margin-bottom: 10px;
+    }
+
+    .box-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    .tech-list,
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tech-item,
+    .step-item {
+      font-size: 12px;
+    }
+
+    .tech-name,
+    .step-name {
+      font-weight: 700;
+      color: var(--color-charcoal);
+    }
+
+    .formula-block {
+      font-family: var(--font-mono);
+      background: rgba(0, 0, 0, 0.03);
+      padding: 8px 12px;
+      margin: 8px 0;
+      font-size: 11px;
+      border-left: 2px solid var(--color-teal);
+      color: var(--color-charcoal);
+    }
+
+    /* Key Features Interstitial Frame */
+    .key-features-frame {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      text-align: center;
+    }
+
+    .key-features-frame.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .kf-inner {
+      background: rgba(244, 244, 246, 0.4);
+      backdrop-filter: blur(2px);
+      padding: 40px 60px;
+      box-shadow: 0 20px 60px rgba(19, 138, 165, 0.1), 0 0 0 1px rgba(19, 138, 165, 0.05);
+    }
+
+    .kf-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--color-teal);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .kf-title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--color-charcoal);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .kf-line {
+      width: 50px;
+      height: 2px;
+      background: var(--color-teal);
+      margin: 0 auto 14px;
+    }
+
+    .kf-subtitle {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--color-slate);
+      font-weight: 400;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* Scroll Down Indicator */
+    .scroll-indicator {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--color-slate);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .scroll-indicator::after {
+      content: '↓';
+      font-size: 12px;
+      color: var(--color-teal);
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    /* Mini DNA Decorations */
+    .mini-dna-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .mini-dna {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.12;
+    }
+
+    .mini-dna svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mini-dna .strand {
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+    }
+
+    .mini-dna .strand-1 {
+      stroke: var(--color-teal);
+    }
+
+    .mini-dna .strand-2 {
+      stroke: var(--color-mid-grey);
+    }
+
+    .mini-dna .rung {
+      stroke: var(--color-light-grey);
+      stroke-width: 1;
+      opacity: 0.6;
+    }
+
+    @keyframes dna-spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes dna-drift {
+
+      0%,
+      100% {
+        transform: translateY(0px) rotate(0deg);
+      }
+
+      25% {
+        transform: translateY(-8px) rotate(3deg);
+      }
+
+      50% {
+        transform: translateY(0px) rotate(0deg);
+      }
+
+      75% {
+        transform: translateY(8px) rotate(-3deg);
+      }
+    }
+
+    .mini-dna-1 {
+      top: 8%;
+      left: 5%;
+      width: 40px;
+      height: 80px;
+      opacity: 0.10;
+      animation: dna-drift 18s ease-in-out infinite;
+    }
+
+    .mini-dna-2 {
+      top: 65%;
+      right: 8%;
+      left: auto;
+      width: 30px;
+      height: 60px;
+      opacity: 0.08;
+      animation: dna-drift 22s ease-in-out infinite reverse;
+    }
+
+    .mini-dna-3 {
+      top: 30%;
+      right: 3%;
+      left: auto;
+      width: 50px;
+      height: 100px;
+      opacity: 0.06;
+      animation: dna-drift 25s ease-in-out infinite;
+    }
+
+    .mini-dna-4 {
+      bottom: 12%;
+      left: 10%;
+      width: 25px;
+      height: 50px;
+      opacity: 0.10;
+      animation: dna-drift 20s ease-in-out infinite reverse;
+    }
+
+    .mini-dna-5 {
+      top: 45%;
+      left: 2%;
+      width: 35px;
+      height: 70px;
+      opacity: 0.07;
+      animation: dna-drift 16s ease-in-out infinite;
+    }
+
+    .mini-dna-6 {
+      bottom: 5%;
+      right: 15%;
+      left: auto;
+      width: 22px;
+      height: 44px;
+      opacity: 0.09;
+      animation: dna-drift 24s ease-in-out infinite reverse;
+    }
+
+    /* Page exit animation applied to body content */
+    body.transitioning-out .dna-viewport,
+    body.transitioning-out .mini-dna-container,
+    body.transitioning-out .header-ui,
+    body.transitioning-out .hero-container,
+    body.transitioning-out .hero-side-panel,
+    body.transitioning-out .info-boxes-container,
+    body.transitioning-out .key-features-frame,
+    body.transitioning-out .scroll-indicator,
+    body.transitioning-out .connector-svg {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      opacity: 0 !important;
+      transform: scale(0.97) !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       TRANSITION OVERLAY — Cinematic exit to Dashboard
+       ============================================================ -->
+  <div class="transition-overlay" id="transition-overlay">
+    <div class="transition-backdrop"></div>
+    <div class="transition-grid"></div>
+    <div class="watermark-field" id="watermark-field"></div>
+    <div class="beam-sweep"></div>
+    <div class="particle-field" id="particle-field"></div>
+
+    <!-- Center: Pathogen Target Scanner -->
+    <div class="pathogen-hud-container">
+      <div class="target-bracket bracket-tl"></div>
+      <div class="target-bracket bracket-tr"></div>
+      <div class="target-bracket bracket-bl"></div>
+      <div class="target-bracket bracket-br"></div>
+
+      <div class="hud-scanner-rings">
+        <div class="scanner-ring ring-outer"></div>
+        <div class="scanner-ring ring-middle"></div>
+        <div class="scanner-ring ring-inner"></div>
+        <div class="scanner-sweep-line"></div>
+      </div>
+
+      <img src="/assets/virus_target.png" alt="Pathogen Target" class="pathogen-image" id="hud-virus-image" />
+
+      <div class="target-stats-overlay">
+        <div>TGT: INHA - MUTATION I194T</div>
+        <div id="target-coords">COORD: [X: +14.28, Y: -8.94, Z: +32.11]</div>
+      </div>
+    </div>
+
+    <!-- Progress Bar (Loading Bar) below HUD -->
+    <div class="progress-bar-container">
+      <div class="progress-bar-text" id="progress-bar-text">INITIALIZING SYSTEM... 0%</div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <div class="flash-overlay"></div>
+  </div>
+
+  <!-- Mini DNA Decorations -->
+  <div class="mini-dna-container">
+    <div class="mini-dna mini-dna-1">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
+        <line class="rung" x1="14" y1="76" x2="26" y2="76" />
+      </svg>
+    </div>
+    <div class="mini-dna mini-dna-2">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
+      </svg>
+    </div>
+    <div class="mini-dna mini-dna-3">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
+        <line class="rung" x1="14" y1="76" x2="26" y2="76" />
+      </svg>
+    </div>
+    <div class="mini-dna mini-dna-4">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+      </svg>
+    </div>
+    <div class="mini-dna mini-dna-5">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
+      </svg>
+    </div>
+    <div class="mini-dna mini-dna-6">
+      <svg viewBox="0 0 40 80">
+        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65" />
+        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65" />
+        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
+        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
+        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- Background DNA Helix — loaded from local assets for speed -->
+  <div class="dna-viewport">
+    <spline-viewer loading-anim-type="none" lazy="false" url="/assets/dna_scene.splinecode"></spline-viewer>
+  </div>
+
+  <!-- Animated CSS DNA placeholder — renders instantly while 3D loads -->
+  <div class="dna-placeholder" id="dna-placeholder">
+    <div class="css-dna" id="css-dna"></div>
+    <div class="placeholder-loading">Loading 3D Model</div>
+  </div>
+
+  <!-- SVG Connectors from boxes to DNA -->
+  <svg class="connector-svg" id="connector-svg">
+    <path class="connector-line" id="line-0" />
+    <path class="connector-line" id="line-1" />
+    <path class="connector-line" id="line-2" />
+    <path class="connector-line" id="line-3" />
+  </svg>
+
+  <!-- Title Overlay -->
+  <div class="header-ui">
+    <div class="title-area">
+      <h1>QuantumShield</h1>
+    </div>
+    <div class="nav-area">
+      <button class="btn-view" id="btn-view-website" type="button">View Website</button>
+    </div>
+  </div>
+
+  <!-- Screen 1: Big Centered Hero Landing Page (Fades out on scroll) -->
+  <div class="hero-container" id="hero-container">
+    <div class="hero-tag">Quantum-Powered Bio-Simulation</div>
+    <h2 class="hero-title">QuantumShield</h2>
+    <p class="hero-description">We are mapping the active electronic spaces of mutated pathogen target sites directly
+      onto quantum processors, calculating exact interatomic binding energies to bypass classical computational limits
+      and neutralize drug-resistant pathogens.</p>
+  </div>
+
+  <!-- Left Side Panel (Hero Screen Only) -->
+  <div class="hero-side-panel side-left" id="hero-side-left">
+    <div class="side-section">
+      <div class="side-tag">01 / PLATFORM CORE</div>
+      <h3 class="side-title">Hybrid QPU Architecture</h3>
+      <p class="side-desc">Leveraging 128 physical qubits to natively calculate interatomic electronic configurations
+        and steric interactions.</p>
+    </div>
+    <div class="side-section">
+      <div class="side-tag">02 / STRUCTURE DATABASE</div>
+      <h3 class="side-title">AlphaFold Pocket Auto-Mapping</h3>
+      <p class="side-desc">Retrieving atomic coordinates of mutated receptor sites, centering coordinate matrices around
+        pocket origin.</p>
+    </div>
+  </div>
+
+  <!-- Right Side Panel (Hero Screen Only) -->
+  <div class="hero-side-panel side-right" id="hero-side-right">
+    <div class="side-section">
+      <div class="side-tag">03 / SIMULATION METRICS</div>
+      <h3 class="side-title">Quantum Fidelity Target</h3>
+      <p class="side-desc">Maintaining 99.982% 2-qubit gate fidelity with Zero-Noise Extrapolation error mitigation.</p>
+    </div>
+    <div class="side-section">
+      <div class="side-tag">04 / DISCOVERY PIPELINE</div>
+      <h3 class="side-title">Evolutionary Scaffolding</h3>
+      <p class="side-desc">RDKit genetic optimization minimizes MMFF94 force field energy calculations to resolve
+        covalent bindings.</p>
+    </div>
+  </div>
+
+  <!-- Screen 2-5: Four Dynamic Story Boxes -->
+  <div class="info-boxes-container">
+    <!-- Section 01 -->
+    <div class="info-box box-left-top" id="box-0">
+      <div class="box-num">SECTION 01 // OVERVIEW</div>
+      <h2 class="box-title">Project Overview & Scientific Challenge</h2>
+      <div class="box-body">
+        <p>QuantumShield is a quantum-powered antibiotic discovery platform designed to engineer novel drug candidates
+          against drug-resistant pathogens (Mycobacterium tuberculosis, SARS-CoV-2, Salmonella).</p>
+        <p><strong>Chemical Space limit:</strong> With 10^60 potential drug-like molecules, classical computers hit
+          exponential bottlenecks simulating entangled electrons. Mutated target sites (like I194T in TB's InhA enzyme)
+          render standard antibiotics ineffective.</p>
+        <p><strong>Quantum Solution:</strong> Maps mutated active pocket orbitals directly onto qubits to solve exact
+          binding energy (ΔG) without classical approximations.</p>
+      </div>
+    </div>
+
+    <!-- Section 02 -->
+    <div class="info-box box-right-top" id="box-1">
+      <div class="box-num">SECTION 02 // TECH STACK</div>
+      <h2 class="box-title">Drug Discovery Technology Stack</h2>
+      <div class="box-body">
+        <ul class="tech-list">
+          <li class="tech-item"><span class="tech-name">1. NIM Target Extraction (NVIDIA):</span> meta/llama-3.1-8b
+            extracts target protein, UniProt ID, and pocket specifications.</li>
+          <li class="tech-item"><span class="tech-name">2. Protein Structures (AlphaFold DB):</span> Downloads 3D .pdb
+            structures, parsing and centering active pocket atoms.</li>
+          <li class="tech-item"><span class="tech-name">3. Molecular Evolution (RDKit):</span> Genetic Algorithm evolves
+            scaffolds, minimizing interatomic energy via MMFF94.</li>
+          <li class="tech-item"><span class="tech-name">4. Quantum Chemistry (IBM Qiskit):</span> Maps orbital
+            Hamiltonian and runs VQE to find electronic ground-state energies.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Section 03 -->
+    <div class="info-box box-left-bottom" id="box-2">
+      <div class="box-num">SECTION 03 // SIMULATION PHYSICS</div>
+      <h2 class="box-title">Mathematical & Physics Engine</h2>
+      <div class="box-body">
+        <p><strong>Thermodynamic Binding Energy (ΔG):</strong></p>
+        <div class="formula-block">ΔE_binding = E_complex - (E_protein + E_drug)</div>
+        <p><strong>Variational Quantum Eigensolver (VQE):</strong></p>
+        <div class="formula-block">E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩ / ⟨ψ(θ)|ψ(θ)⟩</div>
+        <p>Qubit mapping supports Jordan-Wigner, Bravyi-Kitaev, and Parity. We estimate clinical dissociation values
+          (Kd) and blockade rates:</p>
+        <div class="formula-block">Kd = 10^(ΔG / 1.36) M // Blockade = C / (C + Kd)</div>
+      </div>
+    </div>
+
+    <!-- Section 04 -->
+    <div class="info-box box-right-bottom" id="box-3">
+      <div class="box-num">SECTION 04 // WORKFLOW</div>
+      <h2 class="box-title">6-Step Drug Discovery Workflow</h2>
+      <div class="box-body">
+        <ul class="step-list">
+          <li class="step-item"><span class="step-name">01. Pathogen Input</span> – User selects mutated target strain.
+          </li>
+          <li class="step-item"><span class="step-name">02. AI Target Extraction</span> – AlphaFold structure centered
+            at pocket.</li>
+          <li class="step-item"><span class="step-name">03. Evolutionary Generation</span> – Genetic algorithm yields 5
+            scaffolds.</li>
+          <li class="step-item"><span class="step-name">04. Space Partitioning</span> – Active valence orbitals mapped
+            to Hamiltonian.</li>
+          <li class="step-item"><span class="step-name">05. VQE Execution</span> – Runs on IBM QPU with Zero-Noise
+            Extrapolation.</li>
+          <li class="step-item"><span class="step-name">06. Clinical Profiling</span> – Safety, ADMET, and binding
+            curves calculated.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Features Interstitial Frame -->
+  <div class="key-features-frame" id="key-features-frame">
+    <div class="kf-inner">
+      <div class="kf-tag">QuantumShield Platform</div>
+      <h2 class="kf-title">Key Features</h2>
+      <div class="kf-line"></div>
+      <p class="kf-subtitle">Explore the core technologies powering our quantum antibiotic discovery pipeline.</p>
+    </div>
+  </div>
+
+  <!-- Scroll Down Indicator -->
+  <div class="scroll-indicator" id="scroll-indicator">
+    <span>Scroll down to see features</span>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Generate animated CSS DNA placeholder base pairs immediately
+      const cssDna = document.getElementById('css-dna');
+      if (cssDna) {
+        const pairCount = 20;
+        for (let i = 0; i < pairCount; i++) {
+          const pair = document.createElement('div');
+          pair.className = 'base-pair';
+          pair.style.top = `${(i / pairCount) * 100}%`;
+          pair.style.animationDelay = `${(i / pairCount) * -2.8}s`;
+          pair.innerHTML = `
+            <div class="node node-left"></div>
+            <div class="bridge"></div>
+            <div class="node node-right"></div>
+          `;
+          cssDna.appendChild(pair);
+        }
+      }
+
+      const splineViewer = document.querySelector('spline-viewer');
+      const placeholder = document.getElementById('dna-placeholder');
+      const heroContainer = document.getElementById('hero-container');
+      const heroSideLeft = document.getElementById('hero-side-left');
+      const heroSideRight = document.getElementById('hero-side-right');
+
+      const boxElements = [
+        document.getElementById('box-0'),
+        document.getElementById('box-1'),
+        document.getElementById('box-2'),
+        document.getElementById('box-3')
+      ];
+
+      const lines = [
+        document.getElementById('line-0'),
+        document.getElementById('line-1'),
+        document.getElementById('line-2'),
+        document.getElementById('line-3')
+      ];
+
+      const indicator = document.getElementById('scroll-indicator');
+      const keyFeaturesFrame = document.getElementById('key-features-frame');
+
+      // DNA Target points relative to the center of the viewport (50vw, 50vh)
+      const dnaTargets = [
+        { x: 0.50, y: 0.30 }, // Section 1: top-middle DNA
+        { x: 0.52, y: 0.45 }, // Section 2: mid-top DNA
+        { x: 0.48, y: 0.55 }, // Section 3: mid-bottom DNA
+        { x: 0.50, y: 0.70 }  // Section 4: bottom DNA
+      ];
+
+      // Cross-fade: once Spline is fully loaded & WASM initialized, fade in live 3D
+      const handleLoad = () => {
+        splineViewer.style.opacity = '1';
+        if (placeholder) {
+          placeholder.style.opacity = '0';
+          setTimeout(() => {
+            placeholder.remove(); // Clean up placeholder DOM
+          }, 800);
+        }
+      };
+
+      // Check if it's already loaded, otherwise listen for load
+      if (splineViewer.shadowRoot && (splineViewer.shadowRoot.querySelector('canvas') || splineViewer.loaded)) {
+        handleLoad();
+      } else {
+        splineViewer.addEventListener('load', handleLoad);
+      }
+
+      // Fail-safe timeout: force reveal after 3 seconds if still loading
+      setTimeout(() => {
+        if (splineViewer.style.opacity !== '1') {
+          console.warn('Spline load event timed out, forcing reveal');
+          handleLoad();
+        }
+      }, 3000);
+
+      const activeStates = [false, false, false, false];
+      const boxOrigins = ["bottom right", "top left", "bottom right", "bottom left"];
+      const revealTimeouts = [null, null, null, null];
+
+      // Draw and animate the growing line path for a specific section
+      function drawAndAnimateLine(index) {
+        const box = boxElements[index];
+        if (!box) return;
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // Temporarily reset transform to scale(1) to measure true expanded box coordinates
+        const prevTransform = box.style.transform;
+        const prevTransition = box.style.transition;
+        box.style.transition = 'none';
+        box.style.transform = 'scale(1)';
+
+        // Force reflow and measure
+        const rect = box.getBoundingClientRect();
+
+        // Restore previous scale state for animation
+        box.style.transform = prevTransform;
+        box.style.transition = prevTransition;
+
+        let startX, startY;
+        const target = dnaTargets[index];
+        const targetX = target.x * vw;
+        const targetY = target.y * vh;
+
+        // Determine starting corner based on box class position
+        if (index === 0) { // box-left-top
+          startX = rect.right;
+          startY = rect.bottom - 10;
+        } else if (index === 1) { // box-right-top
+          startX = rect.left;
+          startY = rect.top + 20;
+        } else if (index === 2) { // box-left-bottom
+          startX = rect.right;
+          startY = rect.bottom - 20;
+        } else if (index === 3) { // box-right-bottom
+          startX = rect.left;
+          startY = rect.bottom - 20;
+        }
+
+        // REVERSED PATH: Starts at DNA (targetX, targetY) and draws to box corner (startX, startY)
+        const midX = startX + (targetX - startX) * 0.75;
+        const pathD = `M ${targetX} ${targetY} L ${midX} ${startY} L ${startX} ${startY}`;
+
+        const line = lines[index];
+        if (!line) return;
+
+        // Temporarily disable transition to setup the line start state
+        line.style.transition = 'none';
+        line.setAttribute('d', pathD);
+
+        const length = line.getTotalLength();
+        line.style.strokeDasharray = length;
+        line.style.strokeDashoffset = length;
+        line.style.opacity = '0.85';
+
+        // Force reflow
+        line.getBoundingClientRect();
+
+        // Re-enable transition and trigger growth towards the box
+        line.style.transition = 'stroke-dashoffset 0.3s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.3s ease, opacity 0.3s ease';
+        line.classList.add('active');
+        line.style.strokeDashoffset = '0';
+      }
+
+      function updateBoxVisibility(index, shouldBeActive) {
+        if (activeStates[index] === shouldBeActive) return;
+        activeStates[index] = shouldBeActive;
+
+        const box = boxElements[index];
+        const line = lines[index];
+        if (!box || !line) return;
+
+        // Clear any pending timeouts for this box
+        if (revealTimeouts[index]) {
+          clearTimeout(revealTimeouts[index]);
+          revealTimeouts[index] = null;
+        }
+
+        if (shouldBeActive) {
+          // Setup initial state for reveal
+          box.style.transition = 'none';
+          box.style.transform = 'scale(0)';
+          box.style.opacity = '0';
+          box.style.transformOrigin = boxOrigins[index];
+          box.style.display = 'block'; // Ensure it's displayed
+
+          // Draw the line first
+          drawAndAnimateLine(index);
+
+          // Animate the box in after a slight delay
+          revealTimeouts[index] = setTimeout(() => {
+            box.style.transition = 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            box.style.opacity = '1';
+            box.style.transform = 'scale(1)';
+          }, 180);
+        } else {
+          // Hide line and box snappily
+          line.classList.remove('active');
+          line.style.opacity = '0';
+
+          box.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+          box.style.opacity = '0';
+          box.style.transform = 'scale(0)';
+        }
+      }
+
+      // --- Scroll Reaction logic ---
+      function handleScroll() {
+        const scrollTop = window.scrollY;
+        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollProgress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+
+        // 1. Manage Hero Screen fade out (center and side panels)
+        if (scrollProgress < 0.10) {
+          const fadeVal = (1 - (scrollProgress / 0.10)).toString();
+
+          heroContainer.style.opacity = fadeVal;
+          heroContainer.style.transform = `translate(-50%, calc(-50% - ${scrollProgress * 200}px))`;
+
+          heroSideLeft.style.opacity = fadeVal;
+          heroSideLeft.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
+
+          heroSideRight.style.opacity = fadeVal;
+          heroSideRight.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
+        } else {
+          heroContainer.style.opacity = '0';
+          heroSideLeft.style.opacity = '0';
+          heroSideRight.style.opacity = '0';
+        }
+
+        // 2. Key Features frame: appear after hero, disappear before boxes
+        if (scrollProgress >= 0.12 && scrollProgress < 0.24) {
+          keyFeaturesFrame.classList.add('visible');
+        } else {
+          keyFeaturesFrame.classList.remove('visible');
+        }
+
+        // 3. Manage multiple details boxes reveal (shifted later to allow frame)
+        updateBoxVisibility(0, scrollProgress >= 0.26);
+        updateBoxVisibility(1, scrollProgress >= 0.44);
+        updateBoxVisibility(2, scrollProgress >= 0.62);
+        updateBoxVisibility(3, scrollProgress >= 0.80);
+
+        // Manage scroll down indicator text and visibility
+        if (scrollProgress < 0.10) {
+          indicator.querySelector('span').innerText = 'Scroll down to see features';
+          indicator.style.opacity = '0.8';
+        } else if (scrollProgress >= 0.10 && scrollProgress < 0.90) {
+          indicator.querySelector('span').innerText = 'Keep scrolling';
+          indicator.style.opacity = '0.4';
+        } else {
+          indicator.style.opacity = '0';
+        }
+      }
+
+      window.addEventListener('scroll', handleScroll);
+
+      // Initial scroll check on load
+      handleScroll();
+
+      // Handle resize recalculations for all active lines
+      window.addEventListener('resize', () => {
+        activeStates.forEach((isActive, index) => {
+          if (isActive) {
+            drawAndAnimateLine(index);
+          }
+        });
+      });
+
+      // ============================================================
+      // "VIEW WEBSITE" TRANSITION — Cinematic exit to React Dashboard
+      // ============================================================
+      // ============================================================
+      // "VIEW WEBSITE" TRANSITION — Cinematic exit to React Dashboard
+      // ============================================================
+      const btnView = document.getElementById('btn-view-website');
+      const overlay = document.getElementById('transition-overlay');
+      const particleField = document.getElementById('particle-field');
+      const progressBarText = document.getElementById('progress-bar-text');
+      const progressBarFill = document.getElementById('progress-bar-fill');
+      const targetCoords = document.getElementById('target-coords');
+
+      // Web Audio API Sci-Fi Synthesizer
+      let audioCtx = null;
+      let scanOsc = null;
+      let scanGain = null;
+      let lfoOsc = null;
+
+      function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      function startScanningSound() {
+        try {
+          initAudio();
+          if (!audioCtx) return;
+
+          // Resume audio context if suspended (browser security policy)
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+
+          // Main oscillator for the scanning sweep
+          scanOsc = audioCtx.createOscillator();
+          scanGain = audioCtx.createGain();
+
+          scanOsc.type = 'triangle'; // triangle gives a nice retro-sci-fi tone
+          scanOsc.frequency.setValueAtTime(180, audioCtx.currentTime); // start low
+
+          // LFO to modulate the scanning tone (adds a "chirpy" vibration)
+          lfoOsc = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+
+          lfoOsc.type = 'sine';
+          lfoOsc.frequency.value = 6; // 6 Hz vibration
+          lfoGain.gain.value = 40; // modulate frequency by +/- 40 Hz
+
+          // Connect LFO to oscillator frequency
+          lfoOsc.connect(lfoGain);
+          lfoGain.connect(scanOsc.frequency);
+
+          // Gain (Volume) envelope
+          scanGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+          // Fade in volume quickly to avoid clicks
+          scanGain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.15);
+
+          // Connect to output
+          scanOsc.connect(scanGain);
+          scanGain.connect(audioCtx.destination);
+
+          // Start oscillators
+          scanOsc.start();
+          lfoOsc.start();
+
+          // Programmatic frequency sweep to match scanner animation
+          // Sweep pitch up and down between 180Hz and 320Hz repeatedly
+          let time = audioCtx.currentTime;
+          scanOsc.frequency.linearRampToValueAtTime(320, time + 0.9);
+          scanOsc.frequency.linearRampToValueAtTime(180, time + 1.8);
+          scanOsc.frequency.linearRampToValueAtTime(320, time + 2.7);
+        } catch (err) {
+          console.warn('Audio synthesis failed:', err);
+        }
+      }
+
+      function stopScanningSound() {
+        try {
+          if (scanOsc && audioCtx) {
+            // Fade out quickly to avoid clicks
+            scanGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            scanGain.gain.setValueAtTime(scanGain.gain.value, audioCtx.currentTime);
+            scanGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+            setTimeout(() => {
+              try {
+                scanOsc.stop();
+                if (lfoOsc) lfoOsc.stop();
+              } catch (e) { }
+            }, 200);
+          }
+        } catch (err) {
+          console.warn('Failed to stop audio:', err);
+        }
+      }
+
+      function playSuccessSound() {
+        try {
+          initAudio();
+          if (!audioCtx) return;
+
+          // A 3-note ascending sci-fi arpeggio chime (C5, G5, C6)
+          const notes = [523.25, 783.99, 1046.50];
+          const time = audioCtx.currentTime;
+
+          notes.forEach((freq, index) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, time + index * 0.08);
+
+            // Volume envelope: sharp attack, smooth decay
+            gain.gain.setValueAtTime(0.001, time + index * 0.08);
+            gain.gain.linearRampToValueAtTime(0.12, time + index * 0.08 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + index * 0.08 + 0.6);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(time + index * 0.08);
+            osc.stop(time + index * 0.08 + 0.75);
+          });
+        } catch (err) {
+          console.warn('Failed to play success sound:', err);
+        }
+      }
+
+      // Translucent floating molecule watermarks
+      let watermarks = [];
+      const watermarkCount = 22; // Increased count for richer background field
+      const watermarkSymbols = [
+        'C', 'H', 'O', 'N', 'Cl',
+        'H₂O', 'CO₂', 'NH₃', 'HCl', 'CH₄',
+        'C=O', 'N-H', 'O-H', 'C-Cl'
+      ];
+
+      function initWatermarks() {
+        const field = document.getElementById('watermark-field');
+        if (!field) return;
+        field.innerHTML = '';
+        watermarks = [];
+
+        // Chemically authentic and vivid colors representing different molecular groups
+        const symbolColors = {
+          'C': '#1e293b',    // Carbon (Deep Slate)
+          'H': '#0284c7',    // Hydrogen (Vivid Cyan/Blue)
+          'O': '#dc2626',    // Oxygen (Bright Red)
+          'N': '#4f46e5',    // Nitrogen (Deep Indigo)
+          'Cl': '#16a34a',   // Chlorine (Vibrant Green)
+          'H₂O': '#0891b2',  // Water (Teal/Cyan)
+          'CO₂': '#475569',  // Carbon Dioxide (Slate Grey)
+          'NH₃': '#6366f1',  // Ammonia (Purple Indigo)
+          'HCl': '#059669',  // Hydrochloric Acid (Emerald)
+          'CH₄': '#0d9488',  // Methane (Dark Teal)
+          'C=O': '#e11d48',  // Carbonyl group (Vibrant Crimson)
+          'N-H': '#6366f1',  // Amide bond (Vivid Violet)
+          'O-H': '#ea580c',  // Hydroxyl group (Vibrant Orange)
+          'C-Cl': '#15803d'  // Alkyl chloride (Forest Green)
+        };
+
+        for (let i = 0; i < watermarkCount; i++) {
+          const el = document.createElement('div');
+          el.className = 'watermark-node';
+          const symbol = watermarkSymbols[Math.floor(Math.random() * watermarkSymbols.length)];
+          el.textContent = symbol;
+
+          // Random initial position
+          const x = Math.random() * window.innerWidth;
+          const y = Math.random() * window.innerHeight;
+          // Wider range of sizes: 20px to 75px
+          const size = 20 + Math.random() * 55;
+          const speed = 0.15 + Math.random() * 0.35;
+          const angle = Math.random() * Math.PI * 2;
+          const color = symbolColors[symbol] || '#138aa5';
+          // Increased opacity range for high visibility against light background (0.35 to 0.65)
+          const baseOpacity = 0.35 + Math.random() * 0.30;
+
+          el.style.fontSize = size + 'px';
+          el.style.color = color;
+
+          // Fade in watermark opacity smoothly
+          setTimeout(() => {
+            el.style.opacity = baseOpacity.toString();
+          }, 50 + i * 20);
+
+          field.appendChild(el);
+
+          watermarks.push({
+            el: el,
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            angle: Math.random() * 360,
+            rotSpeed: -0.15 + Math.random() * 0.3
+          });
+        }
+      }
+
+      function updateWatermarks() {
+        watermarks.forEach(w => {
+          w.x += w.vx;
+          w.y += w.vy;
+          w.angle += w.rotSpeed;
+
+          // Wrap around edges dynamically
+          if (w.x < -120) w.x = window.innerWidth + 50;
+          if (w.x > window.innerWidth + 120) w.x = -50;
+          if (w.y < -120) w.y = window.innerHeight + 50;
+          if (w.y > window.innerHeight + 120) w.y = -50;
+
+          w.el.style.transform = `translate(${w.x}px, ${w.y}px) rotate(${w.angle}deg)`;
+        });
+      }
+
+      function fadeOutWatermarks() {
+        watermarks.forEach(w => {
+          w.el.style.opacity = '0';
+        });
+      }
+
+      // Particle system with continuous float
+      let particles = [];
+      const particleCount = 45;
+      let particleAnimId = null;
+      let imploding = false;
+
+      function initParticles() {
+        particleField.innerHTML = '';
+        particles = [];
+        for (let i = 0; i < particleCount; i++) {
+          const p = document.createElement('div');
+          p.classList.add('particle');
+
+          // Random initial positions and drift parameters
+          const x = Math.random() * window.innerWidth;
+          const y = Math.random() * window.innerHeight;
+          const size = 1.5 + Math.random() * 3.5;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.3 + Math.random() * 0.7;
+
+          p.style.width = size + 'px';
+          p.style.height = size + 'px';
+          p.style.opacity = (0.2 + Math.random() * 0.6).toString();
+          p.style.borderRadius = '50%';
+          p.style.boxShadow = `0 0 6px rgba(19, 138, 165, ${0.4 + Math.random() * 0.4})`;
+
+          particleField.appendChild(p);
+
+          particles.push({
+            el: p,
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            baseOpacity: parseFloat(p.style.opacity),
+            pulseSpeed: 0.02 + Math.random() * 0.03,
+            pulsePhase: Math.random() * 10
+          });
+        }
+      }
+
+      function updateParticles() {
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+
+        particles.forEach(p => {
+          if (imploding) {
+            // Rapid pull to center
+            const dx = cx - p.x;
+            const dy = cy - p.y;
+            p.x += dx * 0.16;
+            p.y += dy * 0.16;
+            p.el.style.opacity = (parseFloat(p.el.style.opacity) * 0.85).toString();
+          } else {
+            // Normal drift
+            p.x += p.vx;
+            p.y += p.vy;
+
+            // Bounce off edges
+            if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
+            if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
+
+            // Opacity pulse
+            p.pulsePhase += p.pulseSpeed;
+            p.el.style.opacity = (p.baseOpacity + Math.sin(p.pulsePhase) * 0.15).toString();
+          }
+
+          p.el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+        });
+
+        // Continuously animate drifting watermarks
+        updateWatermarks();
+
+        particleAnimId = requestAnimationFrame(updateParticles);
+      }
+
+      function triggerImplode() {
+        imploding = true;
+      }
+
+      let startTime = null;
+      const totalDuration = 2700; // 2.7s to reach 100%
+
+      function animateProgressBar(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(1.0, elapsed / totalDuration);
+        const pct = Math.floor(progress * 100);
+
+        if (progressBarFill) {
+          progressBarFill.style.width = `${pct}%`;
+        }
+
+        let phase = 'INITIALIZING SYSTEM';
+        if (elapsed < 550) {
+          phase = 'IDENTIFYING PATHOGEN TARGET';
+        } else if (elapsed < 1100) {
+          phase = 'SCANNING ACTIVE POCKET';
+        } else if (elapsed < 1700) {
+          phase = 'SYNTHESIZING LIGAND SCAFFOLDS';
+        } else if (elapsed < 2350) {
+          phase = 'RUNNING VQE DOCKING SOLVER';
+        } else {
+          phase = 'DOCKING SIMULATION COMPLETED';
+        }
+
+        if (progressBarText) {
+          progressBarText.textContent = `${phase}... ${pct}%`;
+        }
+
+        if (progress < 1.0) {
+          requestAnimationFrame(animateProgressBar);
+        }
+      }
+
+      btnView.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        // 1. Fade out page content
+        document.body.classList.add('transitioning-out');
+
+        // 2. Activate transition overlay
+        setTimeout(() => {
+          overlay.classList.add('active');
+          initParticles();
+          initWatermarks();
+          updateParticles();
+
+          // Start the audio synthesis and progress bar
+          startScanningSound();
+          requestAnimationFrame(animateProgressBar);
+        }, 150);
+
+        // --- Timeline Schedule (Total 3.0 seconds) ---
+
+        // Jitter coordinates during Phase 1 & 2
+        setTimeout(() => {
+          const coordInterval = setInterval(() => {
+            const currentPhaseText = progressBarText ? progressBarText.textContent : '';
+            if (!currentPhaseText.includes('IDENTIFYING PATHOGEN TARGET') && !currentPhaseText.includes('SCANNING ACTIVE POCKET')) {
+              clearInterval(coordInterval);
+              return;
+            }
+            const rx = (10 + Math.random() * 10).toFixed(2);
+            const ry = (-5 - Math.random() * 5).toFixed(2);
+            const rz = (30 + Math.random() * 20).toFixed(2);
+            if (targetCoords) {
+              targetCoords.textContent = `COORD: [X: +${rx}, Y: ${ry}, Z: +${rz}]`;
+            }
+          }, 80);
+        }, 200);
+
+        // Target Lock visual updates in Phase 5
+        setTimeout(() => {
+          if (progressBarText) {
+            progressBarText.style.color = '#0f766e';
+          }
+
+          // Target lock brackets turn solid
+          document.querySelectorAll('.target-bracket').forEach(el => {
+            el.style.borderColor = '#0f766e';
+            el.style.boxShadow = '0 0 10px rgba(15, 118, 110, 0.6)';
+          });
+
+          // Make virus glow green/teal
+          const virusImg = document.getElementById('hud-virus-image');
+          if (virusImg) {
+            virusImg.style.filter = 'drop-shadow(0 0 25px rgba(15, 118, 110, 0.5))';
+            virusImg.style.transform = 'scale(1.08)';
+          }
+
+          // Trigger particle implosion & stop scanning, play success chime
+          stopScanningSound();
+          playSuccessSound();
+          fadeOutWatermarks();
+          triggerImplode();
+        }, 2500);
+
+        // Cinematic White Flash — fill the screen solid before navigate
+        setTimeout(() => {
+          if (overlay) overlay.classList.add('flash');
+        }, 2650);
+
+        // Redirect to live dashboard — wait until flash is fully opaque
+        setTimeout(() => {
+          cancelAnimationFrame(particleAnimId);
+          // Set the body background to match the entrance overlay on app.html
+          document.body.style.background = '#f4f4f6';
+          document.body.innerHTML = '<div style="position:fixed;inset:0;background:#f4f4f6;z-index:999999;"></div>';
+          // Navigate after the DOM has repainted solid white
+          requestAnimationFrame(() => {
+            window.location.href = '/app.html';
+          });
+        }, 3000);
+      });
+    });
+  </script>
+</body>
+
+</html>
