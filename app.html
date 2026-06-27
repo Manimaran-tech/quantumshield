@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuantumShield: VQE Drug Discovery Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+      /* Entrance overlay: covers the entire viewport immediately, preventing any flash */
+      #entrance-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        pointer-events: none;
+        background: #f4f4f6;
+        opacity: 1;
+        /* No transition set initially — we add it via JS once ready to reveal */
+      }
+
+      /* Subtle grid lines on the entrance overlay to match loading screen aesthetic */
+      #entrance-overlay::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(19, 138, 165, 0.03) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(19, 138, 165, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        background-position: center;
+        opacity: 0.5;
+      }
+
+      /* The root starts slightly pushed down and transparent, then slides up into place */
+      #root {
+        opacity: 0;
+        transform: translateY(12px);
+        transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      #root.revealed {
+        opacity: 1;
+        transform: none;
+      }
+    </style>
+  </head>
+  <body style="background: #f4f4f6; margin: 0;">
+    <!-- Entrance overlay covers the viewport instantly to prevent hard flash -->
+    <div id="entrance-overlay"></div>
+    <div id="root" class="min-h-screen"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // This inline script runs immediately and sets up the reveal sequence.
+      // It waits for the React root to have rendered content, then performs a
+      // choreographed overlay dissolve + content slide-up.
+      (function() {
+        var overlay = document.getElementById('entrance-overlay');
+        var root = document.getElementById('root');
+        var revealed = false;
+
+        function revealDashboard() {
+          if (revealed) return;
+          revealed = true;
+
+          // Small delay to let React paint the first frame behind the overlay
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              // 1. Start fading out the overlay
+              overlay.style.transition = 'opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+              overlay.style.opacity = '0';
+
+              // 2. Simultaneously reveal the root with a smooth slide-up
+              root.classList.add('revealed');
+
+              // 3. Remove the overlay from the DOM after animation completes
+              setTimeout(function() {
+                if (overlay && overlay.parentNode) {
+                  overlay.parentNode.removeChild(overlay);
+                }
+              }, 600);
+            });
+          });
+        }
+
+        // Strategy: Use a MutationObserver to detect when React renders content into #root
+        var observer = new MutationObserver(function(mutations) {
+          // Once React injects child nodes, we know the UI is ready
+          if (root.children.length > 0) {
+            observer.disconnect();
+            // Wait a small beat for the first meaningful paint
+            setTimeout(revealDashboard, 80);
+          }
+        });
+
+        observer.observe(root, { childList: true, subtree: true });
+
+        // Fallback: if React takes too long, reveal after 1.5s anyway
+        setTimeout(revealDashboard, 1500);
+      })();
+    </script>
+  </body>
+</html>
+
+

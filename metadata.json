@@ -1,0 +1,6 @@
+{
+  "name": "QuantumShield",
+  "description": "Quantum-Powered Antibiotic Discovery against Drug-Resistant Tuberculosis. Interactive VQE simulation, active space orbital mapping, and hardware-efficiency comparison dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

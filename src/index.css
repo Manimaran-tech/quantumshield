@@ -1,0 +1,454 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: #F4F7F1;
+  color: #152D42;
+  min-height: 100vh;
+}
+
+::selection {
+  background-color: rgba(43, 76, 99, 0.15);
+  color: #152D42;
+}
+
+.space-bg.dark {
+  background-color: #040508 !important;
+  color: #EDEEEB !important;
+}
+
+.space-bg.dark ::selection {
+  background-color: rgba(96, 165, 250, 0.3) !important;
+  color: #93C5FD !important;
+}
+
+/* Elegant Slate & Champagne Bronze Glassmorphism for Light Mode */
+.glass-panel {
+  background: rgba(254, 254, 253, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(21, 45, 66, 0.09);
+  box-shadow: 0 10px 30px -10px rgba(21, 45, 66, 0.06);
+}
+
+.glass-panel-purple {
+  background: rgba(237, 238, 235, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(43, 76, 99, 0.09);
+  box-shadow: 0 10px 30px -10px rgba(43, 76, 99, 0.06);
+}
+
+.glow-cyan {
+  filter: drop-shadow(0 0 4px rgba(213, 169, 108, 0.18));
+}
+
+.glow-purple {
+  filter: drop-shadow(0 0 4px rgba(43, 76, 99, 0.15));
+}
+
+.glow-text-cyan {
+  text-shadow: 0 0 4px rgba(213, 169, 108, 0.2);
+}
+
+.glow-text-purple {
+  text-shadow: 0 0 4px rgba(43, 76, 99, 0.2);
+}
+
+.glow-border-cyan {
+  box-shadow: 0 0 10px rgba(213, 169, 108, 0.05);
+  border-color: rgba(213, 169, 108, 0.5);
+}
+
+.glow-border-purple {
+  box-shadow: 0 0 10px rgba(43, 76, 99, 0.05);
+  border-color: rgba(43, 76, 99, 0.3);
+}
+
+/* Custom Keyframe animations - subtle and high-end */
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 2px rgba(213, 169, 108, 0.2));
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(213, 169, 108, 0.35));
+  }
+}
+
+@keyframes pulseGlowPurple {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3.5s infinite ease-in-out;
+}
+
+.animate-pulse-glow-purple {
+  animation: pulseGlowPurple 4s infinite ease-in-out;
+}
+
+/* Custom Scrollbars to fit the light bone style */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(244, 247, 241, 0.4);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(43, 76, 99, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(43, 76, 99, 0.3);
+}
+
+/* Premium Light Bone & Sand mineral space background */
+.space-bg {
+  background-image: radial-gradient(circle at 50% 15%, #F4F7F1 0%, #EAEBE8 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.space-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(rgba(43, 76, 99, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(43, 76, 99, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center;
+  pointer-events: none;
+}
+
+/* Custom interactive input range slider styling for Light Mode */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(21, 45, 66, 0.08);
+  border-radius: 2px;
+  border: 1px solid rgba(21, 45, 66, 0.02);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #2B4C63;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -4px;
+  box-shadow: 0 2px 5px rgba(21, 45, 66, 0.15);
+  border: 1.5px solid #ffffff;
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #2B4C63;
+  box-shadow: 0 4px 8px rgba(21, 45, 66, 0.25);
+}
+
+/* Pink / Purple Slider Accent override -> changed to elegant Steel Blue */
+.accent-pink-500[type="range"]::-webkit-slider-thumb {
+  background: #D5A96C;
+  box-shadow: 0 2px 5px rgba(213, 169, 108, 0.2);
+}
+
+.accent-pink-500[type="range"]::-webkit-slider-thumb:hover {
+  background: #D5A96C;
+  box-shadow: 0 4px 8px rgba(213, 169, 108, 0.3);
+}
+
+/* Custom visual hover transformations fitting clean flat cards */
+.ibm-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ibm-card:hover {
+  border-color: rgba(21, 45, 66, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(21, 45, 66, 0.05), 0 0 15px rgba(213, 169, 108, 0.02);
+}
+
+.ibm-card-purple {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ibm-card-purple:hover {
+  border-color: rgba(43, 76, 99, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(43, 76, 99, 0.05), 0 0 15px rgba(43, 76, 99, 0.02);
+}
+
+.custom-pulse-glow {
+  box-shadow: 0 2px 6px rgba(213, 169, 108, 0.1);
+}
+
+/* ==========================================================================
+   STATE-BASED DARK MODE DEFINITIONS FOR THE SAME COLOR PALETTE
+   ========================================================================== */
+
+/* 1. General custom overrides when .dark mode is active on wrapper container */
+.space-bg.dark {
+  color-scheme: dark;
+}
+
+/* Background gradient shift for dark mode */
+.space-bg.dark {
+  background-image: radial-gradient(circle at 50% 15%, #0B131C 0%, #05090D 100%) !important;
+}
+
+/* Underneath grid lines */
+.space-bg.dark .space-grid {
+  background-image: linear-gradient(rgba(143, 168, 200, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(143, 168, 200, 0.02) 1px, transparent 1px) !important;
+}
+
+/* Glowing halos and overlays matching the color palette */
+.space-bg.dark .glow-border-cyan {
+  box-shadow: 0 0 10px rgba(142, 174, 206, 0.12) !important;
+  border-color: rgba(142, 174, 206, 0.45) !important;
+}
+
+/* Webkit Scrollbars in Dark Mode */
+.space-bg.dark ::-webkit-scrollbar-track {
+  background: rgba(10, 18, 26, 0.8) !important;
+}
+
+.space-bg.dark ::-webkit-scrollbar-thumb {
+  background: rgba(143, 168, 200, 0.15) !important;
+}
+
+.space-bg.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(143, 168, 200, 0.3) !important;
+}
+
+/* Translucent Glass Panels in Dark Mode */
+.space-bg.dark .glass-panel {
+  background: rgba(18, 30, 43, 0.92) !important;
+  border: 1px solid rgba(143, 168, 200, 0.15) !important;
+  box-shadow: 0 10px 30px -10px rgba(8, 14, 21, 0.65) !important;
+}
+
+.space-bg.dark .glass-panel-purple {
+  background: rgba(22, 38, 55, 0.92) !important;
+  border: 1px solid rgba(143, 168, 200, 0.18) !important;
+  box-shadow: 0 10px 30px -10px rgba(8, 14, 21, 0.65) !important;
+}
+
+/* Card hover and interactive actions */
+.space-bg.dark .ibm-card:hover {
+  border-color: rgba(143, 168, 200, 0.35) !important;
+  box-shadow: 0 10px 25px -5px rgba(8, 14, 21, 0.5), 0 0 15px rgba(143, 168, 200, 0.03) !important;
+}
+
+.space-bg.dark .ibm-card-purple:hover {
+  border-color: rgba(143, 168, 200, 0.35) !important;
+  box-shadow: 0 10px 25px -5px rgba(8, 14, 21, 0.5), 0 0 15px rgba(143, 168, 200, 0.03) !important;
+}
+
+/* ==========================================================================
+   CSS UTILITY OVERRIDES (HIGH SPECIFICITY UNDER .dark CLASS)
+   ========================================================================== */
+
+/* Header & Panels Background */
+.space-bg.dark .bg-\[\#EDEEEB\]\/90 {
+  background-color: rgba(18, 30, 43, 0.92) !important;
+}
+
+/* Active buttons/tabs assignment */
+.space-bg.dark .bg-\[\#2B4C63\]\/5 {
+  background-color: rgba(143, 168, 200, 0.08) !important;
+}
+
+.space-bg.dark .border-\[\#2B4C63\]\/10 {
+  border-color: rgba(143, 168, 200, 0.14) !important;
+}
+
+.space-bg.dark .border-\[\#2B4C63\]\/15 {
+  border-color: rgba(143, 168, 200, 0.18) !important;
+}
+
+.space-bg.dark .border-\[\#2B4C63\]\/20 {
+  border-color: rgba(143, 168, 200, 0.22) !important;
+}
+
+.space-bg.dark .border-\[\#2B4C63\] {
+  border-color: #8EAECE !important;
+}
+
+/* Primary text shifts from deep midnight blue (#152D42) to alabaster bone (#EDEEEB) */
+.space-bg.dark .text-\[\#152D42\] {
+  color: #EDEEEB !important;
+}
+
+/* Secondary text shifts from steel blue (#2B4C63) to bright steel gray (#8EAECE) */
+.space-bg.dark .text-\[\#2B4C63\] {
+  color: #8EAECE !important;
+}
+
+/* Alabaster backgrounds shift to active deep slate */
+.space-bg.dark .bg-\[\#EDEEEB\] {
+  background-color: #121E2B !important;
+}
+
+.space-bg.dark .bg-\[\#EDEEEB\]\/40 {
+  background-color: rgba(10, 18, 26, 0.5) !important;
+}
+
+.space-bg.dark .bg-\[\#EDEEEB\]\/60 {
+  background-color: rgba(10, 18, 26, 0.65) !important;
+}
+
+.space-bg.dark .bg-\[\#EDEEEB\]\/70 {
+  background-color: rgba(10, 18, 26, 0.75) !important;
+}
+
+.space-bg.dark .bg-\[\#EDEEEB\]\/75 {
+  background-color: rgba(10, 18, 26, 0.85) !important;
+}
+
+.space-bg.dark .bg-\[\#EDEEEB\]\/80 {
+  background-color: rgba(14, 23, 33, 0.9) !important;
+}
+
+/* Standard solid backgrounds */
+.space-bg.dark .bg-white {
+  background-color: #101B27 !important;
+}
+
+.space-bg.dark .bg-white\/95 {
+  background-color: rgba(16, 27, 39, 0.95) !important;
+}
+
+/* Slate texts and utility colors lighten for dark usability */
+.space-bg.dark .text-slate-850 {
+  color: #EDEEEB !important;
+}
+
+.space-bg.dark .text-slate-800 {
+  color: #EDEEEB !important;
+}
+
+.space-bg.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+.space-bg.dark .text-slate-650, .space-bg.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.space-bg.dark .text-slate-550 {
+  color: #94a3b8 !important;
+}
+
+.space-bg.dark .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Global button, panel, and label border elements */
+.space-bg.dark .border-slate-300 {
+  border-color: rgba(143, 168, 200, 0.16) !important;
+}
+
+.space-bg.dark .border-slate-200 {
+  border-color: rgba(143, 168, 200, 0.12) !important;
+}
+
+.space-bg.dark .border-slate-300\/80 {
+  border-color: rgba(143, 168, 200, 0.15) !important;
+}
+
+/* Extra dynamic state overrides */
+.space-bg.dark .text-slate-305 {
+  color: #94a3b8 !important;
+}
+
+.space-bg.dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+.space-bg.dark .text-amber-800 {
+  color: #F59E0B !important;
+}
+
+.space-bg.dark .text-amber-900 {
+  color: #FBBF24 !important;
+}
+
+/* Range input overrides under dark mode */
+.space-bg.dark input[type="range"]::-webkit-slider-runnable-track {
+  background: rgba(143, 168, 200, 0.12) !important;
+}
+
+.space-bg.dark input[type="range"]::-webkit-slider-thumb {
+  background: #8EAECE !important;
+  border: 1.5px solid #121e2b !important;
+}
+
+.space-bg.dark input[type="range"]::-webkit-slider-thumb:hover {
+  background: #a9c5df !important;
+}
+
+/* Dark theme special badge mappings */
+.space-bg.dark .bg-\[\#2B4C63\]\/10 {
+  background-color: rgba(142, 174, 206, 0.12) !important;
+  border-color: rgba(142, 174, 206, 0.25) !important;
+}
+
+/* Active vector overlays for 3D topology layout */
+.space-bg.dark svg line[stroke="rgba(21, 45, 66, 0.15)"] {
+  stroke: rgba(143, 168, 200, 0.18) !important;
+}
+
+.space-bg.dark svg g[stroke="#2B4C63"] {
+  stroke: #8EAECE !important;
+}
+
+.space-bg.dark svg circle[fill="#EDEEEB"] {
+  fill: #0c151e !important;
+  stroke: rgba(143, 168, 200, 0.2) !important;
+}
+
+.space-bg.dark svg circle[fill="#B7B9B0"] {
+  fill: #223548 !important;
+  stroke: rgba(143, 168, 200, 0.35) !important;
+}
+
+.space-bg.dark svg text {
+  fill: #EDEEEB !important;
+}
+
+.space-bg.dark svg text[fill="#0D1017"] {
+  fill: #EDEEEB !important;
+}
