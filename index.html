@@ -1099,10 +1099,246 @@
     body.transitioning-out .info-boxes-container,
     body.transitioning-out .key-features-frame,
     body.transitioning-out .scroll-indicator,
-    body.transitioning-out .connector-svg {
+    body.transitioning-out .connector-svg,
+    body.transitioning-out .word-reveal-section,
+    body.transitioning-out .horizontal-scroll-container,
+    body.transitioning-out .landing-cta-section {
       transition: opacity 0.5s ease, transform 0.5s ease;
       opacity: 0 !important;
       transform: scale(0.97) !important;
+    }
+
+    /* Spacer for Hero Screen (forces vertical scroll) */
+    .hero-spacer {
+      height: 100vh;
+      pointer-events: none;
+      width: 100%;
+    }
+
+    /* Word Reveal Section */
+    .word-reveal-section {
+      position: relative;
+      height: 180vh;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .sticky-text-wrapper {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12%;
+      box-sizing: border-box;
+      pointer-events: none;
+      width: 100%;
+    }
+
+    .reveal-headline {
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.6;
+      color: rgba(74, 85, 104, 0.22);
+      text-align: center;
+      max-width: 1100px;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .reveal-word {
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+      display: inline-block;
+      margin-right: 12px;
+      will-change: color, text-shadow;
+    }
+
+    .reveal-word.active {
+      color: var(--color-charcoal);
+    }
+
+    .reveal-word.quantum-active {
+      color: var(--color-teal);
+      text-shadow: 0 0 15px rgba(15, 118, 110, 0.25);
+    }
+
+    /* Horizontal Scroll Sliding Windows container */
+    .horizontal-scroll-container {
+      position: relative;
+      height: 600vh;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .sticky-viewport {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .horizontal-track {
+      display: flex;
+      gap: 120px;
+      padding: 0 12vw;
+      will-change: transform;
+      transition: transform 0.1s ease-out;
+    }
+
+    .horizontal-slide-window {
+      flex-shrink: 0;
+      width: 80vw;
+      max-width: 1100px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Translucent Glassmorphic Cards */
+    .window-card {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      width: 100%;
+      border: 1px solid rgba(19, 138, 165, 0.15);
+      background: rgba(244, 244, 246, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 48px;
+      box-sizing: border-box;
+      border-radius: 0px !important;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      pointer-events: auto;
+    }
+
+    .window-card.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .window-image-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding-right: 40px;
+    }
+
+    .window-image {
+      max-width: 100%;
+      max-height: 380px;
+      object-fit: contain;
+      /* Simple dropshadow for solid images so they feel deep and integrated */
+      filter: drop-shadow(0 15px 30px rgba(0,0,0,0.1));
+    }
+
+    .window-text-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: left;
+    }
+
+    .window-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--color-teal);
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .window-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--color-charcoal);
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .window-desc {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--color-slate);
+      margin: 0;
+    }
+
+    .window-desc strong {
+      color: var(--color-charcoal);
+    }
+
+    /* CTA Glass Section */
+    .landing-cta-section {
+      position: relative;
+      height: 120vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .cta-glass-card {
+      max-width: 780px;
+      width: 90%;
+      border: 1px solid rgba(19, 138, 165, 0.15);
+      background: rgba(244, 244, 246, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 60px;
+      text-align: center;
+      border-radius: 0px !important;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .cta-glass-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .cta-glass-card h2 {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--color-charcoal);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .cta-glass-card p {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--color-slate);
+      margin-bottom: 30px;
+    }
+
+    .btn-cta {
+      padding: 16px 40px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      letter-spacing: 3px;
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--color-light-bg);
+      background: var(--color-charcoal);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 0px !important;
+    }
+
+    .btn-cta:hover {
+      background: var(--color-teal);
+      box-shadow: 0 0 20px rgba(15, 118, 110, 0.4);
     }
   </style>
 </head>
@@ -1285,88 +1521,147 @@
     </div>
   </div>
 
-  <!-- Screen 2-5: Four Dynamic Story Boxes -->
-  <div class="info-boxes-container">
-    <!-- Section 01 -->
-    <div class="info-box box-left-top" id="box-0">
-      <div class="box-num">SECTION 01 // OVERVIEW</div>
-      <h2 class="box-title">Project Overview & Scientific Challenge</h2>
-      <div class="box-body">
-        <p>QuantumShield is a quantum-powered antibiotic discovery platform designed to engineer novel drug candidates
-          against drug-resistant pathogens (Mycobacterium tuberculosis, SARS-CoV-2, Salmonella).</p>
-        <p><strong>Chemical Space limit:</strong> With 10^60 potential drug-like molecules, classical computers hit
-          exponential bottlenecks simulating entangled electrons. Mutated target sites (like I194T in TB's InhA enzyme)
-          render standard antibiotics ineffective.</p>
-        <p><strong>Quantum Solution:</strong> Maps mutated active pocket orbitals directly onto qubits to solve exact
-          binding energy (ΔG) without classical approximations.</p>
+  <!-- Scrollable spacer container for Hero Screen -->
+  <div class="hero-spacer" style="height: 100vh; pointer-events: none;"></div>
+
+  <!-- Sticky Word Reveal Section -->
+  <section class="word-reveal-section" id="word-reveal-section">
+    <div class="sticky-text-wrapper">
+      <h2 class="reveal-headline" id="reveal-headline">
+        We map the active electronic spaces of mutated pathogens directly onto quantum processors, resolving exact molecular binding energies to bypass classical limits and design breakthrough covalent inhibitors.
+      </h2>
+    </div>
+  </section>
+
+  <!-- Horizontal Scroll sliding windows section -->
+  <section class="horizontal-scroll-container" id="horizontal-scroll-container">
+    <div class="sticky-viewport">
+      <div class="horizontal-track" id="horizontal-track">
+        
+        <!-- Slide 1 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/nvidia_nim.png" alt="NVIDIA NIM Pathogen Lookup" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">01 / TARGET EXTRACTION</span>
+              <h3 class="window-title">NVIDIA NIM Pathogen Lookup</h3>
+              <p class="window-desc">
+                Leverages the <strong>meta/llama-3.1-8b-instruct</strong> model on NVIDIA's inference microservices to dynamically query pathogen receptors. It automatically extracts the primary therapeutic protein target, UniProt ID, active pocket dimensions, and retrieves seed reference drug SMILES from PubChem.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/alphafold.png" alt="AlphaFold 3D Receptor Downloader" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">02 / STRUCTURE DATABASE</span>
+              <h3 class="window-title">AlphaFold 3D Downloader</h3>
+              <p class="window-desc">
+                Queries the public AlphaFold Protein Structure Database to download structural <strong>.pdb</strong> molecular configurations. The pipeline parses atomic coordinate matrices, centers coordinates around the pocket origin, and filters active residues for target lock-on.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/qrl_agent.png" alt="Quantum Reinforcement Learning (QRL)" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">03 / QUANTUM RL POLICY</span>
+              <h3 class="window-title">Quantum RL Agent (QRL)</h3>
+              <p class="window-desc">
+                Executes a parameterized quantum circuit (PQC) acting as a policy model. Superconducting qubits apply variational <strong>RY</strong> and <strong>RZ</strong> gate operations, learning to select chemical modification actions (such as bioisostere substitutions, scaffold hopping, or ring expansion) to optimize candidate molecules.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/quantum_rewards.png" alt="Biophysical Quantum Rewards" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">04 / QUANTUM FEEDBACK</span>
+              <h3 class="window-title">Biophysical Quantum Rewards</h3>
+              <p class="window-desc">
+                Guides the QRL agent using a hybrid reward function combining quantum chemical ground-state energy calculations, MMFF94 force field constraints, pocket steric fit values, and drug-likeness rules (QED and Lipinski) to steer molecular mutations toward optimal bindings.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/vqe_solver.png" alt="Variational Quantum Eigensolver (VQE)" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">05 / QUANTUM CHEMISTRY</span>
+              <h3 class="window-title">Variational VQE Solvers</h3>
+              <p class="window-desc">
+                Solves molecular ground-state electronic energies by mapping active valence orbitals onto qubit Hamiltonians. Supports Jordan-Wigner and Bravyi-Kitaev mappings to perform chemical energy minimizations and calculate accurate binding affinities.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/hardware_codesign.png" alt="Hardware Co-Design" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">06 / HARDWARE CO-DESIGN</span>
+              <h3 class="window-title">QPU Topology Co-Design</h3>
+              <p class="window-desc">
+                Optimizes PQC gate mappings according to physical QPU coupling topologies. Minimizes SWAP gate overhead and applies Zero-Noise Extrapolation error mitigation to ensure highly accurate results on real superconducting quantum hardware.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 7 -->
+        <div class="horizontal-slide-window">
+          <div class="window-card">
+            <div class="window-image-container">
+              <img src="/assets/clinical_admet.png" alt="ADMET safety predictor" class="window-image" />
+            </div>
+            <div class="window-text-container">
+              <span class="window-num">07 / CLINICAL PROFILE</span>
+              <h3 class="window-title">ADMET & Safety Predictor</h3>
+              <p class="window-desc">
+                Evaluates drug candidate properties including molecular weight, LogP, hydrogen donors/acceptors, Lipinski rule violations, and runs pre-trained machine learning classifiers to predict ADMET absorption and clinical toxicity risks.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
+  </section>
 
-    <!-- Section 02 -->
-    <div class="info-box box-right-top" id="box-1">
-      <div class="box-num">SECTION 02 // TECH STACK</div>
-      <h2 class="box-title">Drug Discovery Technology Stack</h2>
-      <div class="box-body">
-        <ul class="tech-list">
-          <li class="tech-item"><span class="tech-name">1. NIM Target Extraction (NVIDIA):</span> meta/llama-3.1-8b
-            extracts target protein, UniProt ID, and pocket specifications.</li>
-          <li class="tech-item"><span class="tech-name">2. Protein Structures (AlphaFold DB):</span> Downloads 3D .pdb
-            structures, parsing and centering active pocket atoms.</li>
-          <li class="tech-item"><span class="tech-name">3. Molecular Evolution (RDKit):</span> Genetic Algorithm evolves
-            scaffolds, minimizing interatomic energy via MMFF94.</li>
-          <li class="tech-item"><span class="tech-name">4. Quantum Chemistry (IBM Qiskit):</span> Maps orbital
-            Hamiltonian and runs VQE to find electronic ground-state energies.</li>
-        </ul>
-      </div>
+  <!-- Final CTA Glass Card Section -->
+  <section class="landing-cta-section" id="landing-cta-section">
+    <div class="cta-glass-card" id="cta-glass-card">
+      <h2>Launch discovery platform</h2>
+      <p>Analyze target binding pockets, mutate candidates using superconducting qubits, and resolve ground state molecular orbital structures in real time.</p>
+      <button class="btn-cta" id="btn-view-website-cta" type="button">Launch discovery platform</button>
     </div>
-
-    <!-- Section 03 -->
-    <div class="info-box box-left-bottom" id="box-2">
-      <div class="box-num">SECTION 03 // SIMULATION PHYSICS</div>
-      <h2 class="box-title">Mathematical & Physics Engine</h2>
-      <div class="box-body">
-        <p><strong>Thermodynamic Binding Energy (ΔG):</strong></p>
-        <div class="formula-block">ΔE_binding = E_complex - (E_protein + E_drug)</div>
-        <p><strong>Variational Quantum Eigensolver (VQE):</strong></p>
-        <div class="formula-block">E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩ / ⟨ψ(θ)|ψ(θ)⟩</div>
-        <p>Qubit mapping supports Jordan-Wigner, Bravyi-Kitaev, and Parity. We estimate clinical dissociation values
-          (Kd) and blockade rates:</p>
-        <div class="formula-block">Kd = 10^(ΔG / 1.36) M // Blockade = C / (C + Kd)</div>
-      </div>
-    </div>
-
-    <!-- Section 04 -->
-    <div class="info-box box-right-bottom" id="box-3">
-      <div class="box-num">SECTION 04 // WORKFLOW</div>
-      <h2 class="box-title">6-Step Drug Discovery Workflow</h2>
-      <div class="box-body">
-        <ul class="step-list">
-          <li class="step-item"><span class="step-name">01. Pathogen Input</span> – User selects mutated target strain.
-          </li>
-          <li class="step-item"><span class="step-name">02. AI Target Extraction</span> – AlphaFold structure centered
-            at pocket.</li>
-          <li class="step-item"><span class="step-name">03. Evolutionary Generation</span> – Genetic algorithm yields 5
-            scaffolds.</li>
-          <li class="step-item"><span class="step-name">04. Space Partitioning</span> – Active valence orbitals mapped
-            to Hamiltonian.</li>
-          <li class="step-item"><span class="step-name">05. VQE Execution</span> – Runs on IBM QPU with Zero-Noise
-            Extrapolation.</li>
-          <li class="step-item"><span class="step-name">06. Clinical Profiling</span> – Safety, ADMET, and binding
-            curves calculated.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- Key Features Interstitial Frame -->
-  <div class="key-features-frame" id="key-features-frame">
-    <div class="kf-inner">
-      <div class="kf-tag">QuantumShield Platform</div>
-      <h2 class="kf-title">Key Features</h2>
-      <div class="kf-line"></div>
-      <p class="kf-subtitle">Explore the core technologies powering our quantum antibiotic discovery pipeline.</p>
-    </div>
-  </div>
+  </section>
 
   <!-- Scroll Down Indicator -->
   <div class="scroll-indicator" id="scroll-indicator">
@@ -1399,215 +1694,163 @@
       const heroSideLeft = document.getElementById('hero-side-left');
       const heroSideRight = document.getElementById('hero-side-right');
 
-      const boxElements = [
-        document.getElementById('box-0'),
-        document.getElementById('box-1'),
-        document.getElementById('box-2'),
-        document.getElementById('box-3')
-      ];
-
-      const lines = [
-        document.getElementById('line-0'),
-        document.getElementById('line-1'),
-        document.getElementById('line-2'),
-        document.getElementById('line-3')
-      ];
+      // Word-by-word reveal splitting
+      const revealHeadline = document.getElementById('reveal-headline');
+      if (revealHeadline) {
+        const text = revealHeadline.innerText.trim();
+        const words = text.split(/\s+/);
+        revealHeadline.innerHTML = '';
+        
+        const highlightWords = [
+          'quantum', 'processors,', 'processors', 'molecular', 'binding', 
+          'energies', 'covalent', 'inhibitors.', 'inhibitors'
+        ];
+        
+        words.forEach(word => {
+          const span = document.createElement('span');
+          span.className = 'reveal-word';
+          span.innerText = word;
+          
+          const cleanWord = word.toLowerCase().replace(/[.,]/g, '');
+          if (highlightWords.includes(cleanWord)) {
+            span.setAttribute('data-highlight', 'true');
+          }
+          
+          revealHeadline.appendChild(span);
+        });
+      }
 
       const indicator = document.getElementById('scroll-indicator');
-      const keyFeaturesFrame = document.getElementById('key-features-frame');
+      const wordRevealSection = document.getElementById('word-reveal-section');
+      const horizontalSection = document.getElementById('horizontal-scroll-container');
+      const horizontalTrack = document.getElementById('horizontal-track');
+      const slides = document.querySelectorAll('.horizontal-slide-window');
+      const ctaSection = document.getElementById('landing-cta-section');
+      const ctaCard = document.getElementById('cta-glass-card');
 
-      // DNA Target points relative to the center of the viewport (50vw, 50vh)
-      const dnaTargets = [
-        { x: 0.50, y: 0.30 }, // Section 1: top-middle DNA
-        { x: 0.52, y: 0.45 }, // Section 2: mid-top DNA
-        { x: 0.48, y: 0.55 }, // Section 3: mid-bottom DNA
-        { x: 0.50, y: 0.70 }  // Section 4: bottom DNA
-      ];
-
-      // Cross-fade: once Spline is fully loaded & WASM initialized, fade in live 3D
-      const handleLoad = () => {
-        splineViewer.style.opacity = '1';
-        if (placeholder) {
-          placeholder.style.opacity = '0';
-          setTimeout(() => {
-            placeholder.remove(); // Clean up placeholder DOM
-          }, 800);
-        }
-      };
-
-      // Check if it's already loaded, otherwise listen for load
-      if (splineViewer.shadowRoot && (splineViewer.shadowRoot.querySelector('canvas') || splineViewer.loaded)) {
-        handleLoad();
-      } else {
-        splineViewer.addEventListener('load', handleLoad);
-      }
-
-      // Fail-safe timeout: force reveal after 3 seconds if still loading
-      setTimeout(() => {
-        if (splineViewer.style.opacity !== '1') {
-          console.warn('Spline load event timed out, forcing reveal');
-          handleLoad();
-        }
-      }, 3000);
-
-      const activeStates = [false, false, false, false];
-      const boxOrigins = ["bottom right", "top left", "bottom right", "bottom left"];
-      const revealTimeouts = [null, null, null, null];
-
-      // Draw and animate the growing line path for a specific section
-      function drawAndAnimateLine(index) {
-        const box = boxElements[index];
-        if (!box) return;
-
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-
-        // Temporarily reset transform to scale(1) to measure true expanded box coordinates
-        const prevTransform = box.style.transform;
-        const prevTransition = box.style.transition;
-        box.style.transition = 'none';
-        box.style.transform = 'scale(1)';
-
-        // Force reflow and measure
-        const rect = box.getBoundingClientRect();
-
-        // Restore previous scale state for animation
-        box.style.transform = prevTransform;
-        box.style.transition = prevTransition;
-
-        let startX, startY;
-        const target = dnaTargets[index];
-        const targetX = target.x * vw;
-        const targetY = target.y * vh;
-
-        // Determine starting corner based on box class position
-        if (index === 0) { // box-left-top
-          startX = rect.right;
-          startY = rect.bottom - 10;
-        } else if (index === 1) { // box-right-top
-          startX = rect.left;
-          startY = rect.top + 20;
-        } else if (index === 2) { // box-left-bottom
-          startX = rect.right;
-          startY = rect.bottom - 20;
-        } else if (index === 3) { // box-right-bottom
-          startX = rect.left;
-          startY = rect.bottom - 20;
-        }
-
-        // REVERSED PATH: Starts at DNA (targetX, targetY) and draws to box corner (startX, startY)
-        const midX = startX + (targetX - startX) * 0.75;
-        const pathD = `M ${targetX} ${targetY} L ${midX} ${startY} L ${startX} ${startY}`;
-
-        const line = lines[index];
-        if (!line) return;
-
-        // Temporarily disable transition to setup the line start state
-        line.style.transition = 'none';
-        line.setAttribute('d', pathD);
-
-        const length = line.getTotalLength();
-        line.style.strokeDasharray = length;
-        line.style.strokeDashoffset = length;
-        line.style.opacity = '0.85';
-
-        // Force reflow
-        line.getBoundingClientRect();
-
-        // Re-enable transition and trigger growth towards the box
-        line.style.transition = 'stroke-dashoffset 0.3s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.3s ease, opacity 0.3s ease';
-        line.classList.add('active');
-        line.style.strokeDashoffset = '0';
-      }
-
-      function updateBoxVisibility(index, shouldBeActive) {
-        if (activeStates[index] === shouldBeActive) return;
-        activeStates[index] = shouldBeActive;
-
-        const box = boxElements[index];
-        const line = lines[index];
-        if (!box || !line) return;
-
-        // Clear any pending timeouts for this box
-        if (revealTimeouts[index]) {
-          clearTimeout(revealTimeouts[index]);
-          revealTimeouts[index] = null;
-        }
-
-        if (shouldBeActive) {
-          // Setup initial state for reveal
-          box.style.transition = 'none';
-          box.style.transform = 'scale(0)';
-          box.style.opacity = '0';
-          box.style.transformOrigin = boxOrigins[index];
-          box.style.display = 'block'; // Ensure it's displayed
-
-          // Draw the line first
-          drawAndAnimateLine(index);
-
-          // Animate the box in after a slight delay
-          revealTimeouts[index] = setTimeout(() => {
-            box.style.transition = 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            box.style.opacity = '1';
-            box.style.transform = 'scale(1)';
-          }, 180);
-        } else {
-          // Hide line and box snappily
-          line.classList.remove('active');
-          line.style.opacity = '0';
-
-          box.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-          box.style.opacity = '0';
-          box.style.transform = 'scale(0)';
-        }
+      // Intersection Observer for CTA Card slide up
+      if (ctaSection && ctaCard) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              ctaCard.classList.add('visible');
+            } else {
+              ctaCard.classList.remove('visible');
+            }
+          });
+        }, { threshold: 0.15 });
+        observer.observe(ctaSection);
       }
 
       // --- Scroll Reaction logic ---
       function handleScroll() {
         const scrollTop = window.scrollY;
-        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const scrollProgress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+        const viewportHeight = window.innerHeight;
 
-        // 1. Manage Hero Screen fade out (center and side panels)
-        if (scrollProgress < 0.10) {
-          const fadeVal = (1 - (scrollProgress / 0.10)).toString();
-
-          heroContainer.style.opacity = fadeVal;
-          heroContainer.style.transform = `translate(-50%, calc(-50% - ${scrollProgress * 200}px))`;
-
-          heroSideLeft.style.opacity = fadeVal;
-          heroSideLeft.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
-
-          heroSideRight.style.opacity = fadeVal;
-          heroSideRight.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
+        // 1. Manage Hero Screen fade out (fixed elements driven by scroll)
+        if (scrollTop < viewportHeight) {
+          const fadeVal = 1 - (scrollTop / viewportHeight);
+          
+          if (heroContainer) {
+            heroContainer.style.opacity = fadeVal.toString();
+            heroContainer.style.visibility = 'visible';
+            heroContainer.style.transform = `translate(-50%, calc(-50% - ${scrollTop * 0.15}px))`;
+          }
+          if (heroSideLeft) {
+            heroSideLeft.style.opacity = fadeVal.toString();
+            heroSideLeft.style.visibility = 'visible';
+            heroSideLeft.style.transform = `translateY(calc(-50% - ${scrollTop * 0.1}px))`;
+          }
+          if (heroSideRight) {
+            heroSideRight.style.opacity = fadeVal.toString();
+            heroSideRight.style.visibility = 'visible';
+            heroSideRight.style.transform = `translateY(calc(-50% - ${scrollTop * 0.1}px))`;
+          }
         } else {
-          heroContainer.style.opacity = '0';
-          heroSideLeft.style.opacity = '0';
-          heroSideRight.style.opacity = '0';
+          if (heroContainer) {
+            heroContainer.style.opacity = '0';
+            heroContainer.style.visibility = 'hidden';
+          }
+          if (heroSideLeft) {
+            heroSideLeft.style.opacity = '0';
+            heroSideLeft.style.visibility = 'hidden';
+          }
+          if (heroSideRight) {
+            heroSideRight.style.opacity = '0';
+            heroSideRight.style.visibility = 'hidden';
+          }
         }
 
-        // 2. Key Features frame: appear after hero, disappear before boxes
-        if (scrollProgress >= 0.12 && scrollProgress < 0.24) {
-          keyFeaturesFrame.classList.add('visible');
-        } else {
-          keyFeaturesFrame.classList.remove('visible');
+        // 2. Word Reveal Section
+        if (wordRevealSection) {
+          const revealWords = document.querySelectorAll('.reveal-word');
+          if (revealWords.length > 0) {
+            const rect = wordRevealSection.getBoundingClientRect();
+            const startReveal = rect.top;
+            const scrollDuration = rect.height - viewportHeight;
+            const progress = Math.max(0, Math.min(1, -startReveal / scrollDuration));
+            const activeCount = Math.floor(progress * (revealWords.length + 3));
+
+            revealWords.forEach((word, idx) => {
+              if (idx < activeCount) {
+                if (word.getAttribute('data-highlight') === 'true') {
+                  word.classList.add('quantum-active');
+                } else {
+                  word.classList.add('active');
+                }
+              } else {
+                word.classList.remove('active', 'quantum-active');
+              }
+            });
+          }
         }
 
-        // 3. Manage multiple details boxes reveal (shifted later to allow frame)
-        updateBoxVisibility(0, scrollProgress >= 0.26);
-        updateBoxVisibility(1, scrollProgress >= 0.44);
-        updateBoxVisibility(2, scrollProgress >= 0.62);
-        updateBoxVisibility(3, scrollProgress >= 0.80);
+        // 3. Horizontal Scroll Sliding Windows
+        if (horizontalSection && horizontalTrack && slides.length > 0) {
+          const rect = horizontalSection.getBoundingClientRect();
+          const startHorizontal = rect.top;
+          const scrollDuration = rect.height - viewportHeight;
+          const progress = Math.max(0, Math.min(1, -startHorizontal / scrollDuration));
+          
+          const maxTranslate = horizontalTrack.scrollWidth - window.innerWidth;
+          const currentTranslate = progress * maxTranslate;
+          horizontalTrack.style.transform = `translateX(-${currentTranslate}px)`;
 
-        // Manage scroll down indicator text and visibility
-        if (scrollProgress < 0.10) {
-          indicator.querySelector('span').innerText = 'Scroll down to see features';
-          indicator.style.opacity = '0.8';
-        } else if (scrollProgress >= 0.10 && scrollProgress < 0.90) {
-          indicator.querySelector('span').innerText = 'Keep scrolling';
-          indicator.style.opacity = '0.4';
-        } else {
-          indicator.style.opacity = '0';
+          const slideProgress = progress * (slides.length - 1);
+          const activeIndex = Math.max(0, Math.min(slides.length - 1, Math.round(slideProgress)));
+
+          slides.forEach((slide, idx) => {
+            const card = slide.querySelector('.window-card');
+            if (!card) return;
+            
+            if (idx === activeIndex && progress > 0 && progress < 1) {
+              card.classList.add('active');
+            } else if (idx === activeIndex && (progress === 0 || progress === 1)) {
+              if ((progress === 0 && idx === 0) || (progress === 1 && idx === slides.length - 1)) {
+                card.classList.add('active');
+              } else {
+                card.classList.remove('active');
+              }
+            } else {
+              card.classList.remove('active');
+            }
+          });
+        }
+
+        // 4. Scroll Down Indicator text and visibility
+        if (indicator) {
+          const docHeight = document.documentElement.scrollHeight - viewportHeight;
+          const overallProgress = docHeight > 0 ? scrollTop / docHeight : 0;
+
+          if (overallProgress < 0.05) {
+            indicator.querySelector('span').innerText = 'Scroll down to discover';
+            indicator.style.opacity = '0.8';
+          } else if (overallProgress >= 0.05 && overallProgress < 0.92) {
+            indicator.querySelector('span').innerText = 'Keep scrolling';
+            indicator.style.opacity = '0.4';
+          } else {
+            indicator.style.opacity = '0';
+          }
         }
       }
 
@@ -1963,15 +2206,15 @@
         }
       }
 
-      btnView.addEventListener('click', (e) => {
-        e.preventDefault();
+      const runTransition = (e) => {
+        if (e) e.preventDefault();
 
         // 1. Fade out page content
         document.body.classList.add('transitioning-out');
 
         // 2. Activate transition overlay
         setTimeout(() => {
-          overlay.classList.add('active');
+          if (overlay) overlay.classList.add('active');
           initParticles();
           initWatermarks();
           updateParticles();
@@ -2042,7 +2285,15 @@
             window.location.href = '/app.html';
           });
         }, 3000);
-      });
+      };
+
+      if (btnView) {
+        btnView.addEventListener('click', runTransition);
+      }
+      const btnViewCta = document.getElementById('btn-view-website-cta');
+      if (btnViewCta) {
+        btnViewCta.addEventListener('click', runTransition);
+      }
     });
   </script>
 </body>
