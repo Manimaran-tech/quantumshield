@@ -919,4 +919,3 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=5):
             "atoms": rec_coords
         }
     }
-    }
