@@ -2977,7 +2977,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
       const targetName = customPathogen.trim() || 'Custom Target';
       const targetNameLower = targetName.lowerCase ? targetName.toLowerCase() : String(targetName).toLowerCase();
       const smilesNorm = (valCandidateSmiles || '').trim().toUpperCase();
-      const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm.includes('NCF') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+      const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
 
       if (isIsocyanateOrCyanide) {
         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3000,7 +3000,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
     } else {
       const id = selectedMolecule.id.toLowerCase();
       const smilesNorm = (selectedMolecule.smiles || '').trim().toUpperCase();
-      const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm.includes('NCF') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+      const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
 
       if (isIsocyanateOrCyanide) {
         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3170,7 +3170,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
           lastSyncedMoleculeIdRef.current = selectedMolecule.id;
           const id = selectedMolecule.id.toLowerCase();
           const smilesNorm = (selectedMolecule.smiles || '').trim().toUpperCase();
-          const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm.includes('NCF') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+          const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
 
           if (isIsocyanateOrCyanide) {
             setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3215,7 +3215,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
         const targetName = customPathogen.trim() || 'Custom Target';
         const targetNameLower = targetName.toLowerCase();
         const smilesNorm = (valCandidateSmiles || '').trim().toUpperCase();
-        const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm.includes('NCF') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+        const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
 
         if (isIsocyanateOrCyanide) {
           setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -4622,7 +4622,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
       {/* ==========================================
           HEADER / TELEMETRY PANEL
           ========================================== */}
-      <header className="relative z-10 border-b border-[#2B4C63]/10 dark:border-slate-800 bg-[#EDEEEB]/90 dark:bg-[#070b12]/90 backdrop-blur-md px-6 py-3.5 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+      <header className="relative z-10 border-b border-white/40 dark:border-white/15 bg-gradient-to-r from-[#EDEEEB]/40 via-white/55 to-[#EDEEEB]/35 dark:from-[#070b12]/45 dark:via-slate-950/40 dark:to-[#070b12]/35 backdrop-blur-2xl shadow-[inset_0_1.5px_0_0_rgba(255,255,255,0.65),0_8px_32px_0_rgba(31,38,135,0.06)] dark:shadow-[inset_0_1.5px_0_0_rgba(255,255,255,0.12),0_8px_32px_0_rgba(0,0,0,0.37)] px-6 py-3.5 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="flex items-center gap-4">
           <a href="/" className="h-10 w-10 bg-gradient-to-br from-[#152D42] to-[#2B4C63] dark:from-[#152D42] dark:to-[#2B4C63] text-white flex items-center justify-center font-bold font-display text-base tracking-wider shadow-sm shrink-0 cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300" title="Back to Landing Page">
             QS
@@ -4647,7 +4647,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
           <button
             id="theme-toggle-btn"
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="flex-1 sm:flex-initial px-3 py-1.5 cursor-pointer bg-[#EDEEEB] dark:bg-slate-900 hover:bg-[#EDEEEB]/80 dark:hover:bg-slate-800 text-[#2B4C63] dark:text-slate-300 border border-slate-300 dark:border-slate-800 rounded-sm flex items-center justify-center gap-2 font-semibold transition-all duration-300 shadow-sm"
+            className="flex-1 sm:flex-initial px-3 py-1.5 cursor-pointer bg-gradient-to-tr from-white/20 via-white/40 to-white/10 dark:from-slate-900/20 dark:via-slate-800/40 dark:to-slate-900/10 hover:from-white/30 hover:via-white/50 hover:to-white/20 dark:hover:from-slate-900/30 dark:hover:via-slate-800/50 dark:hover:to-slate-900/20 text-[#2B4C63] dark:text-slate-300 border border-white/40 dark:border-slate-750/50 backdrop-blur-md rounded-sm flex items-center justify-center gap-2 font-semibold transition-all duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_12px_rgba(31,38,135,0.04)] hover:shadow-md"
           >
             {isDarkMode ? (
               <>
@@ -4662,7 +4662,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
             )}
           </button>
 
-          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-[#EDEEEB] dark:bg-slate-900 border border-slate-300 dark:border-slate-800 flex items-center gap-2 rounded-sm transition-colors duration-300">
+          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-gradient-to-tr from-white/20 via-white/40 to-white/10 dark:from-slate-900/20 dark:via-slate-800/40 dark:to-slate-900/10 border border-white/40 dark:border-slate-750/50 backdrop-blur-md flex items-center gap-2 rounded-sm transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_12px_rgba(31,38,135,0.04)]">
             <Cpu className="text-[#2B4C63] dark:text-blue-400 h-3.5 w-3.5" />
             <span className="text-slate-500 dark:text-slate-440 text-[10px] uppercase tracking-wider">QPU:</span>
             <span className="text-[#152D42] dark:text-slate-100 font-semibold flex items-center gap-1.5 ml-auto sm:ml-0">
@@ -4671,18 +4671,18 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
             </span>
           </div>
 
-          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-[#EDEEEB] dark:bg-slate-900 border border-slate-300 dark:border-slate-800 flex items-center gap-2 rounded-sm transition-colors duration-300">
+          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-gradient-to-tr from-white/20 via-white/40 to-white/10 dark:from-slate-900/20 dark:via-slate-800/40 dark:to-slate-900/10 border border-white/40 dark:border-slate-750/50 backdrop-blur-md flex items-center gap-2 rounded-sm transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6),0_4px_12px_rgba(31,38,135,0.04)]">
             <Activity className="text-[#2B4C63] dark:text-blue-400 h-3.5 w-3.5" />
-            <span className="text-slate-500 dark:text-slate-440 text-[10px] uppercase tracking-wider">Fidelity:</span>
+            <span className="text-slate-555 dark:text-slate-440 text-[10px] uppercase tracking-wider">Fidelity:</span>
             <span className="text-[#152D42] dark:text-slate-100 font-semibold ml-auto sm:ml-0">
               {(ansatzStats[ansatzType].fidelityMultiplier * (100 - noiseLevel) + (errorMitigation ? noiseLevel * 0.95 : 0)).toFixed(1)}%
             </span>
           </div>
 
-          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-[#D5A96C]/10 dark:bg-[#D5A96C]/5 border border-[#D5A96C]/30 dark:border-[#D5A96C]/20 flex items-center gap-2 rounded-sm transition-colors duration-300">
+          <div className="flex-1 sm:flex-initial px-3 py-1.5 bg-gradient-to-tr from-[#D5A96C]/15 via-[#D5A96C]/25 to-[#D5A96C]/10 dark:from-[#D5A96C]/5 dark:via-[#D5A96C]/10 dark:to-[#D5A96C]/2 border border-[#D5A96C]/40 dark:border-[#D5A96C]/25 backdrop-blur-md flex items-center gap-2 rounded-sm transition-colors duration-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35),0_4px_12px_rgba(213,169,108,0.04)]">
             <ShieldCheck className="text-[#D5A96C] h-3.5 w-3.5" />
             <span className="text-amber-800 dark:text-amber-400 text-[10px] uppercase tracking-wider font-semibold">Mitigation:</span>
-            <span className={`font-semibold ml-auto sm:ml-0 ${errorMitigation ? 'text-amber-950 dark:text-amber-100' : 'text-slate-550 dark:text-slate-400'}`}>
+            <span className={`font-semibold ml-auto sm:ml-0 ${errorMitigation ? 'text-amber-950 dark:text-amber-100' : 'text-slate-555 dark:text-slate-400'}`}>
               {errorMitigation ? 'ON' : 'OFF'}
             </span>
           </div>
@@ -6695,7 +6695,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       const pathName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption.toUpperCase();
                                       const norm = pathName.toLowerCase();
                                       const smilesNorm = (selected.smiles || '').trim().toUpperCase();
-                                      const isIsocyanateOrCyanide = norm.includes('isocyan') || norm.includes('cyan') || norm.includes('cynad') || norm.includes('cynac') || norm === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm.includes('NCF') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+                                      const isIsocyanateOrCyanide = norm.includes('isocyan') || norm.includes('cyan') || norm.includes('cynad') || norm.includes('cynac') || norm === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
 
                                       if (isIsocyanateOrCyanide) {
                                         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -6790,7 +6790,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                       {/* Left Pane: Controls & Steps */}
                       <div className="xl:col-span-4 flex flex-col gap-4">
                         <div className={`p-4 rounded-sm border ${isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-[#EDEEEB]/40 border-slate-300'}`}>
-                          <h4 className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                          <h4 className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                             Experiment Configuration
                           </h4>
                           <div className="text-xs flex flex-col gap-2 leading-relaxed text-slate-700 dark:text-slate-300">
@@ -6810,7 +6810,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                     setValCandidateSmiles(val || null);
                                     if (val) {
                                       const norm = val.trim().toUpperCase();
-                                      const isIsocyanateOrCyanide = norm.includes('N=C=O') || norm.includes('N=C=0') || norm.includes('O=C=N') || norm.includes('NCF') || norm === 'CN=C=O' || norm.includes('C#N');
+                                      const isIsocyanateOrCyanide = norm.includes('N=C=O') || norm.includes('N=C=0') || norm.includes('O=C=N') || norm === 'CN=C=O' || norm.includes('C#N');
                                       if (isIsocyanateOrCyanide) {
                                         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
                                         setValCustomTarget('Acetylcholinesterase');
@@ -7822,7 +7822,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                 // Map target option to validation disease parameters (always custom)
                                 let valDisease: 'covid-19' | 'tuberculosis' | 'hiv' | 'malaria' | 'custom' = 'custom';
                                 const normSmiles = (qrlOptimizedSmiles || '').trim().toUpperCase();
-                                const isIsocyanateOrCyanide = normSmiles.includes('N=C=O') || normSmiles.includes('N=C=0') || normSmiles.includes('O=C=N') || normSmiles.includes('NCF') || normSmiles === 'CN=C=O' || normSmiles.includes('C#N');
+                                const isIsocyanateOrCyanide = normSmiles.includes('N=C=O') || normSmiles.includes('N=C=0') || normSmiles.includes('O=C=N') || normSmiles === 'CN=C=O' || normSmiles.includes('C#N');
 
                                 const currentPathogen = isCustomMode
                                   ? (customPathogen || 'Custom Target')

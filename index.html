@@ -4,35 +4,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuantumShield - Antibiotic Discovery</title>
-  <link rel="icon" type="image/png" href="/assets/logo1_square.png" />
+  <title>QuantumShield — Quantum Drug Discovery, A to Z</title>
+  <link rel="icon" type="image/png" href="/assets/logo1.png" />
+  <meta name="description"
+    content="QuantumShield compresses early-stage drug discovery from years to hours with a hybrid QM/MM pipeline, Variational Quantum Eigensolver, and reinforcement-learning generative chemistry.">
 
-  <!-- Preload Spline viewer library -->
+  <!-- Spline viewer -->
   <link rel="preload" href="https://unpkg.com/@splinetool/viewer/build/spline-viewer.js" as="script" crossorigin>
-
-  <!-- Preload local Spline scene file for fast loading -->
-  <link rel="preload" href="/assets/dna_scene.splinecode" as="fetch">
-
-  <!-- Load Spline viewer web component -->
+  <link rel="preload" href="dna_scene.splinecode" as="fetch">
   <script type="module" src="https://unpkg.com/@splinetool/viewer/build/spline-viewer.js"></script>
-
-  <!-- Preload the React dashboard for instant navigation -->
   <link rel="prefetch" href="/app.html">
 
+  <!-- Premium type system -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..900;1,300..900&family=Roboto+Slab:wght@300..800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
     :root {
-      /* Color Palette from user image */
-      --color-light-bg: #f4f4f6;
-      --color-light-grey: #e1e2e4;
-      --color-mid-grey: #c5c6c8;
-      --color-charcoal: #3e4145;
-      --color-slate: #4d5c66;
-      --color-teal: #138aa5;
+      /* Original palette — preserved */
+      --bg: #f4f4f6;
+      --light-grey: #e1e2e4;
+      --mid-grey: #c5c6c8;
+      --charcoal: #3e4145;
+      --slate: #4d5c66;
+      --teal: #138aa5;
+      --teal-deep: #0c6d83;
 
-      --font-primary: 'Outfit', ui-sans-serif, system-ui, sans-serif;
-      --font-mono: 'Courier New', Courier, monospace;
+      --display: 'Montserrat', sans-serif;
+      --sans: 'Montserrat', sans-serif;
+      --mono: 'JetBrains Mono', 'Courier New', monospace;
+      --slab: 'Roboto Slab', serif;
+
+      --fluid-font: clamp(14px, 0.78vw + 8.5px, 19px);
     }
 
     *,
@@ -41,30 +47,1419 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      /* NO ROUNDED STYLES */
-      border-radius: 0px !important;
+      border-radius: 0;
+      /* sharp-corner default, specific overrides allowed */
+    }
+
+    html {
+      scroll-behavior: auto;
+      font-size: var(--fluid-font);
     }
 
     body {
-      background-color: var(--color-light-bg);
-      color: var(--color-charcoal);
-      font-family: var(--font-primary);
+      background: var(--bg);
+      color: var(--charcoal);
+      font-family: var(--sans);
       overflow-x: hidden;
       overflow-y: scroll;
-      min-height: 450vh;
-      /* extended depth for hero + 4 scrolling features */
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
       position: relative;
     }
 
+    ::selection {
+      background: var(--teal);
+      color: var(--bg);
+    }
+
     /* ============================================================
-       TRANSITION OVERLAY — Upgraded Cinematic Pathogen HUD
+       FIXED BACKGROUND LAYER — Spline DNA never moves
        ============================================================ */
-    .transition-overlay {
+    .bg-stack {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .dna-viewport {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    spline-viewer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      transform: scale(1.3);
+      transform-origin: center center;
+      pointer-events: none !important;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+      --spline-viewer-logo-display: none !important;
+    }
+
+    spline-viewer::part(logo) {
+      display: none !important;
+    }
+
+    /* CSS DNA placeholder while Spline loads */
+    .dna-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      transition: opacity 0.7s ease;
+    }
+
+    .css-dna {
+      position: relative;
+      width: 88px;
+      height: 420px;
+      opacity: 0.85;
+    }
+
+    .css-dna .base-pair {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 64px;
+      height: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      animation: helix 2.8s ease-in-out infinite;
+    }
+
+    .css-dna .node {
+      width: 10px;
+      height: 10px;
+      border-radius: 50% !important;
+      flex-shrink: 0;
+    }
+
+    .css-dna .node-left {
+      background: var(--teal);
+      box-shadow: 0 0 8px rgba(19, 138, 165, .45);
+    }
+
+    .css-dna .node-right {
+      background: var(--mid-grey);
+      box-shadow: 0 0 6px rgba(197, 198, 200, .5);
+    }
+
+    .css-dna .bridge {
+      flex: 1;
+      height: 1.5px;
+      margin: 0 2px;
+      opacity: .5;
+      background: linear-gradient(90deg, var(--teal), var(--light-grey), var(--mid-grey));
+    }
+
+    @keyframes helix {
+      0% {
+        transform: translateX(-50%) scaleX(1)
+      }
+
+      25% {
+        transform: translateX(-50%) scaleX(.14)
+      }
+
+      50% {
+        transform: translateX(-50%) scaleX(-1)
+      }
+
+      75% {
+        transform: translateX(-50%) scaleX(.14)
+      }
+
+      100% {
+        transform: translateX(-50%) scaleX(1)
+      }
+    }
+
+    /* scrim: lighter in the central reading band (text legible), DNA stays
+       clearly visible toward the edges — content reads, DNA never moves. */
+    .bg-scrim {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background:
+        radial-gradient(ellipse 52% 44% at 50% 50%, rgba(244, 244, 246, .52) 0%, rgba(244, 244, 246, .28) 45%, rgba(244, 244, 246, 0) 75%),
+        linear-gradient(180deg, rgba(244, 244, 246, .5) 0%, rgba(244, 244, 246, 0) 10%, rgba(244, 244, 246, 0) 90%, rgba(244, 244, 246, .5) 100%);
+      pointer-events: none;
+    }
+
+    /* faint grid texture */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      background-image:
+        linear-gradient(rgba(19, 138, 165, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(19, 138, 165, .035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      background-position: center;
+      opacity: .5;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 30%, transparent 75%);
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       CHROME — top progress + nav + counter
+       ============================================================ */
+    .progress-bar {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      height: 2px;
+      width: 0%;
+      background: var(--teal);
+      z-index: 200;
+      box-shadow: 0 0 10px rgba(19, 138, 165, .7);
+    }
+
+    .chromium-top {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90vw;
+      max-width: 1340px;
+      height: 72px;
+      z-index: 150;
+      pointer-events: auto;
+      border-radius: 36px;
+      background: rgba(244, 244, 246, 0.65);
+      backdrop-filter: blur(24px) saturate(125%) brightness(1.02);
+      -webkit-backdrop-filter: blur(24px) saturate(125%) brightness(1.02);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.45) inset,
+        0 8px 32px 0 rgba(62, 65, 69, 0.05),
+        inset 0 -1px 0 0 rgba(62, 65, 69, 0.02);
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .nav-content-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+      padding: 0 28px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand {
+      flex: 1;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      transition: transform 0.4s ease;
+    }
+
+    .brand h1 {
+      font-family: var(--display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: var(--charcoal);
+    }
+
+    .brand .sub {
+      margin-left: 1px;
+      font-family: var(--slab);
+      font-size: 8.5px;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    .top-nav {
+      flex: 1;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 28px;
+    }
+
+    .top-nav .live {
+      font-family: var(--sans);
+      font-size: 8.5px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--slate);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .top-nav .live .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50% !important;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    .btn-enter {
+      pointer-events: auto;
+      padding: 11px 22px;
+      border: 1px solid rgba(62, 65, 69, 0.25);
+      background: rgba(244, 244, 246, 0.45);
+      backdrop-filter: blur(12px) saturate(110%);
+      -webkit-backdrop-filter: blur(12px) saturate(110%);
+      color: var(--charcoal);
+      font-family: var(--sans);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .35s ease, color .35s ease, box-shadow .35s ease, background-color .35s ease;
+      z-index: 10;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border-radius: 9999px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    }
+
+    .btn-enter::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--charcoal);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+      z-index: -1;
+      pointer-events: none;
+      border-radius: 9999px;
+    }
+
+    .btn-enter:hover {
+      color: var(--bg);
+      border-color: var(--charcoal);
+      box-shadow: 0 4px 12px rgba(62, 65, 69, 0.15);
+    }
+
+    .btn-enter:hover::before {
+      transform: scaleX(1);
+    }
+
+    /* ============================================================
+       SCENE DECK — fixed crossfading scenes
+       ============================================================ */
+    .deck {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity .8s cubic-bezier(.16, 1, .3, 1) .2s;
+    }
+
+    .deck.loaded {
+      opacity: 1;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 112px 6vw 48px;
+      opacity: 0;
+      will-change: opacity, transform, filter;
+      transform: translateY(22px) scale(.99);
+      filter: blur(7px);
+      /* opacity + transform are SCRUBBED directly to scroll position (no
+         transition) for a premium 1:1 tracking feel; only focus softens. */
+      transition: filter .5s cubic-bezier(.16, 1, .3, 1);
+      pointer-events: none;
+      overflow-y: hidden;
+      box-sizing: border-box;
+    }
+
+    .scene::before,
+    .scene::after {
+      content: '';
+      flex-grow: 1;
+      min-height: 0;
+    }
+
+    .scene::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .scene::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .scene::-webkit-scrollbar-thumb {
+      background: rgba(62, 65, 69, 0.15);
+      border-radius: 3px;
+    }
+
+    .scene::-webkit-scrollbar-thumb:hover {
+      background: rgba(62, 65, 69, 0.3);
+    }
+
+    .scene.is-active {
+      filter: blur(0);
+      pointer-events: auto;
+      overflow-y: auto;
+    }
+
+    .scene-inner {
+      width: 100%;
+      max-width: 1340px;
+      display: grid;
+      grid-template-columns: 1fr minmax(360px, 0.85fr);
+      gap: 56px;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .scene-inner.dual-left {
+      grid-template-columns: minmax(360px, 0.85fr) 1fr;
+    }
+
+    .scene-inner.stacked {
+      grid-template-columns: 1fr;
+      max-width: 900px;
+    }
+
+    /* Centered Hero Scene details */
+    #scene-hero .col-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    #scene-hero .eyebrow {
+      justify-content: center;
+    }
+
+    #scene-hero .lede {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-scroll-hint {
+      margin-top: 40px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--teal);
+      animation: heroPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes heroPulse {
+
+      0%,
+      100% {
+        opacity: 0.5;
+        transform: translateY(0);
+      }
+
+      50% {
+        opacity: 1;
+        transform: translateY(6px);
+      }
+    }
+
+    /* Text column */
+    .col-text {
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      font-family: var(--slab);
+      font-size: 9.5px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--teal);
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .eyebrow .n {
+      color: var(--charcoal);
+    }
+
+    .eyebrow .bar {
+      width: 26px;
+      height: 1px;
+      background: var(--teal);
+      opacity: .7;
+    }
+
+    .scene h2 {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: clamp(2.125rem, 4.6vw, 3.75rem);
+      line-height: 1.02;
+      letter-spacing: -0.5px;
+      color: var(--charcoal);
+      margin-bottom: 22px;
+      text-transform: uppercase;
+    }
+
+    .scene h2 .accent {
+      color: var(--teal);
+    }
+
+    .scene h2 em {
+      font-style: normal;
+      color: var(--slate);
+    }
+
+    .lede {
+      font-family: var(--sans);
+      font-size: 16.5px;
+      line-height: 1.6;
+      color: var(--charcoal);
+      font-weight: 400;
+      max-width: 52ch;
+    }
+
+    .lede strong {
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+
+    .lede .muted {
+      color: var(--slate);
+    }
+
+    .fact-list {
+      list-style: none;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .fact {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding-top: 14px;
+      border-top: 1px solid rgba(62, 65, 69, .14);
+    }
+
+    .fact .k {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--teal);
+      font-weight: 600;
+      padding-top: 2px;
+    }
+
+    .fact .v {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--charcoal);
+    }
+
+    .fact .v b {
+      font-weight: 600;
+    }
+
+    .formula {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--charcoal);
+      background: rgba(62, 65, 69, .04);
+      padding: 12px 16px;
+      margin: 14px 0;
+      border-left: 2px solid var(--teal);
+    }
+
+    .formula .cap {
+      display: block;
+      font-size: 9.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-bottom: 6px;
+    }
+
+    .layer-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-top: 26px;
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 11px 14px;
+      border: 1px solid rgba(62, 65, 69, .16);
+      background: rgba(244, 244, 246, .5);
+      backdrop-filter: blur(2px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+      pointer-events: auto;
+      z-index: 1;
+    }
+
+    .layer-row>* {
+      position: relative;
+      z-index: 2;
+    }
+
+    .layer-row::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--teal);
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 3;
+    }
+
+    .layer-row::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: #121315;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .layer-row:hover {
+      border-color: var(--teal);
+      transform: translateX(8px);
+      box-shadow: 0 8px 24px rgba(19, 138, 165, 0.2);
+      padding-left: 18px;
+    }
+
+    .layer-row:hover::before {
+      transform: scaleY(1);
+    }
+
+    .layer-row:hover::after {
+      transform: scaleX(1);
+    }
+
+    .layer-row .ln {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--teal);
+      font-weight: 600;
+      transition: color .3s ease, letter-spacing .3s ease;
+    }
+
+    .layer-row:hover .ln {
+      letter-spacing: 2px;
+      color: #14b8a6;
+    }
+
+    .layer-row .lt {
+      font-family: var(--sans);
+      font-size: 12.5px;
+      color: var(--charcoal);
+      font-weight: 600;
+      transition: color .3s ease;
+    }
+
+    .layer-row:hover .lt {
+      color: #ffffff;
+    }
+
+    .layer-row .ld {
+      display: block;
+      font-size: 11px;
+      color: var(--slate);
+      font-weight: 400;
+      margin-top: 2px;
+      transition: color .3s ease;
+    }
+
+    .layer-row:hover .ld {
+      color: #94a3b8;
+    }
+
+    .layer-row .ls {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--slate);
+      letter-spacing: 1px;
+      transition: color .3s ease;
+    }
+
+    .layer-row:hover .ls {
+      color: #cbd5e1;
+    }
+
+    /* Art column */
+    .col-art {
+      pointer-events: none;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 320px;
+    }
+
+    .art-frame {
+      position: relative;
+      width: 100%;
+      max-width: 700px;
+      aspect-ratio: 1.25;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .art-frame svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .art-frame .opt-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      clip-path: inset(0 100% 0 0);
+      transition: opacity .4s ease, clip-path .95s cubic-bezier(.16, 1, .3, 1), transform .55s cubic-bezier(.16, 1, .3, 1);
+      z-index: 3;
+    }
+
+    .art-frame .opt-img.on {
+      opacity: 1;
+    }
+
+    .scene.is-active .art-frame .opt-img.on {
+      clip-path: inset(0 0 0 0);
+    }
+
+    .art-caption {
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--slate);
+    }
+
+    /* shared svg stroke helpers */
+    .svg-teal {
+      stroke: var(--teal);
+    }
+
+    .svg-char {
+      stroke: var(--charcoal);
+    }
+
+    .svg-grey {
+      stroke: var(--mid-grey);
+    }
+
+    .svg-fill-teal {
+      fill: var(--teal);
+    }
+
+    .svg-fill-grey {
+      fill: var(--mid-grey);
+    }
+
+    /* CTA scene */
+    .cta-card {
+      text-align: center;
+    }
+
+    .cta-card .stat-row {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      margin-top: 36px;
+      flex-wrap: wrap;
+    }
+
+    .cta-card .stat .num {
+      font-family: var(--display);
+      font-size: clamp(1.875rem, 3.4vw, 2.875rem);
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .cta-card .stat .lab {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin-top: 4px;
+    }
+
+    /* ============================================================
+       SCENE NAVIGATOR (top center floating pill bar)
+       ============================================================ */
+    .nav-pill-container {
+      position: relative;
+      pointer-events: auto;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .nav-pill-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(62, 65, 69, 0.12);
+      border-radius: 30px;
+      padding: 5px 6px;
+      box-shadow: 0 8px 24px rgba(62, 65, 69, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .nav-pill-item {
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--slate);
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .nav-pill-item:hover {
+      color: var(--charcoal);
+      background: rgba(62, 65, 69, 0.05);
+    }
+
+    .nav-pill-item.active {
+      color: #ffffff;
+      background: var(--charcoal);
+      box-shadow: 0 2px 6px rgba(62, 65, 69, 0.15);
+    }
+
+    /* counter bottom-left */
+    .counter {
+      position: fixed;
+      bottom: 26px;
+      left: 34px;
+      z-index: 160;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--slate);
+      pointer-events: none;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .counter .now {
+      font-size: 13px;
+      color: var(--charcoal);
+      font-weight: 600;
+    }
+
+    .counter .sep {
+      opacity: .5;
+    }
+
+    /* scroll hint */
+    .scroll-hint {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 160;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--slate);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: opacity .4s ease;
+    }
+
+    .scroll-hint .arr {
+      color: var(--teal);
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-5px)
+      }
+    }
+
+    /* ============================================================
+       SCENE ENTRANCE — text flows / moves per scene (premium tell)
+       Each scene carries one .fx-* class (set by engine). On .is-active
+       the heading + body pieces animate in from a direction, staggered.
+       Decoupled from scroll velocity so arrivals always feel calm.
+       ============================================================ */
+    @keyframes riseUp {
+      from {
+        opacity: 0;
+        transform: translateY(36px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    @keyframes flowLr {
+      from {
+        opacity: 0;
+        transform: translateX(-40px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+
+    @keyframes flowRl {
+      from {
+        opacity: 0;
+        transform: translateX(40px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(.93)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    @keyframes maskDown {
+      from {
+        opacity: 0;
+        clip-path: inset(0 0 100% 0)
+      }
+
+      to {
+        opacity: 1;
+        clip-path: inset(0 0 0 0)
+      }
+    }
+
+    @keyframes wipeR {
+      from {
+        opacity: 0;
+        transform: translateX(-26px);
+        clip-path: inset(0 100% 0 0)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+        clip-path: inset(0 0 0 0)
+      }
+    }
+
+    @keyframes wipeL {
+      from {
+        opacity: 0;
+        transform: translateX(26px);
+        clip-path: inset(0 0 0 100%)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+        clip-path: inset(0 0 0 0)
+      }
+    }
+
+    .fx-rise {
+      --fx: riseUp;
+      --fx-h: riseUp;
+    }
+
+    .fx-lr {
+      --fx: flowLr;
+      --fx-h: wipeR;
+    }
+
+    /* text flows left → right */
+    .fx-rl {
+      --fx: flowRl;
+      --fx-h: wipeL;
+    }
+
+    /* text flows right → left */
+    .fx-scale {
+      --fx: scaleIn;
+      --fx-h: scaleIn;
+    }
+
+    .fx-mask {
+      --fx: riseUp;
+      --fx-h: maskDown;
+    }
+
+    .scene.is-active .eyebrow {
+      animation: var(--fx) .82s both cubic-bezier(.16, 1, .3, 1) .06s;
+    }
+
+    .scene.is-active h2 {
+      animation: var(--fx-h) 1.00s both cubic-bezier(.16, 1, .3, 1) .16s;
+    }
+
+    .scene.is-active .lede {
+      animation: var(--fx) .85s both cubic-bezier(.16, 1, .3, 1) .30s;
+    }
+
+    .scene.is-active .formula,
+    .scene.is-active pre.formula {
+      animation: var(--fx) .80s both cubic-bezier(.16, 1, .3, 1) .40s;
+    }
+
+    .scene.is-active .cta-card {
+      animation: var(--fx) .95s both cubic-bezier(.16, 1, .3, 1) .42s;
+    }
+
+    .scene.is-active .art-frame {
+      animation: scaleIn 1.00s both cubic-bezier(.16, 1, .3, 1) .30s;
+    }
+
+    .scene.is-active .fact {
+      animation: var(--fx) .80s both cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .scene.is-active .fact:nth-child(1) {
+      animation-delay: .46s;
+    }
+
+    .scene.is-active .fact:nth-child(2) {
+      animation-delay: .56s;
+    }
+
+    .scene.is-active .fact:nth-child(3) {
+      animation-delay: .66s;
+    }
+
+    .scene.is-active .fact:nth-child(4) {
+      animation-delay: .76s;
+    }
+
+    .scene.is-active .fact:nth-child(5) {
+      animation-delay: .86s;
+    }
+
+    .scene.is-active .layer-row {
+      animation: var(--fx) .80s both cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .scene.is-active .layer-row:nth-child(1) {
+      animation-delay: .46s;
+    }
+
+    .scene.is-active .layer-row:nth-child(2) {
+      animation-delay: .54s;
+    }
+
+    .scene.is-active .layer-row:nth-child(3) {
+      animation-delay: .62s;
+    }
+
+    .scene.is-active .layer-row:nth-child(4) {
+      animation-delay: .70s;
+    }
+
+    .scene.is-active .layer-row:nth-child(5) {
+      animation-delay: .78s;
+    }
+
+    .scene.is-active .layer-row:nth-child(6) {
+      animation-delay: .86s;
+    }
+
+    /* inline code polish */
+    code {
+      font-family: var(--mono);
+      font-size: .88em;
+      letter-spacing: .2px;
+      color: var(--teal-deep);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .scene.is-active .eyebrow,
+      .scene.is-active h2,
+      .scene.is-active .lede,
+      .scene.is-active .formula,
+      .scene.is-active pre.formula,
+      .scene.is-active .cta-card,
+      .scene.is-active .art-frame,
+      .scene.is-active .fact,
+      .scene.is-active .layer-row,
+      .scene.is-active .eyebrow .q-ch {
+        animation: none !important;
+      }
+    }
+
+    /* ============================================================
+       PREMIUM HOVER DETAILS — blueprint / technical tone
+       (the "Enter Platform" button + exit overlay are untouched)
+       ============================================================ */
+    .scene h2 .accent {
+      position: relative;
+      transition: text-shadow .4s ease;
+    }
+
+    .scene h2 .accent::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: .08em;
+      height: 2px;
+      width: 0;
+      background: var(--teal);
+      transition: width .5s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .scene h2:hover .accent::after {
+      width: 100%;
+    }
+
+    .scene h2:hover .accent {
+      text-shadow: 0 0 20px rgba(19, 138, 165, .32);
+    }
+
+    .eyebrow .bar {
+      transition: width .45s cubic-bezier(.16, 1, .3, 1), background .3s;
+    }
+
+    .eyebrow:hover .bar {
+      width: 58px;
+    }
+
+    .lede strong {
+      transition: color .3s ease;
+    }
+
+    .lede:hover strong {
+      color: var(--teal-deep);
+    }
+
+    .fact {
+      position: relative;
+      overflow: hidden;
+      padding-left: 0;
+      transition: padding-left .4s cubic-bezier(.16, 1, .3, 1), background-color .35s ease, border-color .35s ease;
+    }
+
+    .fact::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--teal);
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .fact:hover {
+      background: rgba(19, 138, 165, .06);
+      border-top-color: rgba(19, 138, 165, .45);
+      padding-left: 16px;
+    }
+
+    .fact:hover::before {
+      transform: scaleY(1);
+    }
+
+    .fact .k {
+      transition: color .3s ease, letter-spacing .3s ease;
+    }
+
+    .fact:hover .k {
+      letter-spacing: 2.6px;
+    }
+
+    .fact:hover .v b {
+      color: var(--teal-deep);
+    }
+
+    .formula {
+      transition: border-left-width .4s ease, background-color .4s ease, box-shadow .4s ease;
+    }
+
+    .formula:hover {
+      border-left-width: 5px;
+      background-color: rgba(19, 138, 165, .07);
+      box-shadow: 0 8px 22px rgba(19, 138, 165, .08);
+    }
+
+    .art-frame {
+      position: relative;
+    }
+
+    .art-frame::before {
+      content: '';
+      position: absolute;
+      inset: -7px;
+      border: 1px solid var(--teal);
+      opacity: 0;
+      transform: scale(.96);
+      transition: opacity .45s ease, transform .45s cubic-bezier(.16, 1, .3, 1);
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    .col-art:hover .art-frame::before {
+      opacity: .55;
+      transform: scale(1);
+    }
+
+    .art-frame svg {
+      transition: filter .45s ease, transform .55s cubic-bezier(.16, 1, .3, 1), opacity 0.4s ease;
+    }
+
+    .art-frame .opt-img {
+      transition: opacity .4s ease, clip-path .95s cubic-bezier(.16, 1, .3, 1), transform .55s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .col-art:hover .art-frame svg {
+      transform: scale(1.03);
+      filter: drop-shadow(0 0 14px rgba(19, 138, 165, .2));
+    }
+
+    .col-art:hover .art-frame .opt-img.on {
+      transform: scale(1.05);
+      clip-path: inset(0 0 0 0);
+      filter: drop-shadow(0 0 14px rgba(19, 138, 165, .2));
+    }
+
+    /* Fade out underlying SVG schematic when image is loaded and active */
+    .scene.is-active .art-frame.has-img svg {
+      opacity: 0;
+    }
+
+    .art-caption {
+      transition: color .3s ease, letter-spacing .3s ease, transform .4s ease;
+    }
+
+    .col-art:hover .art-caption {
+      color: var(--teal);
+      letter-spacing: 3px;
+      transform: translateX(8px);
+    }
+
+    .crosshair {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      pointer-events: none;
+      z-index: 7;
+      border: 0 solid var(--teal);
+      opacity: 0;
+      transition: opacity .4s ease, transform .45s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .ch-tl {
+      top: 6px;
+      left: 6px;
+      border-top-width: 1.5px;
+      border-left-width: 1.5px;
+      transform: translate(8px, 8px);
+    }
+
+    .ch-tr {
+      top: 6px;
+      right: 6px;
+      border-top-width: 1.5px;
+      border-right-width: 1.5px;
+      transform: translate(-8px, 8px);
+    }
+
+    .ch-bl {
+      bottom: 6px;
+      left: 6px;
+      border-bottom-width: 1.5px;
+      border-left-width: 1.5px;
+      transform: translate(8px, -8px);
+    }
+
+    .ch-br {
+      bottom: 6px;
+      right: 6px;
+      border-bottom-width: 1.5px;
+      border-right-width: 1.5px;
+      transform: translate(-8px, -8px);
+    }
+
+    .col-art:hover .crosshair {
+      opacity: .9;
+      transform: translate(0, 0);
+    }
+
+    .brand {
+      cursor: default;
+    }
+
+    .brand:hover .brand-logo {
+      transform: scale(1.1) rotate(15deg);
+    }
+
+    .brand h1 {
+      transition: color .35s ease;
+    }
+
+    .brand:hover h1 {
+      color: var(--teal-deep);
+    }
+
+    .top-nav .live {
+      transition: color .3s ease;
+      cursor: default;
+    }
+
+    .top-nav .live .dot {
+      transition: animation-duration .3s ease;
+    }
+
+    .top-nav .live:hover {
+      color: var(--charcoal);
+    }
+
+    .top-nav .live:hover .dot {
+      animation-duration: .9s;
+    }
+
+    /* spacer that creates scroll length */
+    .scroller {
+      position: relative;
+      width: 1px;
+      z-index: -1;
+    }
+
+    /* page exit animation on transition */
+    body.transitioning-out .bg-stack,
+    body.transitioning-out .deck,
+    body.transitioning-out .chromium-top,
+    body.transitioning-out .nav-rail,
+    body.transitioning-out .counter,
+    body.transitioning-out .scroll-hint,
+    body.transitioning-out .progress-bar {
+      transition: opacity .45s ease, transform .45s ease;
+      opacity: 0 !important;
+      transform: scale(.98) !important;
+    }
+
+    body.transitioning-out .progress-bar {
+      transform: none !important;
+    }
+
+    /* ============================================================
+       TRANSITION OVERLAY (cinematic exit → /app.html) — preserved
+       ============================================================ */
+    .transition-overlay {
+      position: fixed;
+      inset: 0;
       z-index: 99999;
       pointer-events: none;
       opacity: 0;
@@ -80,77 +1475,34 @@
       visibility: visible;
     }
 
-    /* Frosted glass backdrop that fades in */
     .transition-backdrop {
       position: absolute;
       inset: 0;
       background: rgba(244, 244, 246, 0);
-      backdrop-filter: blur(0px);
-      -webkit-backdrop-filter: blur(0px);
-      transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        backdrop-filter 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-        -webkit-backdrop-filter 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(0);
+      -webkit-backdrop-filter: blur(0);
+      transition: background .6s cubic-bezier(.4, 0, .2, 1), backdrop-filter .6s cubic-bezier(.4, 0, .2, 1), -webkit-backdrop-filter .6s cubic-bezier(.4, 0, .2, 1);
     }
 
     .transition-overlay.active .transition-backdrop {
-      background: rgba(244, 244, 246, 0.92);
+      background: rgba(244, 244, 246, .92);
       backdrop-filter: blur(35px);
       -webkit-backdrop-filter: blur(35px);
     }
 
-    /* Sci-fi layout grid lines overlay */
-    .transition-grid {
-      position: absolute;
-      inset: 0;
-      background-image: linear-gradient(rgba(19, 138, 165, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(19, 138, 165, 0.03) 1px, transparent 1px);
-      background-size: 50px 50px;
-      background-position: center;
-      opacity: 0;
-      transition: opacity 0.8s ease 0.2s;
-      pointer-events: none;
-    }
-
-    .transition-overlay.active .transition-grid {
-      opacity: 1;
-    }
-
-    /* Translucent floating molecule watermarks */
-    .watermark-field {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .watermark-node {
-      position: absolute;
-      font-family: var(--font-mono);
-      color: var(--color-teal);
-      opacity: 0;
-      white-space: nowrap;
-      user-select: none;
-      pointer-events: none;
-      font-weight: 700;
-      transition: opacity 0.5s ease;
-    }
-
-    /* Centered Pathogen HUD Scanner */
     .pathogen-hud-container {
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) scale(0.6);
+      transform: translate(-50%, -50%) scale(.6);
       width: 360px;
       height: 360px;
       display: flex;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
       z-index: 5;
+      transition: opacity .5s cubic-bezier(.16, 1, .3, 1) .15s, transform .5s cubic-bezier(.16, 1, .3, 1) .15s;
     }
 
     .transition-overlay.active .pathogen-hud-container {
@@ -163,74 +1515,70 @@
       height: 220px;
       object-fit: contain;
       mix-blend-mode: multiply;
-      /* Blends the white background of the image away */
-      filter: drop-shadow(0 0 15px rgba(19, 138, 165, 0.15));
+      filter: drop-shadow(0 0 15px rgba(19, 138, 165, .15));
       z-index: 3;
-      transition: transform 0.4s ease, filter 0.4s ease;
+      transition: transform .4s ease, filter .4s ease;
     }
 
-    /* Target lock-on brackets */
     .target-bracket {
       position: absolute;
       width: 30px;
       height: 30px;
-      border-color: var(--color-teal);
+      border-color: var(--teal);
       border-style: solid;
-      border-width: 0px;
-      transition: border-width 0.4s ease 0.4s, inset 0.4s cubic-bezier(0.25, 1, 0.5, 1) 0.4s;
+      border-width: 0;
       z-index: 4;
+      transition: border-width .4s ease .4s, inset .4s cubic-bezier(.25, 1, .5, 1) .4s;
     }
 
     .bracket-tl {
       top: 45px;
       left: 45px;
       border-top-width: 2px;
-      border-left-width: 2px;
+      border-left-width: 2px
     }
 
     .bracket-tr {
       top: 45px;
       right: 45px;
       border-top-width: 2px;
-      border-right-width: 2px;
+      border-right-width: 2px
     }
 
     .bracket-bl {
       bottom: 45px;
       left: 45px;
       border-bottom-width: 2px;
-      border-left-width: 2px;
+      border-left-width: 2px
     }
 
     .bracket-br {
       bottom: 45px;
       right: 45px;
       border-bottom-width: 2px;
-      border-right-width: 2px;
+      border-right-width: 2px
     }
 
-    /* Locks on by contracting inwards when activated */
     .transition-overlay.active .bracket-tl {
       top: 55px;
-      left: 55px;
+      left: 55px
     }
 
     .transition-overlay.active .bracket-tr {
       top: 55px;
-      right: 55px;
+      right: 55px
     }
 
     .transition-overlay.active .bracket-bl {
       bottom: 55px;
-      left: 55px;
+      left: 55px
     }
 
     .transition-overlay.active .bracket-br {
       bottom: 55px;
-      right: 55px;
+      right: 55px
     }
 
-    /* Scanning circle rings (allowing rounded loading visual styles) */
     .hud-scanner-rings {
       position: absolute;
       inset: 0;
@@ -244,97 +1592,86 @@
     .scanner-ring {
       position: absolute;
       border-radius: 50% !important;
-      /* override the global 0px border-radius rule for this HUD */
-      border: 1px dashed rgba(19, 138, 165, 0.2);
     }
 
     .ring-outer {
       width: 330px;
       height: 330px;
-      border-style: dotted;
-      animation: spin-clockwise 20s linear infinite;
+      border: 1px dotted rgba(19, 138, 165, .2);
+      animation: spc 20s linear infinite
     }
 
     .ring-middle {
       width: 290px;
       height: 290px;
-      border: 1px solid rgba(19, 138, 165, 0.15);
-      border-left-color: var(--color-teal);
-      border-right-color: var(--color-teal);
-      animation: spin-counter-clockwise 8s linear infinite;
+      border: 1px solid rgba(19, 138, 165, .15);
+      border-left-color: var(--teal);
+      border-right-color: var(--teal);
+      animation: spcc 8s linear infinite
     }
 
     .ring-inner {
       width: 250px;
       height: 250px;
-      border-style: dashed;
-      border-top-color: var(--color-teal);
-      animation: spin-clockwise 4s linear infinite;
+      border: 1px dashed var(--teal);
+      border-color: rgba(19, 138, 165, .2);
+      border-top-color: var(--teal);
+      animation: spc 4s linear infinite
     }
 
-    @keyframes spin-clockwise {
-      from {
-        transform: rotate(0deg);
-      }
-
+    @keyframes spc {
       to {
-        transform: rotate(360deg);
+        transform: rotate(360deg)
       }
     }
 
-    @keyframes spin-counter-clockwise {
-      from {
-        transform: rotate(360deg);
-      }
-
+    @keyframes spcc {
       to {
-        transform: rotate(0deg);
+        transform: rotate(-360deg)
       }
     }
 
-    /* Vertical scanner laser bar */
     .scanner-sweep-line {
       position: absolute;
       left: 15%;
       width: 70%;
       height: 2px;
-      background: linear-gradient(90deg, transparent, var(--color-teal), transparent);
-      box-shadow: 0 0 10px var(--color-teal);
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      box-shadow: 0 0 10px var(--teal);
       top: 60px;
       z-index: 4;
-      animation: laser-sweep 2s ease-in-out infinite alternate;
+      animation: lsweep 2s ease-in-out infinite alternate;
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity .3s ease;
     }
 
     .transition-overlay.active .scanner-sweep-line {
-      opacity: 0.85;
+      opacity: .85;
     }
 
-    @keyframes laser-sweep {
+    @keyframes lsweep {
       from {
-        top: 60px;
+        top: 60px
       }
 
       to {
-        top: 300px;
+        top: 300px
       }
     }
 
     .target-stats-overlay {
       position: absolute;
       bottom: 5px;
-      font-family: var(--font-mono);
-      font-size: 8px;
-      color: var(--color-teal);
       text-align: center;
-      line-height: 1.5;
+      font-family: var(--mono);
+      font-size: 8px;
+      color: var(--teal);
       letter-spacing: 1px;
       font-weight: bold;
-      opacity: 0.8;
+      opacity: .8;
+      line-height: 1.5;
     }
 
-    /* Progress Bar (Loading Bar) below the HUD */
     .progress-bar-container {
       position: absolute;
       top: calc(50% + 210px);
@@ -349,21 +1686,21 @@
     }
 
     .progress-bar-text {
-      font-family: var(--font-mono);
+      font-family: var(--mono);
       font-size: 10px;
       letter-spacing: 2px;
       text-transform: uppercase;
-      color: var(--color-teal);
+      color: var(--teal);
       font-weight: 700;
-      transition: color 0.3s ease;
       white-space: nowrap;
+      transition: color .3s ease;
     }
 
     .progress-bar-track {
       width: 100%;
       height: 6px;
-      background: rgba(19, 138, 165, 0.12);
-      border: 1px solid rgba(19, 138, 165, 0.2);
+      background: rgba(19, 138, 165, .12);
+      border: 1px solid rgba(19, 138, 165, .2);
       overflow: hidden;
       border-radius: 3px !important;
     }
@@ -371,13 +1708,32 @@
     .progress-bar-fill {
       width: 0%;
       height: 100%;
-      background: var(--color-teal);
-      box-shadow: 0 0 8px var(--color-teal);
-      transition: width 0.1s linear;
+      background: var(--teal);
+      box-shadow: 0 0 8px var(--teal);
+      transition: width .1s linear;
       border-radius: 3px !important;
     }
 
-    /* Particle burst — tiny teal dots that radiate outward */
+    .watermark-field {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .watermark-node {
+      position: absolute;
+      font-family: var(--mono);
+      color: var(--teal);
+      opacity: 0;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+      font-weight: 700;
+      transition: opacity 0.5s ease;
+    }
+
     .particle-field {
       position: absolute;
       inset: 0;
@@ -390,18 +1746,17 @@
       left: 50%;
       width: 3px;
       height: 3px;
-      background: var(--color-teal);
-      box-shadow: 0 0 6px var(--color-teal);
+      background: var(--teal);
+      box-shadow: 0 0 6px var(--teal);
       opacity: 0;
     }
 
-    /* Final white-out flash before navigation */
     .flash-overlay {
       position: absolute;
       inset: 0;
-      background: var(--color-light-bg);
+      background: var(--bg);
       opacity: 0;
-      transition: opacity 0.25s cubic-bezier(0.4, 0, 1, 1);
+      transition: opacity .25s cubic-bezier(.4, 0, 1, 1);
       z-index: 100;
     }
 
@@ -409,1645 +1764,587 @@
       opacity: 1;
     }
 
-    /* Fixed background container for DNA */
-    .dna-viewport {
-      position: fixed;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      z-index: 1;
+    @media (max-width: 1100px) {
+      .top-nav .live {
+        display: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+
+      .scene-inner,
+      .scene-inner.dual-left {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .scene {
+        padding: 84px 7vw 76px;
+      }
+
+      .col-art {
+        min-height: 220px;
+      }
+
+      .art-frame {
+        max-width: 480px;
+      }
+
+      .nav-rail {
+        right: 14px;
+      }
+
+      .chromium-top {
+        width: 94vw;
+        height: 64px;
+        top: 12px;
+        border-radius: 32px;
+      }
+
+      .nav-content-wrapper {
+        padding: 0 16px;
+      }
+
+      .brand .sub {
+        display: none;
+      }
+
+      .top-nav .live {
+        display: none;
+      }
+    }
+
+    /* ============================================================
+       LANDO TECHNIQUES: SPLIT-TEXT ROLL & MODULES REVEAL GRID
+       ============================================================ */
+    .q-ch {
+      display: inline-block;
+      transition: transform .4s cubic-bezier(.16, 1, .3, 1);
+      position: relative;
+    }
+
+    .q-ch::after {
+      content: attr(data-letter);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      color: inherit;
       pointer-events: none;
     }
 
-    /* Live Spline viewer starts hidden and fades in when loaded */
-    spline-viewer {
+    [data-roll]:hover .q-ch {
+      transform: translateY(-100%);
+    }
+
+    @keyframes qchIn {
+      from {
+        opacity: 0;
+        clip-path: inset(0 0 100% 0);
+        transform: translateY(0.4em);
+      }
+
+      to {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+        transform: translateY(0);
+      }
+    }
+
+    .scene.is-active .eyebrow .q-ch {
+      animation: qchIn .6s both cubic-bezier(.16, 1, .3, 1);
+      animation-delay: calc(.12s + var(--i) * 0.025s);
+    }
+
+    .qbtn-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    .qbtn-arr {
+      display: inline-block;
+      transition: transform .35s cubic-bezier(.16, 1, .3, 1);
+      position: relative;
+      z-index: 2;
+    }
+
+    .btn-enter:hover .qbtn-arr {
+      transform: translate(3px, -3px);
+    }
+
+    /* Modules Ticker Layout */
+    .mods-ticker-container {
+      position: relative;
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      overflow: hidden;
+      margin-top: 32px;
+      padding: 15px 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Fade-out edge gradients */
+    .mods-ticker-container::before,
+    .mods-ticker-container::after {
+      content: '';
       position: absolute;
       top: 0;
+      bottom: 0;
+      width: 120px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .mods-ticker-container::before {
       left: 0;
+      background: linear-gradient(90deg, var(--bg) 0%, transparent 100%);
+    }
+
+    .mods-ticker-container::after {
+      right: 0;
+      background: linear-gradient(-90deg, var(--bg) 0%, transparent 100%);
+    }
+
+    .mods-ticker-lane {
+      display: flex;
+      gap: 48px;
+      width: max-content;
+    }
+
+    .mods-ticker-lane.is-rtl {
+      animation: tickerRTL 24s linear infinite;
+    }
+
+    .mods-ticker-lane.is-ltr {
+      animation: tickerLTR 24s linear infinite;
+    }
+
+    .mods-ticker-lane:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes tickerRTL {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+
+      100% {
+        transform: translate3d(-50%, 0, 0);
+      }
+    }
+
+    @keyframes tickerLTR {
+      0% {
+        transform: translate3d(-50%, 0, 0);
+      }
+
+      100% {
+        transform: translate3d(0, 0, 0);
+      }
+    }
+
+    .mod-card {
+      position: relative;
+      width: 230px;
+      flex-shrink: 0;
+      border: 1px solid rgba(62, 65, 69, .16);
+      background: rgba(244, 244, 246, .5);
+      backdrop-filter: blur(2px);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all .4s cubic-bezier(.16, 1, .3, 1);
+      cursor: default;
+      overflow: hidden;
+    }
+
+    .mod-frame {
+      position: relative;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(62, 65, 69, .1);
+      background: rgba(255, 255, 255, .3);
+      overflow: hidden;
+      transition: all .4s ease;
+    }
+
+    .mod-art {
+      position: relative;
       width: 100%;
       height: 100%;
-      display: block;
-      transform: scale(1.25);
-      /* Zoom to crop logo and keep DNA clean */
-      transform-origin: center center;
-      pointer-events: none !important;
-      opacity: 0;
-      /* hidden on start, cross-fades when ready */
-      transition: opacity 0.35s ease;
-      --spline-viewer-logo-display: none !important;
-    }
-
-    spline-viewer::part(logo) {
-      display: none !important;
-    }
-
-    /* Static preview placeholder — animated CSS DNA helix shown instantly */
-    .dna-placeholder {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: var(--color-light-bg);
-      z-index: 2;
-      opacity: 1;
-      transition: opacity 0.6s ease;
-      pointer-events: none;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    /* CSS-only animated DNA double helix placeholder */
-    .css-dna {
-      position: relative;
-      width: 80px;
-      height: 400px;
+    .mod-art svg {
+      width: 80%;
+      height: 80%;
+      display: block;
+      transition: transform .5s cubic-bezier(.16, 1, .3, 1), opacity 0.4s ease;
     }
 
-    .css-dna .base-pair {
+    .mod-img {
       position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px;
-      height: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      animation: dna-helix-rotate 2.8s ease-in-out infinite;
-    }
-
-    .css-dna .base-pair .node {
-      width: 10px;
-      height: 10px;
-      border-radius: 50% !important;
-      flex-shrink: 0;
-    }
-
-    .css-dna .base-pair .node-left {
-      background: var(--color-teal);
-      box-shadow: 0 0 8px rgba(19, 138, 165, 0.4);
-    }
-
-    .css-dna .base-pair .node-right {
-      background: var(--color-mid-grey);
-      box-shadow: 0 0 6px rgba(197, 198, 200, 0.5);
-    }
-
-    .css-dna .base-pair .bridge {
-      flex: 1;
-      height: 1.5px;
-      background: linear-gradient(90deg, var(--color-teal), var(--color-light-grey), var(--color-mid-grey));
-      opacity: 0.5;
-      margin: 0 2px;
-    }
-
-    @keyframes dna-helix-rotate {
-      0% {
-        transform: translateX(-50%) scaleX(1);
-      }
-
-      25% {
-        transform: translateX(-50%) scaleX(0.15);
-      }
-
-      50% {
-        transform: translateX(-50%) scaleX(-1);
-      }
-
-      75% {
-        transform: translateX(-50%) scaleX(0.15);
-      }
-
-      100% {
-        transform: translateX(-50%) scaleX(1);
-      }
-    }
-
-    /* Loading indicator text below the DNA */
-    .placeholder-loading {
-      position: absolute;
-      bottom: calc(50% - 240px);
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: var(--font-mono);
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--color-teal);
-      font-weight: 600;
-      opacity: 0.6;
-      animation: loadPulse 1.5s ease-in-out infinite;
-      white-space: nowrap;
-    }
-
-    @keyframes loadPulse {
-
-      0%,
-      100% {
-        opacity: 0.4;
-      }
-
-      50% {
-        opacity: 0.8;
-      }
-    }
-
-    /* SVG Connector Overlay */
-    .connector-svg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 3;
-      pointer-events: none;
-    }
-
-    .connector-line {
-      fill: none;
-      stroke: var(--color-mid-grey);
-      stroke-width: 1.5;
-      stroke-dasharray: 4, 4;
-      opacity: 0;
-      /* Smooth path growth animation */
-      transition: stroke-dashoffset 0.3s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.3s ease, stroke-width 0.3s ease, opacity 0.3s ease;
-    }
-
-    .connector-line.active {
-      stroke: var(--color-teal);
-      stroke-width: 2;
-      opacity: 0.85;
-      filter: drop-shadow(0 0 4px var(--color-teal));
-    }
-
-    /* UI Header Overlay */
-    .header-ui {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      padding: 30px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      z-index: 100;
-      pointer-events: none;
-    }
-
-    .title-area {
-      pointer-events: auto;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .title-area h1 {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 5px;
-      text-transform: uppercase;
-      color: var(--color-charcoal);
-    }
-
-    .nav-area {
-      pointer-events: auto;
-    }
-
-    .btn-view {
-      display: inline-block;
-      padding: 10px 20px;
-      border: 1px solid var(--color-charcoal);
-      background: transparent;
-      color: var(--color-charcoal);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-view::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
+      inset: 0;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(19, 138, 165, 0.15), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .btn-view:hover {
-      background-color: var(--color-charcoal);
-      color: var(--color-light-bg);
-      border-color: var(--color-charcoal);
-      box-shadow: 0 4px 20px rgba(62, 65, 69, 0.25);
-    }
-
-    .btn-view:hover::before {
-      left: 100%;
-    }
-
-    /* Landing Page Hero Container (Screen 1 - Big and Centered) */
-    .hero-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 780px;
-      text-align: center;
-      z-index: 10;
-      pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      background: rgba(244, 244, 246, 0.4);
-      padding: 40px;
-      backdrop-filter: blur(2px);
-    }
-
-    .hero-tag {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--color-teal);
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-
-    .hero-title {
-      font-size: 60px;
-      font-weight: 800;
-      letter-spacing: 8px;
-      text-transform: uppercase;
-      color: var(--color-charcoal);
-      margin-bottom: 24px;
-      line-height: 1.1;
-    }
-
-    .hero-description {
-      font-size: 16px;
-      line-height: 1.7;
-      color: var(--color-slate);
-      font-weight: 400;
-    }
-
-    /* Left and Right Side Panels for Hero Screen */
-    .hero-side-panel {
-      position: fixed;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 300px;
-      z-index: 10;
-      pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-
-    .side-left {
-      left: 40px;
-      text-align: left;
-    }
-
-    .side-right {
-      right: 40px;
-      text-align: right;
-    }
-
-    .side-section {
-      margin-bottom: 28px;
-    }
-
-    .side-section:last-child {
-      margin-bottom: 0;
-    }
-
-    .side-tag {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 2px;
-      color: var(--color-teal);
-      font-weight: 700;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-    }
-
-    .side-title {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--color-charcoal);
-      margin-bottom: 6px;
-    }
-
-    .side-desc {
-      font-size: 12px;
-      line-height: 1.5;
-      color: var(--color-slate);
-    }
-
-    /* Sci-fi details boxes */
-    .info-boxes-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 10;
-      pointer-events: none;
-    }
-
-    /* Single dynamic box with rapid transitions */
-    .info-box {
-      position: absolute;
-      width: 480px;
-      background: rgba(244, 244, 246, 0.4);
-      padding: 24px;
-      backdrop-filter: blur(2px);
-      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      object-fit: cover;
       opacity: 0;
-      transform: scale(0);
-      pointer-events: auto;
-      box-shadow: 0 10px 30px rgba(19, 138, 165, 0.08);
+      transition: opacity .4s ease, transform .5s cubic-bezier(.16, 1, .3, 1);
+      z-index: 2;
     }
 
-    /* Positioning classes applied dynamically */
-    .box-left-top {
-      top: 140px;
-      left: 60px;
-    }
-
-    .box-right-top {
-      top: 140px;
-      right: 60px;
-    }
-
-    .box-left-bottom {
-      bottom: 60px;
-      left: 60px;
-    }
-
-    .box-right-bottom {
-      bottom: 60px;
-      right: 60px;
-    }
-
-    /* Box Typography */
-    .box-num {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--color-teal);
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .box-title {
-      font-size: 14px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: var(--color-charcoal);
-      margin-bottom: 12px;
-      border-bottom: 1px solid rgba(19, 138, 165, 0.2);
-      padding-bottom: 8px;
-    }
-
-    .box-body {
-      font-size: 12.5px;
-      line-height: 1.6;
-      color: var(--color-charcoal);
-    }
-
-    .box-body p {
-      margin-bottom: 10px;
-    }
-
-    .box-body p:last-child {
-      margin-bottom: 0;
-    }
-
-    .tech-list,
-    .step-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .tech-item,
-    .step-item {
-      font-size: 12px;
-    }
-
-    .tech-name,
-    .step-name {
-      font-weight: 700;
-      color: var(--color-charcoal);
-    }
-
-    .formula-block {
-      font-family: var(--font-mono);
-      background: rgba(0, 0, 0, 0.03);
-      padding: 8px 12px;
-      margin: 8px 0;
-      font-size: 11px;
-      border-left: 2px solid var(--color-teal);
-      color: var(--color-charcoal);
-    }
-
-    /* Key Features Interstitial Frame */
-    .key-features-frame {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.8);
-      z-index: 20;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-      text-align: center;
-    }
-
-    .key-features-frame.visible {
+    .mod-img.on {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
     }
 
-    .kf-inner {
-      background: rgba(244, 244, 246, 0.4);
-      backdrop-filter: blur(2px);
-      padding: 40px 60px;
-      box-shadow: 0 20px 60px rgba(19, 138, 165, 0.1), 0 0 0 1px rgba(19, 138, 165, 0.05);
+    .mod-card:hover .mod-img.on {
+      transform: scale(1.05);
     }
 
-    .kf-tag {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--color-teal);
-      font-weight: 700;
-      margin-bottom: 12px;
+    .mod-card:hover .mod-frame {
+      border-color: #000000;
+      background: rgba(255, 255, 255, 0.9);
     }
 
-    .kf-title {
-      font-size: 36px;
-      font-weight: 800;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-      color: var(--color-charcoal);
-      margin-bottom: 12px;
-      line-height: 1.2;
+    /* Hide the underlying SVG schematic permanently once the image is loaded */
+    .mod-frame.has-img svg {
+      opacity: 0;
     }
 
-    .kf-line {
-      width: 50px;
-      height: 2px;
-      background: var(--color-teal);
-      margin: 0 auto 14px;
+    .mod-card:hover .mod-art svg {
+      transform: scale(1.05);
     }
 
-    .kf-subtitle {
-      font-size: 13px;
-      line-height: 1.6;
-      color: var(--color-slate);
-      font-weight: 400;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    /* Scroll Down Indicator */
-    .scroll-indicator {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--color-slate);
-      z-index: 50;
+    .mod-info {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      opacity: 0.8;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
+      gap: 2px;
+      z-index: 2;
     }
 
-    .scroll-indicator::after {
-      content: '↓';
-      font-size: 12px;
-      color: var(--color-teal);
-      animation: bounce 2s infinite;
+    .mod-tag {
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: var(--teal);
+      text-transform: uppercase;
+      font-weight: 600;
     }
 
-    @keyframes bounce {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-4px);
-      }
+    .mod-label {
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--charcoal);
     }
 
-    /* Mini DNA Decorations */
-    .mini-dna-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      pointer-events: none;
-      overflow: hidden;
+    .mod-sub {
+      font-family: var(--sans);
+      font-size: 9px;
+      color: var(--slate);
+      line-height: 1.25;
     }
 
-    .mini-dna {
+    .mod-extender {
       position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(19, 138, 165, 0.08));
+      opacity: 0;
+      transition: opacity .4s ease;
       pointer-events: none;
-      opacity: 0.12;
+      z-index: 1;
     }
 
-    .mini-dna svg {
-      width: 100%;
-      height: 100%;
+    .mod-card:hover .mod-extender {
+      opacity: 1;
     }
 
-    .mini-dna .strand {
-      fill: none;
-      stroke-width: 1.5;
-      stroke-linecap: round;
+    .mod-card:hover {
+      border-color: var(--teal);
+      box-shadow: 0 8px 24px rgba(19, 138, 165, 0.1), 0 0 0 4px rgba(19, 138, 165, 0.05);
+      transform: translateY(-2px);
     }
 
-    .mini-dna .strand-1 {
-      stroke: var(--color-teal);
+    /* Only allow interactions on interactive elements when their parent scene is active */
+    .scene.is-active .col-text,
+    .scene.is-active .col-art,
+    .scene.is-active .mods-ticker-container,
+    .scene.is-active .layer-row {
+      pointer-events: auto;
     }
 
-    .mini-dna .strand-2 {
-      stroke: var(--color-mid-grey);
+    /* Dynamic full-screen width background blur band */
+    .scene-blur-band {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 100vw;
+      height: 112%;
+      min-height: 400px;
+      background: rgba(244, 244, 246, 0.45);
+      backdrop-filter: blur(28px) saturate(110%);
+      -webkit-backdrop-filter: blur(28px) saturate(110%);
+      border-top: 1.5px solid rgba(62, 65, 69, 0.05);
+      border-bottom: 1.5px solid rgba(62, 65, 69, 0.05);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    .mini-dna .rung {
-      stroke: var(--color-light-grey);
-      stroke-width: 1;
-      opacity: 0.6;
+    /* Ensure scene-inner content is relative and in front of the blur band */
+    .scene-inner {
+      position: relative;
+      z-index: 2;
     }
 
-    @keyframes dna-spin {
-      0% {
-        transform: rotate(0deg);
+    /* Hero section specific title and accent overrides to match first image */
+    #scene-hero h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.3rem, 5.2vw, 4.2rem) !important;
+      letter-spacing: -1.5px !important;
+      color: var(--charcoal) !important;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    #scene-hero h2 .accent {
+      color: var(--charcoal) !important;
+      text-shadow: none !important;
+    }
+
+    #scene-hero h2 .accent::after {
+      display: none !important;
+    }
+
+    /* Responsive height overrides for narrow/short viewports to prevent overflow */
+    @media (max-height: 840px) {
+      .scene {
+        padding: 96px 6vw 32px;
       }
 
-      100% {
-        transform: rotate(360deg);
+      .mods-ticker-container {
+        margin-top: 14px;
+        gap: 12px;
+      }
+
+      .mods-ticker-lane {
+        gap: 24px;
+      }
+
+      .mod-card {
+        width: 210px;
+        padding: 10px;
+        gap: 8px;
+      }
+
+      .mod-info {
+        gap: 2px;
+      }
+
+      .mod-tag {
+        font-size: 8px;
+      }
+
+      .mod-label {
+        font-size: 11px;
+      }
+
+      .mod-sub {
+        font-size: 9.5px;
+        line-height: 1.2;
       }
     }
 
-    @keyframes dna-drift {
-
-      0%,
-      100% {
-        transform: translateY(0px) rotate(0deg);
+    @media (max-height: 700px) {
+      .scene {
+        padding: 80px 6vw 20px;
       }
 
-      25% {
-        transform: translateY(-8px) rotate(3deg);
+      .mods-ticker-container {
+        margin-top: 10px;
+        gap: 8px;
       }
 
-      50% {
-        transform: translateY(0px) rotate(0deg);
+      .mods-ticker-lane {
+        gap: 16px;
       }
 
-      75% {
-        transform: translateY(8px) rotate(-3deg);
+      .mod-card {
+        width: 170px;
+        padding: 8px;
+        gap: 6px;
       }
-    }
 
-    .mini-dna-1 {
-      top: 8%;
-      left: 5%;
-      width: 40px;
-      height: 80px;
-      opacity: 0.10;
-      animation: dna-drift 18s ease-in-out infinite;
-    }
+      .mod-info {
+        gap: 1px;
+      }
 
-    .mini-dna-2 {
-      top: 65%;
-      right: 8%;
-      left: auto;
-      width: 30px;
-      height: 60px;
-      opacity: 0.08;
-      animation: dna-drift 22s ease-in-out infinite reverse;
-    }
+      .mod-tag {
+        font-size: 7.5px;
+        letter-spacing: 1px;
+      }
 
-    .mini-dna-3 {
-      top: 30%;
-      right: 3%;
-      left: auto;
-      width: 50px;
-      height: 100px;
-      opacity: 0.06;
-      animation: dna-drift 25s ease-in-out infinite;
-    }
+      .mod-label {
+        font-size: 9.5px;
+      }
 
-    .mini-dna-4 {
-      bottom: 12%;
-      left: 10%;
-      width: 25px;
-      height: 50px;
-      opacity: 0.10;
-      animation: dna-drift 20s ease-in-out infinite reverse;
-    }
-
-    .mini-dna-5 {
-      top: 45%;
-      left: 2%;
-      width: 35px;
-      height: 70px;
-      opacity: 0.07;
-      animation: dna-drift 16s ease-in-out infinite;
-    }
-
-    .mini-dna-6 {
-      bottom: 5%;
-      right: 15%;
-      left: auto;
-      width: 22px;
-      height: 44px;
-      opacity: 0.09;
-      animation: dna-drift 24s ease-in-out infinite reverse;
-    }
-
-    /* Page exit animation applied to body content */
-    body.transitioning-out .dna-viewport,
-    body.transitioning-out .mini-dna-container,
-    body.transitioning-out .header-ui,
-    body.transitioning-out .hero-container,
-    body.transitioning-out .hero-side-panel,
-    body.transitioning-out .info-boxes-container,
-    body.transitioning-out .key-features-frame,
-    body.transitioning-out .scroll-indicator,
-    body.transitioning-out .connector-svg {
-      transition: opacity 0.5s ease, transform 0.5s ease;
-      opacity: 0 !important;
-      transform: scale(0.97) !important;
+      .mod-sub {
+        display: none;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- ============================================================
-       TRANSITION OVERLAY — Cinematic exit to Dashboard
-       ============================================================ -->
+  <!-- Fixed Spline DNA background (never moves) -->
+  <div class="bg-stack">
+    <div class="dna-viewport">
+      <spline-viewer loading-anim-type="none" lazy="false" url="dna_scene.splinecode"></spline-viewer>
+    </div>
+    <div class="dna-placeholder" id="dna-placeholder">
+      <div class="css-dna" id="css-dna"></div>
+    </div>
+    <div class="bg-grid"></div>
+    <div class="bg-scrim"></div>
+  </div>
+
+  <!-- Top chrome -->
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="chromium-top" id="nav-container">
+    <div class="nav-content-wrapper">
+      <div class="brand">
+        <img src="/assets/logo1_square.png" alt="QuantumShield Logo" class="brand-logo" />
+        <div>
+          <h1>QuantumShield</h1>
+          <div class="sub">Quantum Drug Discovery · A–Z</div>
+        </div>
+      </div>
+
+      <div class="nav-pill-container">
+        <div class="nav-pill-bar" id="nav-pill-bar"></div>
+      </div>
+
+      <div class="top-nav">
+        <div class="live"><span class="dot"></span> QPU · STATEVECTOR READY</div>
+        <button class="btn-enter js-enter" id="btn-enter" type="button">Enter Platform ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene deck (fixed, crossfades) -->
+  <div class="deck" id="deck"></div>
+
+
+
+  <!-- Counter -->
+  <div class="counter" id="counter">SCENE <span class="now" id="counter-now">01</span><span class="sep">/</span><span
+      id="counter-total">18</span></div>
+
+  <!-- Scroll hint -->
+  <div class="scroll-hint" id="scroll-hint"><span>Scroll to explore</span><span class="arr">↓</span></div>
+
+  <!-- Spacer that defines total scroll length -->
+  <div class="scroller" id="scroller"></div>
+
+  <!-- Transition overlay -->
   <div class="transition-overlay" id="transition-overlay">
     <div class="transition-backdrop"></div>
-    <div class="transition-grid"></div>
     <div class="watermark-field" id="watermark-field"></div>
-    <div class="beam-sweep"></div>
     <div class="particle-field" id="particle-field"></div>
-
-    <!-- Center: Pathogen Target Scanner -->
     <div class="pathogen-hud-container">
       <div class="target-bracket bracket-tl"></div>
       <div class="target-bracket bracket-tr"></div>
       <div class="target-bracket bracket-bl"></div>
       <div class="target-bracket bracket-br"></div>
-
       <div class="hud-scanner-rings">
         <div class="scanner-ring ring-outer"></div>
         <div class="scanner-ring ring-middle"></div>
         <div class="scanner-ring ring-inner"></div>
         <div class="scanner-sweep-line"></div>
       </div>
-
-      <img src="/assets/virus_target.png" alt="Pathogen Target" class="pathogen-image" id="hud-virus-image" />
-
+      <img src="images/virus_target.png" alt="" class="pathogen-image" id="hud-virus-image"
+        onerror="this.style.display='none'" />
       <div class="target-stats-overlay">
-        <div>TGT: INHA - MUTATION I194T</div>
+        <div>TGT: INHA · MUTATION I194T</div>
         <div id="target-coords">COORD: [X: +14.28, Y: -8.94, Z: +32.11]</div>
       </div>
     </div>
-
-    <!-- Progress Bar (Loading Bar) below HUD -->
     <div class="progress-bar-container">
       <div class="progress-bar-text" id="progress-bar-text">INITIALIZING SYSTEM... 0%</div>
       <div class="progress-bar-track">
         <div class="progress-bar-fill" id="progress-bar-fill"></div>
       </div>
     </div>
-
     <div class="flash-overlay"></div>
   </div>
 
-  <!-- Mini DNA Decorations -->
-  <div class="mini-dna-container">
-    <div class="mini-dna mini-dna-1">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
-        <line class="rung" x1="14" y1="76" x2="26" y2="76" />
-      </svg>
-    </div>
-    <div class="mini-dna mini-dna-2">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
-      </svg>
-    </div>
-    <div class="mini-dna mini-dna-3">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
-        <line class="rung" x1="14" y1="76" x2="26" y2="76" />
-      </svg>
-    </div>
-    <div class="mini-dna mini-dna-4">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-      </svg>
-    </div>
-    <div class="mini-dna mini-dna-5">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65 Q30,80 10,95" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65 Q10,80 30,95" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-        <line class="rung" x1="12" y1="60" x2="28" y2="60" />
-      </svg>
-    </div>
-    <div class="mini-dna mini-dna-6">
-      <svg viewBox="0 0 40 80">
-        <path class="strand strand-1" d="M10,5 Q30,20 10,35 Q-10,50 10,65" />
-        <path class="strand strand-2" d="M30,5 Q10,20 30,35 Q50,50 30,65" />
-        <line class="rung" x1="14" y1="12" x2="26" y2="12" />
-        <line class="rung" x1="12" y1="28" x2="28" y2="28" />
-        <line class="rung" x1="14" y1="44" x2="26" y2="44" />
-      </svg>
-    </div>
-  </div>
+  <!-- scene data + engine injected -->
+  <script src="scenes.js?v=171"></script>
+  <script src="engine.js?v=171"></script>
+  <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js"></script>
+  <script src="enhance.js?v=171"></script>
 
-  <!-- Background DNA Helix — loaded from local assets for speed -->
-  <div class="dna-viewport">
-    <spline-viewer loading-anim-type="none" lazy="false" url="/assets/dna_scene.splinecode"></spline-viewer>
-  </div>
-
-  <!-- Animated CSS DNA placeholder — renders instantly while 3D loads -->
-  <div class="dna-placeholder" id="dna-placeholder">
-    <div class="css-dna" id="css-dna"></div>
-    <div class="placeholder-loading">Loading 3D Model</div>
-  </div>
-
-  <!-- SVG Connectors from boxes to DNA -->
-  <svg class="connector-svg" id="connector-svg">
-    <path class="connector-line" id="line-0" />
-    <path class="connector-line" id="line-1" />
-    <path class="connector-line" id="line-2" />
-    <path class="connector-line" id="line-3" />
-  </svg>
-
-  <!-- Title Overlay -->
-  <div class="header-ui">
-    <div class="title-area">
-      <img src="/assets/logo1.png" alt="QuantumShield Logo" style="height: 28px; width: auto; object-fit: contain;" />
-      <h1>QuantumShield</h1>
-    </div>
-    <div class="nav-area">
-      <button class="btn-view" id="btn-view-website" type="button">View Website</button>
-    </div>
-  </div>
-
-  <!-- Screen 1: Big Centered Hero Landing Page (Fades out on scroll) -->
-  <div class="hero-container" id="hero-container">
-    <div class="hero-tag">Quantum-Powered Bio-Simulation</div>
-    <h2 class="hero-title">QuantumShield</h2>
-    <p class="hero-description">We are mapping the active electronic spaces of mutated pathogen target sites directly
-      onto quantum processors, calculating exact interatomic binding energies to bypass classical computational limits
-      and neutralize drug-resistant pathogens.</p>
-  </div>
-
-  <!-- Left Side Panel (Hero Screen Only) -->
-  <div class="hero-side-panel side-left" id="hero-side-left">
-    <div class="side-section">
-      <div class="side-tag">01 / PLATFORM CORE</div>
-      <h3 class="side-title">Hybrid QPU Architecture</h3>
-      <p class="side-desc">Leveraging 128 physical qubits to natively calculate interatomic electronic configurations
-        and steric interactions.</p>
-    </div>
-    <div class="side-section">
-      <div class="side-tag">02 / STRUCTURE DATABASE</div>
-      <h3 class="side-title">AlphaFold Pocket Auto-Mapping</h3>
-      <p class="side-desc">Retrieving atomic coordinates of mutated receptor sites, centering coordinate matrices around
-        pocket origin.</p>
-    </div>
-  </div>
-
-  <!-- Right Side Panel (Hero Screen Only) -->
-  <div class="hero-side-panel side-right" id="hero-side-right">
-    <div class="side-section">
-      <div class="side-tag">03 / SIMULATION METRICS</div>
-      <h3 class="side-title">Quantum Fidelity Target</h3>
-      <p class="side-desc">Maintaining 99.982% 2-qubit gate fidelity with Zero-Noise Extrapolation error mitigation.</p>
-    </div>
-    <div class="side-section">
-      <div class="side-tag">04 / DISCOVERY PIPELINE</div>
-      <h3 class="side-title">Evolutionary Scaffolding</h3>
-      <p class="side-desc">RDKit genetic optimization minimizes MMFF94 force field energy calculations to resolve
-        covalent bindings.</p>
-    </div>
-  </div>
-
-  <!-- Screen 2-5: Four Dynamic Story Boxes -->
-  <div class="info-boxes-container">
-    <!-- Section 01 -->
-    <div class="info-box box-left-top" id="box-0">
-      <div class="box-num">SECTION 01 // OVERVIEW</div>
-      <h2 class="box-title">Project Overview & Scientific Challenge</h2>
-      <div class="box-body">
-        <p>QuantumShield is a quantum-powered antibiotic discovery platform designed to engineer novel drug candidates
-          against drug-resistant pathogens (Mycobacterium tuberculosis, SARS-CoV-2, Salmonella).</p>
-        <p><strong>Chemical Space limit:</strong> With 10^60 potential drug-like molecules, classical computers hit
-          exponential bottlenecks simulating entangled electrons. Mutated target sites (like I194T in TB's InhA enzyme)
-          render standard antibiotics ineffective.</p>
-        <p><strong>Quantum Solution:</strong> Maps mutated active pocket orbitals directly onto qubits to solve exact
-          binding energy (ΔG) without classical approximations.</p>
-      </div>
-    </div>
-
-    <!-- Section 02 -->
-    <div class="info-box box-right-top" id="box-1">
-      <div class="box-num">SECTION 02 // TECH STACK</div>
-      <h2 class="box-title">Drug Discovery Technology Stack</h2>
-      <div class="box-body">
-        <ul class="tech-list">
-          <li class="tech-item"><span class="tech-name">1. NIM Target Extraction (NVIDIA):</span> meta/llama-3.1-8b
-            extracts target protein, UniProt ID, and pocket specifications.</li>
-          <li class="tech-item"><span class="tech-name">2. Protein Structures (AlphaFold DB):</span> Downloads 3D .pdb
-            structures, parsing and centering active pocket atoms.</li>
-          <li class="tech-item"><span class="tech-name">3. Molecular Evolution (RDKit):</span> Genetic Algorithm evolves
-            scaffolds, minimizing interatomic energy via MMFF94.</li>
-          <li class="tech-item"><span class="tech-name">4. Quantum Chemistry (IBM Qiskit):</span> Maps orbital
-            Hamiltonian and runs VQE to find electronic ground-state energies.</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Section 03 -->
-    <div class="info-box box-left-bottom" id="box-2">
-      <div class="box-num">SECTION 03 // SIMULATION PHYSICS</div>
-      <h2 class="box-title">Mathematical & Physics Engine</h2>
-      <div class="box-body">
-        <p><strong>Thermodynamic Binding Energy (ΔG):</strong></p>
-        <div class="formula-block">ΔE_binding = E_complex - (E_protein + E_drug)</div>
-        <p><strong>Variational Quantum Eigensolver (VQE):</strong></p>
-        <div class="formula-block">E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩ / ⟨ψ(θ)|ψ(θ)⟩</div>
-        <p>Qubit mapping supports Jordan-Wigner, Bravyi-Kitaev, and Parity. We estimate clinical dissociation values
-          (Kd) and blockade rates:</p>
-        <div class="formula-block">Kd = 10^(ΔG / 1.36) M // Blockade = C / (C + Kd)</div>
-      </div>
-    </div>
-
-    <!-- Section 04 -->
-    <div class="info-box box-right-bottom" id="box-3">
-      <div class="box-num">SECTION 04 // WORKFLOW</div>
-      <h2 class="box-title">6-Step Drug Discovery Workflow</h2>
-      <div class="box-body">
-        <ul class="step-list">
-          <li class="step-item"><span class="step-name">01. Pathogen Input</span> – User selects mutated target strain.
-          </li>
-          <li class="step-item"><span class="step-name">02. AI Target Extraction</span> – AlphaFold structure centered
-            at pocket.</li>
-          <li class="step-item"><span class="step-name">03. Evolutionary Generation</span> – Genetic algorithm yields 5
-            scaffolds.</li>
-          <li class="step-item"><span class="step-name">04. Space Partitioning</span> – Active valence orbitals mapped
-            to Hamiltonian.</li>
-          <li class="step-item"><span class="step-name">05. VQE Execution</span> – Runs on IBM QPU with Zero-Noise
-            Extrapolation.</li>
-          <li class="step-item"><span class="step-name">06. Clinical Profiling</span> – Safety, ADMET, and binding
-            curves calculated.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- Key Features Interstitial Frame -->
-  <div class="key-features-frame" id="key-features-frame">
-    <div class="kf-inner">
-      <div class="kf-tag">QuantumShield Platform</div>
-      <h2 class="kf-title">Key Features</h2>
-      <div class="kf-line"></div>
-      <p class="kf-subtitle">Explore the core technologies powering our quantum antibiotic discovery pipeline.</p>
-    </div>
-  </div>
-
-  <!-- Scroll Down Indicator -->
-  <div class="scroll-indicator" id="scroll-indicator">
-    <span>Scroll down to see features</span>
-  </div>
-
+  <!-- Diagnostic & Fallback script for hover interactions -->
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Generate animated CSS DNA placeholder base pairs immediately
-      const cssDna = document.getElementById('css-dna');
-      if (cssDna) {
-        const pairCount = 20;
-        for (let i = 0; i < pairCount; i++) {
-          const pair = document.createElement('div');
-          pair.className = 'base-pair';
-          pair.style.top = `${(i / pairCount) * 100}%`;
-          pair.style.animationDelay = `${(i / pairCount) * -2.8}s`;
-          pair.innerHTML = `
-            <div class="node node-left"></div>
-            <div class="bridge"></div>
-            <div class="node node-right"></div>
-          `;
-          cssDna.appendChild(pair);
-        }
-      }
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('Hover diagnostic script loaded.');
 
-      const splineViewer = document.querySelector('spline-viewer');
-      const placeholder = document.getElementById('dna-placeholder');
-      const heroContainer = document.getElementById('hero-container');
-      const heroSideLeft = document.getElementById('hero-side-left');
-      const heroSideRight = document.getElementById('hero-side-right');
+      document.body.addEventListener('mouseenter', function (e) {
+        var row = e.target.closest('.layer-row');
+        if (row) {
+          console.log('JS Hover ENTER:', row.querySelector('.ln').textContent);
+          row.style.setProperty('background', '#121315', 'important');
+          row.style.setProperty('border-color', '#138aa5', 'important');
+          row.style.setProperty('transform', 'translateX(8px)', 'important');
+          row.style.setProperty('padding-left', '18px', 'important');
+          row.style.setProperty('cursor', 'pointer', 'important');
 
-      const boxElements = [
-        document.getElementById('box-0'),
-        document.getElementById('box-1'),
-        document.getElementById('box-2'),
-        document.getElementById('box-3')
-      ];
-
-      const lines = [
-        document.getElementById('line-0'),
-        document.getElementById('line-1'),
-        document.getElementById('line-2'),
-        document.getElementById('line-3')
-      ];
-
-      const indicator = document.getElementById('scroll-indicator');
-      const keyFeaturesFrame = document.getElementById('key-features-frame');
-
-      // DNA Target points relative to the center of the viewport (50vw, 50vh)
-      const dnaTargets = [
-        { x: 0.50, y: 0.30 }, // Section 1: top-middle DNA
-        { x: 0.52, y: 0.45 }, // Section 2: mid-top DNA
-        { x: 0.48, y: 0.55 }, // Section 3: mid-bottom DNA
-        { x: 0.50, y: 0.70 }  // Section 4: bottom DNA
-      ];
-
-      // Cross-fade: once Spline is fully loaded & WASM initialized, fade in live 3D
-      const handleLoad = () => {
-        splineViewer.style.opacity = '1';
-        if (placeholder) {
-          placeholder.style.opacity = '0';
-          setTimeout(() => {
-            placeholder.remove(); // Clean up placeholder DOM
-          }, 800);
-        }
-      };
-
-      // Check if it's already loaded, otherwise listen for load
-      if (splineViewer.shadowRoot && (splineViewer.shadowRoot.querySelector('canvas') || splineViewer.loaded)) {
-        handleLoad();
-      } else {
-        splineViewer.addEventListener('load', handleLoad);
-      }
-
-      // Fail-safe timeout: force reveal after 3 seconds if still loading
-      setTimeout(() => {
-        if (splineViewer.style.opacity !== '1') {
-          console.warn('Spline load event timed out, forcing reveal');
-          handleLoad();
-        }
-      }, 3000);
-
-      const activeStates = [false, false, false, false];
-      const boxOrigins = ["bottom right", "top left", "bottom right", "bottom left"];
-      const revealTimeouts = [null, null, null, null];
-
-      // Draw and animate the growing line path for a specific section
-      function drawAndAnimateLine(index) {
-        const box = boxElements[index];
-        if (!box) return;
-
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-
-        // Temporarily reset transform to scale(1) to measure true expanded box coordinates
-        const prevTransform = box.style.transform;
-        const prevTransition = box.style.transition;
-        box.style.transition = 'none';
-        box.style.transform = 'scale(1)';
-
-        // Force reflow and measure
-        const rect = box.getBoundingClientRect();
-
-        // Restore previous scale state for animation
-        box.style.transform = prevTransform;
-        box.style.transition = prevTransition;
-
-        let startX, startY;
-        const target = dnaTargets[index];
-        const targetX = target.x * vw;
-        const targetY = target.y * vh;
-
-        // Determine starting corner based on box class position
-        if (index === 0) { // box-left-top
-          startX = rect.right;
-          startY = rect.bottom - 10;
-        } else if (index === 1) { // box-right-top
-          startX = rect.left;
-          startY = rect.top + 20;
-        } else if (index === 2) { // box-left-bottom
-          startX = rect.right;
-          startY = rect.bottom - 20;
-        } else if (index === 3) { // box-right-bottom
-          startX = rect.left;
-          startY = rect.bottom - 20;
-        }
-
-        // REVERSED PATH: Starts at DNA (targetX, targetY) and draws to box corner (startX, startY)
-        const midX = startX + (targetX - startX) * 0.75;
-        const pathD = `M ${targetX} ${targetY} L ${midX} ${startY} L ${startX} ${startY}`;
-
-        const line = lines[index];
-        if (!line) return;
-
-        // Temporarily disable transition to setup the line start state
-        line.style.transition = 'none';
-        line.setAttribute('d', pathD);
-
-        const length = line.getTotalLength();
-        line.style.strokeDasharray = length;
-        line.style.strokeDashoffset = length;
-        line.style.opacity = '0.85';
-
-        // Force reflow
-        line.getBoundingClientRect();
-
-        // Re-enable transition and trigger growth towards the box
-        line.style.transition = 'stroke-dashoffset 0.3s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.3s ease, opacity 0.3s ease';
-        line.classList.add('active');
-        line.style.strokeDashoffset = '0';
-      }
-
-      function updateBoxVisibility(index, shouldBeActive) {
-        if (activeStates[index] === shouldBeActive) return;
-        activeStates[index] = shouldBeActive;
-
-        const box = boxElements[index];
-        const line = lines[index];
-        if (!box || !line) return;
-
-        // Clear any pending timeouts for this box
-        if (revealTimeouts[index]) {
-          clearTimeout(revealTimeouts[index]);
-          revealTimeouts[index] = null;
-        }
-
-        if (shouldBeActive) {
-          // Setup initial state for reveal
-          box.style.transition = 'none';
-          box.style.transform = 'scale(0)';
-          box.style.opacity = '0';
-          box.style.transformOrigin = boxOrigins[index];
-          box.style.display = 'block'; // Ensure it's displayed
-
-          // Draw the line first
-          drawAndAnimateLine(index);
-
-          // Animate the box in after a slight delay
-          revealTimeouts[index] = setTimeout(() => {
-            box.style.transition = 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            box.style.opacity = '1';
-            box.style.transform = 'scale(1)';
-          }, 180);
-        } else {
-          // Hide line and box snappily
-          line.classList.remove('active');
-          line.style.opacity = '0';
-
-          box.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
-          box.style.opacity = '0';
-          box.style.transform = 'scale(0)';
-        }
-      }
-
-      // --- Scroll Reaction logic ---
-      function handleScroll() {
-        const scrollTop = window.scrollY;
-        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
-        const scrollProgress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
-
-        // 1. Manage Hero Screen fade out (center and side panels)
-        if (scrollProgress < 0.10) {
-          const fadeVal = (1 - (scrollProgress / 0.10)).toString();
-
-          heroContainer.style.opacity = fadeVal;
-          heroContainer.style.transform = `translate(-50%, calc(-50% - ${scrollProgress * 200}px))`;
-
-          heroSideLeft.style.opacity = fadeVal;
-          heroSideLeft.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
-
-          heroSideRight.style.opacity = fadeVal;
-          heroSideRight.style.transform = `translateY(calc(-50% - ${scrollProgress * 150}px))`;
-        } else {
-          heroContainer.style.opacity = '0';
-          heroSideLeft.style.opacity = '0';
-          heroSideRight.style.opacity = '0';
-        }
-
-        // 2. Key Features frame: appear after hero, disappear before boxes
-        if (scrollProgress >= 0.12 && scrollProgress < 0.24) {
-          keyFeaturesFrame.classList.add('visible');
-        } else {
-          keyFeaturesFrame.classList.remove('visible');
-        }
-
-        // 3. Manage multiple details boxes reveal (shifted later to allow frame)
-        updateBoxVisibility(0, scrollProgress >= 0.26);
-        updateBoxVisibility(1, scrollProgress >= 0.44);
-        updateBoxVisibility(2, scrollProgress >= 0.62);
-        updateBoxVisibility(3, scrollProgress >= 0.80);
-
-        // Manage scroll down indicator text and visibility
-        if (scrollProgress < 0.10) {
-          indicator.querySelector('span').innerText = 'Scroll down to see features';
-          indicator.style.opacity = '0.8';
-        } else if (scrollProgress >= 0.10 && scrollProgress < 0.90) {
-          indicator.querySelector('span').innerText = 'Keep scrolling';
-          indicator.style.opacity = '0.4';
-        } else {
-          indicator.style.opacity = '0';
-        }
-      }
-
-      window.addEventListener('scroll', handleScroll);
-
-      // Initial scroll check on load
-      handleScroll();
-
-      // Handle resize recalculations for all active lines
-      window.addEventListener('resize', () => {
-        activeStates.forEach((isActive, index) => {
-          if (isActive) {
-            drawAndAnimateLine(index);
+          var lt = row.querySelector('.lt');
+          if (lt) lt.style.setProperty('color', '#ffffff', 'important');
+          var ln = row.querySelector('.ln');
+          if (ln) {
+            ln.style.setProperty('color', '#14b8a6', 'important');
+            ln.style.setProperty('letter-spacing', '2px', 'important');
           }
-        });
-      });
+          var ld = row.querySelector('.ld');
+          if (ld) ld.style.setProperty('color', '#94a3b8', 'important');
+          var ls = row.querySelector('.ls');
+          if (ls) ls.style.setProperty('color', '#cbd5e1', 'important');
+        }
+      }, true);
 
-      // ============================================================
-      // "VIEW WEBSITE" TRANSITION — Cinematic exit to React Dashboard
-      // ============================================================
-      // ============================================================
-      // "VIEW WEBSITE" TRANSITION — Cinematic exit to React Dashboard
-      // ============================================================
-      const btnView = document.getElementById('btn-view-website');
-      const overlay = document.getElementById('transition-overlay');
-      const particleField = document.getElementById('particle-field');
-      const progressBarText = document.getElementById('progress-bar-text');
-      const progressBarFill = document.getElementById('progress-bar-fill');
-      const targetCoords = document.getElementById('target-coords');
+      document.body.addEventListener('mouseleave', function (e) {
+        var row = e.target.closest('.layer-row');
+        if (row) {
+          console.log('JS Hover LEAVE:', row.querySelector('.ln').textContent);
+          row.style.removeProperty('background');
+          row.style.removeProperty('border-color');
+          row.style.removeProperty('transform');
+          row.style.removeProperty('padding-left');
+          row.style.removeProperty('cursor');
 
-      // Web Audio API Sci-Fi Synthesizer
-      let audioCtx = null;
-      let scanOsc = null;
-      let scanGain = null;
-      let lfoOsc = null;
-
-      function initAudio() {
-        if (audioCtx) return;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-
-      function startScanningSound() {
-        try {
-          initAudio();
-          if (!audioCtx) return;
-
-          // Resume audio context if suspended (browser security policy)
-          if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
+          var lt = row.querySelector('.lt');
+          if (lt) lt.style.removeProperty('color');
+          var ln = row.querySelector('.ln');
+          if (ln) {
+            ln.style.removeProperty('color');
+            ln.style.removeProperty('letter-spacing');
           }
-
-          // Main oscillator for the scanning sweep
-          scanOsc = audioCtx.createOscillator();
-          scanGain = audioCtx.createGain();
-
-          scanOsc.type = 'triangle'; // triangle gives a nice retro-sci-fi tone
-          scanOsc.frequency.setValueAtTime(180, audioCtx.currentTime); // start low
-
-          // LFO to modulate the scanning tone (adds a "chirpy" vibration)
-          lfoOsc = audioCtx.createOscillator();
-          const lfoGain = audioCtx.createGain();
-
-          lfoOsc.type = 'sine';
-          lfoOsc.frequency.value = 6; // 6 Hz vibration
-          lfoGain.gain.value = 40; // modulate frequency by +/- 40 Hz
-
-          // Connect LFO to oscillator frequency
-          lfoOsc.connect(lfoGain);
-          lfoGain.connect(scanOsc.frequency);
-
-          // Gain (Volume) envelope
-          scanGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-          // Fade in volume quickly to avoid clicks
-          scanGain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.15);
-
-          // Connect to output
-          scanOsc.connect(scanGain);
-          scanGain.connect(audioCtx.destination);
-
-          // Start oscillators
-          scanOsc.start();
-          lfoOsc.start();
-
-          // Programmatic frequency sweep to match scanner animation
-          // Sweep pitch up and down between 180Hz and 320Hz repeatedly
-          let time = audioCtx.currentTime;
-          scanOsc.frequency.linearRampToValueAtTime(320, time + 0.9);
-          scanOsc.frequency.linearRampToValueAtTime(180, time + 1.8);
-          scanOsc.frequency.linearRampToValueAtTime(320, time + 2.7);
-        } catch (err) {
-          console.warn('Audio synthesis failed:', err);
+          var ld = row.querySelector('.ld');
+          if (ld) ld.style.removeProperty('color');
+          var ls = row.querySelector('.ls');
+          if (ls) ls.style.removeProperty('color');
         }
-      }
-
-      function stopScanningSound() {
-        try {
-          if (scanOsc && audioCtx) {
-            // Fade out quickly to avoid clicks
-            scanGain.gain.cancelScheduledValues(audioCtx.currentTime);
-            scanGain.gain.setValueAtTime(scanGain.gain.value, audioCtx.currentTime);
-            scanGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-
-            setTimeout(() => {
-              try {
-                scanOsc.stop();
-                if (lfoOsc) lfoOsc.stop();
-              } catch (e) { }
-            }, 200);
-          }
-        } catch (err) {
-          console.warn('Failed to stop audio:', err);
-        }
-      }
-
-      function playSuccessSound() {
-        try {
-          initAudio();
-          if (!audioCtx) return;
-
-          // A 3-note ascending sci-fi arpeggio chime (C5, G5, C6)
-          const notes = [523.25, 783.99, 1046.50];
-          const time = audioCtx.currentTime;
-
-          notes.forEach((freq, index) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time + index * 0.08);
-
-            // Volume envelope: sharp attack, smooth decay
-            gain.gain.setValueAtTime(0.001, time + index * 0.08);
-            gain.gain.linearRampToValueAtTime(0.12, time + index * 0.08 + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + index * 0.08 + 0.6);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start(time + index * 0.08);
-            osc.stop(time + index * 0.08 + 0.75);
-          });
-        } catch (err) {
-          console.warn('Failed to play success sound:', err);
-        }
-      }
-
-      // Translucent floating molecule watermarks
-      let watermarks = [];
-      const watermarkCount = 22; // Increased count for richer background field
-      const watermarkSymbols = [
-        'C', 'H', 'O', 'N', 'Cl',
-        'H₂O', 'CO₂', 'NH₃', 'HCl', 'CH₄',
-        'C=O', 'N-H', 'O-H', 'C-Cl'
-      ];
-
-      function initWatermarks() {
-        const field = document.getElementById('watermark-field');
-        if (!field) return;
-        field.innerHTML = '';
-        watermarks = [];
-
-        // Chemically authentic and vivid colors representing different molecular groups
-        const symbolColors = {
-          'C': '#1e293b',    // Carbon (Deep Slate)
-          'H': '#0284c7',    // Hydrogen (Vivid Cyan/Blue)
-          'O': '#dc2626',    // Oxygen (Bright Red)
-          'N': '#4f46e5',    // Nitrogen (Deep Indigo)
-          'Cl': '#16a34a',   // Chlorine (Vibrant Green)
-          'H₂O': '#0891b2',  // Water (Teal/Cyan)
-          'CO₂': '#475569',  // Carbon Dioxide (Slate Grey)
-          'NH₃': '#6366f1',  // Ammonia (Purple Indigo)
-          'HCl': '#059669',  // Hydrochloric Acid (Emerald)
-          'CH₄': '#0d9488',  // Methane (Dark Teal)
-          'C=O': '#e11d48',  // Carbonyl group (Vibrant Crimson)
-          'N-H': '#6366f1',  // Amide bond (Vivid Violet)
-          'O-H': '#ea580c',  // Hydroxyl group (Vibrant Orange)
-          'C-Cl': '#15803d'  // Alkyl chloride (Forest Green)
-        };
-
-        for (let i = 0; i < watermarkCount; i++) {
-          const el = document.createElement('div');
-          el.className = 'watermark-node';
-          const symbol = watermarkSymbols[Math.floor(Math.random() * watermarkSymbols.length)];
-          el.textContent = symbol;
-
-          // Random initial position
-          const x = Math.random() * window.innerWidth;
-          const y = Math.random() * window.innerHeight;
-          // Wider range of sizes: 20px to 75px
-          const size = 20 + Math.random() * 55;
-          const speed = 0.15 + Math.random() * 0.35;
-          const angle = Math.random() * Math.PI * 2;
-          const color = symbolColors[symbol] || '#138aa5';
-          // Increased opacity range for high visibility against light background (0.35 to 0.65)
-          const baseOpacity = 0.35 + Math.random() * 0.30;
-
-          el.style.fontSize = size + 'px';
-          el.style.color = color;
-
-          // Fade in watermark opacity smoothly
-          setTimeout(() => {
-            el.style.opacity = baseOpacity.toString();
-          }, 50 + i * 20);
-
-          field.appendChild(el);
-
-          watermarks.push({
-            el: el,
-            x: x,
-            y: y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            angle: Math.random() * 360,
-            rotSpeed: -0.15 + Math.random() * 0.3
-          });
-        }
-      }
-
-      function updateWatermarks() {
-        watermarks.forEach(w => {
-          w.x += w.vx;
-          w.y += w.vy;
-          w.angle += w.rotSpeed;
-
-          // Wrap around edges dynamically
-          if (w.x < -120) w.x = window.innerWidth + 50;
-          if (w.x > window.innerWidth + 120) w.x = -50;
-          if (w.y < -120) w.y = window.innerHeight + 50;
-          if (w.y > window.innerHeight + 120) w.y = -50;
-
-          w.el.style.transform = `translate(${w.x}px, ${w.y}px) rotate(${w.angle}deg)`;
-        });
-      }
-
-      function fadeOutWatermarks() {
-        watermarks.forEach(w => {
-          w.el.style.opacity = '0';
-        });
-      }
-
-      // Particle system with continuous float
-      let particles = [];
-      const particleCount = 45;
-      let particleAnimId = null;
-      let imploding = false;
-
-      function initParticles() {
-        particleField.innerHTML = '';
-        particles = [];
-        for (let i = 0; i < particleCount; i++) {
-          const p = document.createElement('div');
-          p.classList.add('particle');
-
-          // Random initial positions and drift parameters
-          const x = Math.random() * window.innerWidth;
-          const y = Math.random() * window.innerHeight;
-          const size = 1.5 + Math.random() * 3.5;
-          const angle = Math.random() * Math.PI * 2;
-          const speed = 0.3 + Math.random() * 0.7;
-
-          p.style.width = size + 'px';
-          p.style.height = size + 'px';
-          p.style.opacity = (0.2 + Math.random() * 0.6).toString();
-          p.style.borderRadius = '50%';
-          p.style.boxShadow = `0 0 6px rgba(19, 138, 165, ${0.4 + Math.random() * 0.4})`;
-
-          particleField.appendChild(p);
-
-          particles.push({
-            el: p,
-            x: x,
-            y: y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            baseOpacity: parseFloat(p.style.opacity),
-            pulseSpeed: 0.02 + Math.random() * 0.03,
-            pulsePhase: Math.random() * 10
-          });
-        }
-      }
-
-      function updateParticles() {
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-
-        particles.forEach(p => {
-          if (imploding) {
-            // Rapid pull to center
-            const dx = cx - p.x;
-            const dy = cy - p.y;
-            p.x += dx * 0.16;
-            p.y += dy * 0.16;
-            p.el.style.opacity = (parseFloat(p.el.style.opacity) * 0.85).toString();
-          } else {
-            // Normal drift
-            p.x += p.vx;
-            p.y += p.vy;
-
-            // Bounce off edges
-            if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
-            if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
-
-            // Opacity pulse
-            p.pulsePhase += p.pulseSpeed;
-            p.el.style.opacity = (p.baseOpacity + Math.sin(p.pulsePhase) * 0.15).toString();
-          }
-
-          p.el.style.transform = `translate(${p.x}px, ${p.y}px)`;
-        });
-
-        // Continuously animate drifting watermarks
-        updateWatermarks();
-
-        particleAnimId = requestAnimationFrame(updateParticles);
-      }
-
-      function triggerImplode() {
-        imploding = true;
-      }
-
-      let startTime = null;
-      const totalDuration = 2700; // 2.7s to reach 100%
-
-      function animateProgressBar(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.min(1.0, elapsed / totalDuration);
-        const pct = Math.floor(progress * 100);
-
-        if (progressBarFill) {
-          progressBarFill.style.width = `${pct}%`;
-        }
-
-        let phase = 'INITIALIZING SYSTEM';
-        if (elapsed < 550) {
-          phase = 'IDENTIFYING PATHOGEN TARGET';
-        } else if (elapsed < 1100) {
-          phase = 'SCANNING ACTIVE POCKET';
-        } else if (elapsed < 1700) {
-          phase = 'SYNTHESIZING LIGAND SCAFFOLDS';
-        } else if (elapsed < 2350) {
-          phase = 'RUNNING VQE DOCKING SOLVER';
-        } else {
-          phase = 'DOCKING SIMULATION COMPLETED';
-        }
-
-        if (progressBarText) {
-          progressBarText.textContent = `${phase}... ${pct}%`;
-        }
-
-        if (progress < 1.0) {
-          requestAnimationFrame(animateProgressBar);
-        }
-      }
-
-      btnView.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        // 1. Fade out page content
-        document.body.classList.add('transitioning-out');
-
-        // 2. Activate transition overlay
-        setTimeout(() => {
-          overlay.classList.add('active');
-          initParticles();
-          initWatermarks();
-          updateParticles();
-
-          // Start the audio synthesis and progress bar
-          startScanningSound();
-          requestAnimationFrame(animateProgressBar);
-        }, 150);
-
-        // --- Timeline Schedule (Total 3.0 seconds) ---
-
-        // Jitter coordinates during Phase 1 & 2
-        setTimeout(() => {
-          const coordInterval = setInterval(() => {
-            const currentPhaseText = progressBarText ? progressBarText.textContent : '';
-            if (!currentPhaseText.includes('IDENTIFYING PATHOGEN TARGET') && !currentPhaseText.includes('SCANNING ACTIVE POCKET')) {
-              clearInterval(coordInterval);
-              return;
-            }
-            const rx = (10 + Math.random() * 10).toFixed(2);
-            const ry = (-5 - Math.random() * 5).toFixed(2);
-            const rz = (30 + Math.random() * 20).toFixed(2);
-            if (targetCoords) {
-              targetCoords.textContent = `COORD: [X: +${rx}, Y: ${ry}, Z: +${rz}]`;
-            }
-          }, 80);
-        }, 200);
-
-        // Target Lock visual updates in Phase 5
-        setTimeout(() => {
-          if (progressBarText) {
-            progressBarText.style.color = '#0f766e';
-          }
-
-          // Target lock brackets turn solid
-          document.querySelectorAll('.target-bracket').forEach(el => {
-            el.style.borderColor = '#0f766e';
-            el.style.boxShadow = '0 0 10px rgba(15, 118, 110, 0.6)';
-          });
-
-          // Make virus glow green/teal
-          const virusImg = document.getElementById('hud-virus-image');
-          if (virusImg) {
-            virusImg.style.filter = 'drop-shadow(0 0 25px rgba(15, 118, 110, 0.5))';
-            virusImg.style.transform = 'scale(1.08)';
-          }
-
-          // Trigger particle implosion & stop scanning, play success chime
-          stopScanningSound();
-          playSuccessSound();
-          fadeOutWatermarks();
-          triggerImplode();
-        }, 2500);
-
-        // Cinematic White Flash — fill the screen solid before navigate
-        setTimeout(() => {
-          if (overlay) overlay.classList.add('flash');
-        }, 2650);
-
-        // Redirect to live dashboard — wait until flash is fully opaque
-        setTimeout(() => {
-          cancelAnimationFrame(particleAnimId);
-          // Set the body background to match the entrance overlay on app.html
-          document.body.style.background = '#f4f4f6';
-          document.body.innerHTML = '<div style="position:fixed;inset:0;background:#f4f4f6;z-index:999999;"></div>';
-          // Navigate after the DOM has repainted solid white
-          requestAnimationFrame(() => {
-            window.location.href = '/app.html';
-          });
-        }, 3000);
-      });
+      }, true);
     });
   </script>
 </body>

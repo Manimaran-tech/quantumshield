@@ -1,7 +1,7 @@
 {
-  "python.defaultInterpreterPath": "d:/Quantum/quantumshield/venv/Scripts/python.exe",
+  "python.defaultInterpreterPath": "c:/Quantum/quantumshield/venv/Scripts/python.exe",
   "python.analysis.extraPaths": [
-    "d:/Quantum/quantumshield/venv/Lib/site-packages",
-    "d:/Quantum/quantumshield"
+    "c:/Quantum/quantumshield/venv/Lib/site-packages",
+    "c:/Quantum/quantumshield"
   ]
 }
