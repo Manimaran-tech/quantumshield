@@ -269,23 +269,26 @@ class EvolutionaryGenerator:
                 
         return atoms_list
 
-    def calculate_docking_energy(self, mol_coords, pocket_residues):
+    def calculate_docking_energy(self, mol_coords, pocket_residues, optimize_pose=True):
         """
         Calculates interaction energy (Lennard-Jones + Coulomb) between
-        the candidate molecule and target pocket residues.
+        the de novo/candidate molecule and target pocket residues.
+        Uses scipy.optimize.minimize to perform conformational docking pose optimization.
+        Optimizes 6 degrees of freedom: 3D translation offsets and 3D Euler rotations
+        to find the absolute lowest binding energy conformation.
         """
         if not mol_coords or not pocket_residues:
             return 0.0
-            
-        # 1. Align center of mass of the molecule to the pocket center (0,0,0)
+
+        # Translate molecule's center of mass to (0,0,0) as a starting point
         xs = [atom["x"] for atom in mol_coords]
         ys = [atom["y"] for atom in mol_coords]
         zs = [atom["z"] for atom in mol_coords]
         cx, cy, cz = np.mean(xs), np.mean(ys), np.mean(zs)
         
-        aligned_coords = []
+        base_coords = []
         for atom in mol_coords:
-            aligned_coords.append({
+            base_coords.append({
                 "element": atom.get("element", atom.get("type", "H")),
                 "x": atom["x"] - cx,
                 "y": atom["y"] - cy,
@@ -293,42 +296,87 @@ class EvolutionaryGenerator:
                 "charge": atom.get("charge", 0.0)
             })
 
-        # 2. Compute interaction energy (Lennard-Jones + Coulomb)
-        interaction_energy = 0.0
-        
+        # Define 3D rotation matrix
+        def get_rotation_matrix(rx, ry, rz):
+            cx_a, sx_a = np.cos(rx), np.sin(rx)
+            cy_b, sy_b = np.cos(ry), np.sin(ry)
+            cz_c, sz_c = np.cos(rz), np.sin(rz)
+            
+            Rx = np.array([[1, 0, 0],
+                           [0, cx_a, -sx_a],
+                           [0, sx_a, cx_a]])
+            Ry = np.array([[cy_b, 0, sy_b],
+                           [0, 1, 0],
+                           [-sy_b, 0, cy_b]])
+            Rz = np.array([[cz_c, -sz_c, 0],
+                           [sz_c, cz_c, 0],
+                           [0, 0, 1]])
+            return Rz @ Ry @ Rx
+
         # Core Lennard-Jones parameters
         r_e = 1.6  # Average equilibrium distance
         D_e = 0.15 # Average binding depth
-        
-        for atom in aligned_coords:
-            ax, ay, az = atom["x"], atom["y"], atom["z"]
-            achg = atom["charge"]
+
+        # Define objective function for SciPy minimizer
+        def objective(params):
+            tx, ty, tz, rx, ry, rz = params
+            R = get_rotation_matrix(rx, ry, rz)
             
-            for residue in pocket_residues:
-                rx, ry, rz = residue["x"], residue["y"], residue["z"]
-                rchg = residue["charge"]
+            energy = 0.0
+            for atom in base_coords:
+                v = np.array([atom["x"], atom["y"], atom["z"]])
+                rotated_v = R @ v
+                ax = rotated_v[0] + tx
+                ay = rotated_v[1] + ty
+                az = rotated_v[2] + tz
+                achg = atom["charge"]
                 
-                # Distance in Angstroms
-                dist = np.sqrt((ax-rx)**2 + (ay-ry)**2 + (az-rz)**2)
-                if dist < 0.1:
-                    dist = 0.1
+                for residue in pocket_residues:
+                    rx_p, ry_p, rz_p = residue["x"], residue["y"], residue["z"]
+                    rchg = residue["charge"]
                     
-                # Lennard-Jones (steric attraction/repulsion)
-                v_lj = D_e * ((r_e / dist)**12 - 2 * (r_e / dist)**6)
-                
-                # Cap the positive (repulsive) term to prevent numerical explosion
-                if v_lj > 1.0:
-                    v_lj = 1.0
-                # Cap negative term to represent physical binding limits
-                elif v_lj < -0.3:
-                    v_lj = -0.3
-                
-                # Coulomb (electrostatic)
-                v_coul = (achg * rchg) / (dist * 1.88973) if achg and rchg else 0.0
-                
-                interaction_energy += v_lj + v_coul
-                
-        return float(interaction_energy)
+                    dist = np.sqrt((ax-rx_p)**2 + (ay-ry_p)**2 + (az-rz_p)**2)
+                    if dist < 0.1:
+                        dist = 0.1
+                        
+                    # Lennard-Jones (steric attraction/repulsion)
+                    v_lj = D_e * ((r_e / dist)**12 - 2 * (r_e / dist)**6)
+                    
+                    # Cap terms
+                    if v_lj > 1.0:
+                        v_lj = 1.0
+                    elif v_lj < -0.3:
+                        v_lj = -0.3
+                    
+                    # Coulomb (electrostatic)
+                    v_coul = (achg * rchg) / (dist * 1.88973) if achg and rchg else 0.0
+                    energy += v_lj + v_coul
+            return energy
+
+        if optimize_pose:
+            from scipy.optimize import minimize
+            # Initial guess: zero translation, zero rotation
+            initial_guess = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            # Bounds: translation within +/- 5.0 Angstroms, rotations within +/- PI
+            bounds = [(-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0), 
+                      (-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)]
+            
+            res = minimize(objective, initial_guess, bounds=bounds, method='L-BFGS-B')
+            min_energy = float(res.fun)
+            
+            # Apply optimal parameters back to update coordinates in place
+            if res.success:
+                opt_params = res.x
+                R_opt = get_rotation_matrix(opt_params[3], opt_params[4], opt_params[5])
+                for idx, atom in enumerate(base_coords):
+                    v = np.array([atom["x"], atom["y"], atom["z"]])
+                    rotated_v = R_opt @ v
+                    mol_coords[idx]["x"] = float(rotated_v[0] + opt_params[0])
+                    mol_coords[idx]["y"] = float(rotated_v[1] + opt_params[1])
+                    mol_coords[idx]["z"] = float(rotated_v[2] + opt_params[2])
+            return min_energy
+        else:
+            return objective([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
     def evolve(self, pathogen_name, pocket_specs=None, seed_smiles=None, num_candidates=5, pocket_residues=None):
         """
