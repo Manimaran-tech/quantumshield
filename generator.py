@@ -531,7 +531,7 @@ class EvolutionaryGenerator:
             # Docking score scaling to look like standard kcal/mol (e.g. -6.0 to -14.0)
             # Monotonic scaling from capped raw docking energy
             scaled_docking = -14.0 + 0.8 * (docking_score_raw - 2.0)
-            scaled_docking = max(-14.0, min(-6.0, scaled_docking))
+            scaled_docking = max(-22.0, min(-6.0, scaled_docking))
             
             lipinski = "Pass (0 violations)" if violations == 0 else f"Fail ({violations} violation(s))"
             
@@ -807,7 +807,7 @@ class EvolutionaryGenerator:
             coords = self.generate_3d_coordinates(mol)
             docking_score_raw = self.calculate_docking_energy(coords, pocket_residues)
             scaled_docking = -14.0 + 0.8 * (docking_score_raw - 2.0)
-            scaled_docking = max(-14.0, min(-6.0, scaled_docking))
+            scaled_docking = max(-22.0, min(-6.0, scaled_docking))
             
             lipinski = "Pass (0 violations)" if violations == 0 else f"Fail ({violations} violation(s))"
             

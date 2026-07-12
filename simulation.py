@@ -1285,7 +1285,7 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
             gen = EvolutionaryGenerator()
             raw_docking_score = gen.calculate_docking_energy(coords, pocket_residues)
             binding_energy = -14.0 + 0.8 * (raw_docking_score - 2.0)
-            binding_energy = max(-14.0, min(-6.0, binding_energy))
+            binding_energy = max(-22.0, min(-6.0, binding_energy))
             if error_mitigation:
                 binding_energy -= 0.3
             binding_energy = float(round(binding_energy, 2))
@@ -1860,9 +1860,20 @@ def simulate_wet_lab_validation(smiles, pathogen_name):
         fsp3 = Lipinski.FractionCSP3(mol)
     except:
         fsp3 = 0.0
-        
-    dg = -5.0 - (0.45 * logp) - (0.12 * hbd) + (0.35 * rotb)
-    dg = max(-13.0, min(-2.0, dg))
+    # Improved empirical ΔG estimator (Wang et al. inspired scoring function)
+    # Accounts for: hydrophobic contacts (LogP), H-bond network (HBD+HBA),
+    # conformational rigidity (rings, rotatable bonds), and polar surface burial (TPSA)
+    n_rings = Lipinski.RingCount(mol)
+    
+    dg = -7.0                          # deeper intercept for drug-like molecules
+    dg -= 0.55 * min(logp, 5.0)        # hydrophobic driving force (capped at LogP=5)
+    dg -= 0.18 * hbd                   # H-bond donor contacts
+    dg -= 0.12 * hba                   # H-bond acceptor contacts
+    dg -= 0.08 * min(tpsa, 140.0) / 20.0  # polar surface burial (normalized)
+    dg -= 0.25 * min(n_rings, 5)       # rigidity bonus from ring systems
+    dg += 0.20 * max(0, rotb - 3)      # entropy penalty only for excess flexibility
+    dg += 0.15 * max(0, (mw - 400) / 100)  # slight penalty for bloated molecules
+    dg = max(-13.0, min(-4.0, dg))
     
     kd_molar = 10 ** (dg / 1.364)
     

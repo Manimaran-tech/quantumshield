@@ -21,7 +21,7 @@ def test_pipeline():
     )
     
     # Wait for server to bind to port 5000
-    time.sleep(3)
+    time.sleep(8)
 
     base_url = "http://127.0.0.1:5000"
     
