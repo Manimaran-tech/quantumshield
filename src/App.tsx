@@ -972,7 +972,7 @@ interface DNAInteractionResult {
 }
 
 // Check port for API proxying during local development
-const API_BASE = window.location.port && window.location.port !== '5000' ? 'http://localhost:5000' : '';
+const API_BASE = window.location.port && window.location.port !== '5000' ? 'http://127.0.0.1:5000' : '';
 
 const getReferenceDrugInfo = (targetName: string, fdaSimilarityStr: string) => {
   const norm = targetName.toLowerCase();
@@ -1925,6 +1925,45 @@ export default function App() {
     setComparisonResult(null);
 
     try {
+      let targetProtein = valCustomTarget;
+      let uniprotId = valCustomUniprot;
+      let drugName = valCustomDrugName;
+      let drugSmiles = valCustomDrugSmiles;
+
+      if (disease === 'custom') {
+        // Fetch metadata if fields are empty or still using default placeholders
+        const isDefaultOrEmpty =
+          !valCustomTarget.trim() ||
+          valCustomTarget === 'Target Protein' ||
+          !valCustomUniprot.trim() ||
+          valCustomUniprot === 'P12345';
+        if (isDefaultOrEmpty) {
+          const res = await fetch(`${API_BASE}/api/pathogen/lookup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pathogen_name: valCustomPathogen })
+          });
+          if (res.ok) {
+            const lookupData = await res.json();
+            if (lookupData.target_protein) {
+              targetProtein = lookupData.target_protein;
+              setValCustomTarget(lookupData.target_protein);
+            }
+            if (lookupData.uniprot_id) {
+              uniprotId = lookupData.uniprot_id;
+              setValCustomUniprot(lookupData.uniprot_id);
+            }
+            if (lookupData.fda_drug_name) {
+              drugName = lookupData.fda_drug_name;
+              setValCustomDrugName(lookupData.fda_drug_name);
+            }
+            if (lookupData.fda_drug_smiles) {
+              drugSmiles = lookupData.fda_drug_smiles;
+              setValCustomDrugSmiles(lookupData.fda_drug_smiles);
+            }
+          }
+        }
+      }
       const stepsCount = 8;
       const triggerStepProgress = (stepIndex: number) => {
         if (stepIndex < stepsCount) {
@@ -1934,7 +1973,7 @@ export default function App() {
             triggerStepProgress(stepIndex + 1);
           }, baseDuration);
         } else {
-          completeValidation(disease);
+          completeValidation(disease, targetProtein, uniprotId, drugName, drugSmiles);
         }
       };
       triggerStepProgress(0);
@@ -1945,15 +1984,21 @@ export default function App() {
     }
   };
 
-  const completeValidation = async (disease: 'covid-19' | 'tuberculosis' | 'hiv' | 'malaria' | 'custom') => {
+  const completeValidation = async (
+    disease: 'covid-19' | 'tuberculosis' | 'hiv' | 'malaria' | 'custom',
+    customTargetProtein?: string,
+    customUniprot?: string,
+    customDrugName?: string,
+    customDrugSmiles?: string
+  ) => {
     try {
       const payload: any = { disease };
       if (disease === 'custom') {
         payload.custom_disease_name = valCustomPathogen;
-        payload.custom_target_protein = valCustomTarget;
-        payload.custom_uniprot = valCustomUniprot;
-        payload.custom_reference_drug = valCustomDrugName;
-        payload.custom_reference_smiles = valCustomDrugSmiles;
+        payload.custom_target_protein = customTargetProtein || valCustomTarget;
+        payload.custom_uniprot = customUniprot || valCustomUniprot;
+        payload.custom_reference_drug = customDrugName || valCustomDrugName;
+        payload.custom_reference_smiles = customDrugSmiles || valCustomDrugSmiles;
       }
       if (valCandidateSmiles) {
         payload.candidate_smiles = valCandidateSmiles;
@@ -2114,6 +2159,26 @@ export default function App() {
     setIsMdRunning(false);
   };
 
+  const fetchAndApplyPathogenMetadata = async (name: string) => {
+    if (!name || name.trim() === '') return;
+    try {
+      const res = await fetch(`${API_BASE}/api/pathogen/lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pathogen_name: name })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.target_protein) setValCustomTarget(data.target_protein);
+        if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
+        if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
+        if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
+      }
+    } catch (err) {
+      console.error("Error looking up pathogen metadata:", err);
+    }
+  };
+
   // Run Quantum RL Optimization (REINFORCE PQC)
   const handleRunQRL = async () => {
     setIsOptimizingQrl(true);
@@ -2137,6 +2202,13 @@ export default function App() {
       setQrlHistory(data.history);
       setQrlOptimizedSmiles(data.optimized_smiles);
       setQrlRecommendedCandidate(data.recommended_candidate);
+
+      if (data.target_protein) setValCustomTarget(data.target_protein);
+      if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
+      if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
+      if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
+      setValCustomPathogen(targetName);
+
       if (data.circuit_ascii) {
         setQrlCircuitAscii(data.circuit_ascii);
       }
@@ -2321,9 +2393,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
     const cand = validationResult.candidates[0];
     const fda = validationResult.fda_drug_details;
+    const isFdaApproved = validationResult.is_fda_approved === true || 
+      (validationResult.is_fda_approved !== false && 
+       validationResult.fda_drug_name && 
+       !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
     const hasFdaDrug = validationResult.fda_drug_name && 
       !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
-      validationResult.fda_drug_details;
+      validationResult.fda_drug_details &&
+      isFdaApproved;
 
     const reportId = `QS-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const reportDate = new Date().toLocaleString();
@@ -2640,7 +2717,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
             <tr>
               <th>Biophysical Property</th>
               <th>Generated Lead (${cand.name})</th>
-              ${hasFdaDrug ? `<th>FDA Approved Drug (${validationResult.fda_drug_name})</th>` : ''}
+              ${hasFdaDrug ? `<th>\${isFdaApproved ? 'FDA Approved Drug' : 'Reference Comparator'} (\${validationResult.fda_drug_name})</th>` : ''}
             </tr>
           </thead>
           <tbody>
@@ -2865,6 +2942,11 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
       .then(data => {
         if (data.status === 'success') {
           backendResults = data.candidates;
+          if (data.target_protein) setValCustomTarget(data.target_protein);
+          if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
+          if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
+          if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
+          if (data.pathogen) setValCustomPathogen(data.pathogen);
         } else {
           throw new Error(data.error || "Generation failed on backend");
         }
@@ -2987,10 +3069,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
         setValCustomDrugSmiles('CC(=O)Nc1ccc(cc1)S(=O)(=O)N');
       } else {
         setValCustomPathogen(targetName);
-        setValCustomTarget(selectedTargetOption === 'sars-cov-2' ? 'Main Protease (Mpro)' : selectedTargetOption === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : selectedTargetOption === 'salmonella' ? 'GyrB ATP Pocket' : 'Target Protein');
-        setValCustomUniprot(selectedTargetOption === 'sars-cov-2' ? 'P0C6U8' : selectedTargetOption === 'tuberculosis' ? 'Q4TUY1' : 'P12345');
-        setValCustomDrugName('FDA Reference');
-        setValCustomDrugSmiles('CC1=CC=C(C=C1)C(=O)NN');
+        if (selectedTargetOption === 'custom') {
+          fetchAndApplyPathogenMetadata(targetName);
+        } else {
+          setValCustomTarget(selectedTargetOption === 'sars-cov-2' ? 'Main Protease (Mpro)' : selectedTargetOption === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : selectedTargetOption === 'salmonella' ? 'GyrB ATP Pocket' : 'Target Protein');
+          setValCustomUniprot(selectedTargetOption === 'sars-cov-2' ? 'P0C6U8' : selectedTargetOption === 'tuberculosis' ? 'Q4TUY1' : 'P12345');
+          setValCustomDrugName(selectedTargetOption === 'sars-cov-2' ? 'Nirmatrelvir' : selectedTargetOption === 'tuberculosis' ? 'Isoniazid' : 'FDA Reference');
+          setValCustomDrugSmiles(selectedTargetOption === 'sars-cov-2' ? 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C' : selectedTargetOption === 'tuberculosis' ? 'c1cc(ccn1)C(=O)NN' : 'CC1=CC=C(C=C1)C(=O)NN');
+        }
       }
 
       // If no candidate SMILES is set (e.g. coordinates didn't match known structures), default to custom lead reference
@@ -3254,10 +3340,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
           if (!valCandidateSmiles) setValCandidateSmiles('CC1=CC=C(C=C1)C(=O)NN');
         } else {
           setValCustomPathogen(targetName);
-          setValCustomTarget(selectedTargetOption === 'sars-cov-2' ? 'Main Protease (Mpro)' : selectedTargetOption === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : selectedTargetOption === 'salmonella' ? 'GyrB ATP Pocket' : 'Target Protein');
-          setValCustomUniprot(selectedTargetOption === 'sars-cov-2' ? 'P0C6U8' : selectedTargetOption === 'tuberculosis' ? 'Q4TUY1' : 'P12345');
-          setValCustomDrugName(selectedTargetOption === 'sars-cov-2' ? 'Nirmatrelvir' : selectedTargetOption === 'tuberculosis' ? 'Isoniazid' : 'FDA Reference');
-          setValCustomDrugSmiles(selectedTargetOption === 'sars-cov-2' ? 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C' : selectedTargetOption === 'tuberculosis' ? 'c1cc(ccn1)C(=O)NN' : 'CC1=CC=C(C=C1)C(=O)NN');
+          if (selectedTargetOption === 'custom') {
+            fetchAndApplyPathogenMetadata(targetName);
+          } else {
+            setValCustomTarget(selectedTargetOption === 'sars-cov-2' ? 'Main Protease (Mpro)' : selectedTargetOption === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : selectedTargetOption === 'salmonella' ? 'GyrB ATP Pocket' : 'Target Protein');
+            setValCustomUniprot(selectedTargetOption === 'sars-cov-2' ? 'P0C6U8' : selectedTargetOption === 'tuberculosis' ? 'Q4TUY1' : 'P12345');
+            setValCustomDrugName(selectedTargetOption === 'sars-cov-2' ? 'Nirmatrelvir' : selectedTargetOption === 'tuberculosis' ? 'Isoniazid' : 'FDA Reference');
+            setValCustomDrugSmiles(selectedTargetOption === 'sars-cov-2' ? 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C' : selectedTargetOption === 'tuberculosis' ? 'c1cc(ccn1)C(=O)NN' : 'CC1=CC=C(C=C1)C(=O)NN');
+          }
           if (!valCandidateSmiles) setValCandidateSmiles('CC1=CC=C(C=C1)C(=O)NN');
         }
       }
@@ -6869,6 +6959,13 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                     setValCustomDrugSmiles('CC(=O)Nc1ccc(cc1)S(=O)(=O)N');
                                   }
                                 }}
+                                onBlur={() => {
+                                  const norm = valCustomPathogen.toLowerCase();
+                                  const isIsocyanateOrCyanide = norm.includes('isocyan') || norm.includes('cyan') || norm.includes('cynad') || norm.includes('cynac') || norm === 'mic';
+                                  if (!isIsocyanateOrCyanide) {
+                                    fetchAndApplyPathogenMetadata(valCustomPathogen);
+                                  }
+                                }}
                                 placeholder="e.g. Influenza, E. coli"
                                 className="w-full p-1.5 text-xs rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[#152D42] dark:text-slate-200"
                               />
@@ -6999,9 +7096,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             {(() => {
                               const cand = validationResult.candidates[0];
                               const fda = validationResult.fda_drug_details;
+                              const isFdaApproved = validationResult.is_fda_approved === true || 
+                                (validationResult.is_fda_approved !== false && 
+                                 validationResult.fda_drug_name && 
+                                 !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
                               const hasFdaDrug = validationResult.fda_drug_name && 
                                 !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
-                                validationResult.fda_drug_details;
+                                validationResult.fda_drug_details &&
+                                isFdaApproved;
 
                               if (!hasFdaDrug) {
                                 return (
@@ -7011,7 +7113,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       De Novo Pathogen Discovery Active
                                     </div>
                                     <p className="text-[11px] leading-relaxed">
-                                      <strong>Custom pocket analysis complete. Showing de novo candidate profile for unidentified pathogen target (no FDA reference drug available).</strong>
+                                      <strong>Custom pocket analysis complete. Showing de novo candidate profile for target pathogen (no FDA-approved reference drug available).</strong>
                                     </p>
                                   </div>
                                 );
@@ -7025,21 +7127,21 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               let bannerClass = 'bg-rose-50 border-rose-200 text-rose-950 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-200';
                               let badgeClass = 'text-rose-700 dark:text-rose-455';
                               let iconClass = 'text-rose-600 dark:text-rose-455';
-                              let statusTitle = 'FDA Validation - Weak Affinity';
-                              let statusMessage = `The candidate lead exhibits lower binding affinity compared to the reference drug ${validationResult.fda_drug_name}. Clear the filter or optimize further.`;
+                              let statusTitle = isFdaApproved ? 'FDA Validation - Weak Affinity' : 'Benchmark Comparison - Weak Affinity';
+                              let statusMessage = `The candidate lead exhibits lower binding affinity compared to the ${isFdaApproved ? 'reference drug' : 'reference comparator drug'} ${validationResult.fda_drug_name}. Clear the filter or optimize further.`;
 
                               if (beatsFda) {
                                 bannerClass = 'bg-emerald-50 border-emerald-250 text-emerald-950 dark:bg-emerald-950/20 dark:border-emerald-900/50 dark:text-emerald-200';
                                 badgeClass = 'text-emerald-700 dark:text-emerald-400';
                                 iconClass = 'text-emerald-600 dark:text-emerald-400';
-                                statusTitle = '🎉 SUCCESS - FDA Approved Target Exceeded!';
-                                statusMessage = `De novo candidate successfully beats the FDA approved reference drug ${validationResult.fda_drug_name} in computed binding affinity (lower free energy, tighter Kd) with a novel, patentable scaffold structure!`;
+                                statusTitle = isFdaApproved ? '🎉 SUCCESS - FDA Approved Target Exceeded!' : '🎉 SUCCESS - Reference Target Exceeded!';
+                                statusMessage = `De novo candidate successfully beats the ${isFdaApproved ? 'FDA approved reference drug' : 'reference comparator drug'} ${validationResult.fda_drug_name} in computed binding affinity (lower free energy, tighter Kd) with a novel, patentable scaffold structure!`;
                               } else if (closeMatch) {
                                 bannerClass = 'bg-amber-50 border-amber-250 text-amber-955 dark:bg-amber-955/20 dark:border-amber-900/50 dark:text-amber-200';
                                 badgeClass = 'text-amber-700 dark:text-amber-455';
                                 iconClass = 'text-amber-600 dark:text-amber-455';
-                                statusTitle = '⚠️ OPTIMIZATION CLOSE - Comparable Affinity';
-                                statusMessage = `De novo candidate exhibits comparable binding affinity to reference drug ${validationResult.fda_drug_name} within typical chemical accuracy margins.`;
+                                statusTitle = isFdaApproved ? '⚠️ OPTIMIZATION CLOSE - Comparable Affinity' : '⚠️ OPTIMIZATION CLOSE - Comparable Benchmark Affinity';
+                                statusMessage = `De novo candidate exhibits comparable binding affinity to ${isFdaApproved ? 'reference drug' : 'reference comparator drug'} ${validationResult.fda_drug_name} within typical chemical accuracy margins.`;
                               }
 
                               return (
@@ -7063,9 +7165,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                             {/* Side-by-Side Comparison Table */}
                             {(() => {
+                              const isFdaApproved = validationResult.is_fda_approved === true || 
+                                (validationResult.is_fda_approved !== false && 
+                                 validationResult.fda_drug_name && 
+                                 !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
                               const hasFdaDrug = validationResult && validationResult.fda_drug_name && 
                                 !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
-                                validationResult.fda_drug_details;
+                                validationResult.fda_drug_details &&
+                                isFdaApproved;
 
                               return (
                                 <div className={`border rounded-sm overflow-hidden ${isDarkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-350'} shadow-sm`}>
@@ -7077,7 +7184,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       <tr className="border-b border-slate-200 dark:border-slate-800 font-mono text-[9px] text-slate-500 uppercase">
                                         <th className="p-2.5 pl-3">Biophysical Property</th>
                                         <th className="p-2.5">Generated Lead ({validationResult.candidates[0].name})</th>
-                                        {hasFdaDrug && <th className="p-2.5">FDA Approved Drug ({validationResult.fda_drug_name})</th>}
+                                        {hasFdaDrug && <th className="p-2.5">{validationResult.is_fda_approved !== false ? "FDA Approved Drug" : "Reference Comparator"} ({validationResult.fda_drug_name})</th>}
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-150 dark:divide-slate-800/60">
@@ -7739,8 +7846,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                 <div className="w-full h-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-1">
                                   <svg className="w-full h-full" viewBox="0 0 160 80">
                                     {qrlHistory.length >= 1 && (() => {
-                                      const maxReward = Math.max(...qrlHistory.map(h => h.reward), 1);
-                                      const minReward = Math.min(...qrlHistory.map(h => h.reward), -1);
+                                      const maxReward = Math.max(...qrlHistory.map(h => h.reward));
+                                      const minReward = Math.min(...qrlHistory.map(h => h.reward));
                                       const range = maxReward - minReward || 1;
                                       const pts = qrlHistory.map((h, i) => {
                                         const x = qrlHistory.length > 1 ? (i / (qrlHistory.length - 1)) * 140 + 10 : 80;
@@ -7767,8 +7874,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                 <div className="w-full h-24 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded p-1">
                                   <svg className="w-full h-full" viewBox="0 0 160 80">
                                     {qrlHistory.length >= 1 && (() => {
-                                      const maxEnergy = Math.max(...qrlHistory.map(h => h.vqe_energy), 0);
-                                      const minEnergy = Math.min(...qrlHistory.map(h => h.vqe_energy), -15);
+                                      const maxEnergy = Math.max(...qrlHistory.map(h => h.vqe_energy));
+                                      const minEnergy = Math.min(...qrlHistory.map(h => h.vqe_energy));
                                       const range = maxEnergy - minEnergy || 1;
                                       const pts = qrlHistory.map((h, i) => {
                                         const x = qrlHistory.length > 1 ? (i / (qrlHistory.length - 1)) * 140 + 10 : 80;
