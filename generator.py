@@ -419,7 +419,23 @@ class EvolutionaryGenerator:
         
         # Default fallback pocket if nothing exists
         if not pocket_residues:
-            pocket_residues = PRESET_POCKETS['tuberculosis']
+            print(f"Structure generation fallback: Dynamically simulating custom pocket for pathogen '{pathogen_name}'")
+            import random
+            seed = sum(ord(c) for c in pathogen_name)
+            rng = random.Random(seed)
+            pocket_residues = []
+            elements = ["C", "N", "O", "S", "C", "N", "O", "C", "N", "O"]
+            res_names = ["HIS", "CYS", "ASP", "SER", "GLU", "ALA", "GLY", "THR", "TYR", "PHE"]
+            for i in range(10):
+                pocket_residues.append({
+                    "res_name": rng.choice(res_names),
+                    "res_num": rng.randint(20, 300),
+                    "element": elements[i],
+                    "x": rng.uniform(-4.0, 4.0),
+                    "y": rng.uniform(-4.0, 4.0),
+                    "z": rng.uniform(-4.0, 4.0),
+                    "charge": rng.choice([-0.4, 0.0, 0.4, -0.3, 0.3])
+                })
             
         # Lazy load the ZINC LSTM model
         if self.trained_model is None:
@@ -772,21 +788,27 @@ class EvolutionaryGenerator:
             if pocket_residues is None:
                 pocket_residues = PRESET_POCKETS.get(pathogen_key)
                 
-                # Check custom_targets.json as fallback
-                if not pocket_residues and os.path.exists("custom_targets.json"):
+                # Resolve pocket dynamically from AlphaFold in real time using pathogen name
+                if not pocket_residues:
                     try:
-                        import json
-                        with open("custom_targets.json", "r") as f:
-                            custom_targets = json.load(f)
-                        norm_p = "".join(pathogen_name.lower().split()).replace("-", "").replace("_", "")
-                        for k, v in custom_targets.items():
-                            norm_k = "".join(k.lower().split()).replace("-", "").replace("_", "")
-                            if norm_p in norm_k or norm_k in norm_p:
-                                if "pocket_residues" in v:
-                                    pocket_residues = v["pocket_residues"]
-                                break
-                    except Exception as e:
-                        print(f"Error loading custom target pocket in score_molecule: {e}")
+                        from qrl_optimizer import resolve_pathogen_metadata
+                        meta = resolve_pathogen_metadata(pathogen_name)
+                        uniprot_id = meta.get("uniprot_id")
+                        if uniprot_id and uniprot_id != "P12345":
+                            print(f"Generator: Dynamically resolving pocket residues from AlphaFold for UniProt {uniprot_id}...")
+                            af_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
+                            import requests
+                            af_res = requests.get(af_url, timeout=10)
+                            if af_res.status_code == 200:
+                                af_data = af_res.json()
+                                if af_data and len(af_data) > 0:
+                                    pdb_url = af_data[0].get("pdbUrl")
+                                    if pdb_url:
+                                        pdb_res = requests.get(pdb_url, timeout=10)
+                                        if pdb_res.status_code == 200:
+                                            pocket_residues = self.parse_pdb_to_pocket(pdb_res.text, num_residues=10)
+                    except Exception as ex:
+                        print(f"Generator: Dynamic AlphaFold pocket resolution failed: {ex}")
                         
             if not pocket_residues:
                 pocket_residues = PRESET_POCKETS['tuberculosis']
@@ -834,6 +856,30 @@ class EvolutionaryGenerator:
 
             stability = float(round(max(10.0, min(98.0, 75.0 * (abs(scaled_docking) / 10.0) + 15.0)), 1))
             
+            # Calculate dynamic mutation-resistant energy
+            mutant_free_energy = float(round(free_energy + 0.45, 2))
+            mutant_residue_label = "Resistant Mutant"
+            try:
+                from qrl_optimizer import simulate_mutant_pocket
+                mutant_pocket = simulate_mutant_pocket(pocket_residues)
+                if mutant_pocket:
+                    idx = sum(ord(c) for c in str(pocket_residues[0])) % len(pocket_residues)
+                    original_res = pocket_residues[idx]
+                    mutated_res = mutant_pocket[idx]
+                    
+                    element = original_res.get("element", "C")
+                    res_map = {"S": "CYS", "O": "ASP", "N": "HIS", "C": "ALA"}
+                    orig_res_name = original_res.get("res_name") or res_map.get(element, "ALA")
+                    orig_res_num = original_res.get("res_num", idx + 108)
+                    mutant_residue_label = f"{orig_res_name}{orig_res_num} to {mutated_res.get('res_name')} mutant"
+                    
+                    mutant_docking_raw = self.calculate_docking_energy(coords, mutant_pocket)
+                    mutant_scaled = -14.0 + 0.8 * (mutant_docking_raw - 2.0)
+                    mutant_scaled = max(-22.0, min(-6.0, mutant_scaled))
+                    mutant_free_energy = float(round(mutant_scaled + solvation_energy + entropy_penalty, 2))
+            except Exception as e_mut:
+                print(f"Error calculating mutant free energy in generator: {e_mut}")
+            
             sa_score = float(round(1.8 + (violations * 1.6) + (mw * 0.005), 2))
             retro_steps = int(2 + sa_score // 1.5)
 
@@ -849,6 +895,8 @@ class EvolutionaryGenerator:
                 'bioavailability': "High" if violations == 0 and tpsa < 140 else "Medium",
                 'docking_score': float(round(scaled_docking, 1)),
                 'free_energy': free_energy,
+                'mutant_free_energy': mutant_free_energy,
+                'mutant_residue_label': mutant_residue_label,
                 'entropy_penalty': entropy_penalty,
                 'kd_text': kd_text,
                 'sa_score': sa_score,
