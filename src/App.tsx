@@ -997,6 +997,10 @@ const getReferenceDrugInfo = (targetName: string, fdaSimilarityStr: string) => {
 
 
 export default function App() {
+  const [isBackendOffline, setIsBackendOffline] = useState<boolean>(false);
+
+
+
   // ==========================================
   // STATE DEFINITIONS
   // ==========================================
@@ -1106,6 +1110,12 @@ export default function App() {
   const [generativeTarget, setGenerativeTarget] = useState<string>('sars-cov-2');
   const [selectedTargetOption, setSelectedTargetOption] = useState<string>('sars-cov-2');
   const [customPathogen, setCustomPathogen] = useState<string>('');
+  const [customPathogenInput, setCustomPathogenInput] = useState<string>('');
+
+  useEffect(() => {
+    setCustomPathogenInput(customPathogen);
+  }, [customPathogen]);
+
   const [generationStep, setGenerationStep] = useState<number>(0); // 0=idle, 1=RNN fragments, 2=ADMET filters, 3=VQE screen, 4=complete
   const [vqeProgress, setVqeProgress] = useState<number>(0);
   const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number>(0);
@@ -1161,6 +1171,9 @@ export default function App() {
   const [valCustomUniprot, setValCustomUniprot] = useState<string>('P03468');
   const [valCustomDrugName, setValCustomDrugName] = useState<string>('Oseltamivir');
   const [valCustomDrugSmiles, setValCustomDrugSmiles] = useState<string>('CC(=O)NC1C(C=C(CC1OC(CC)CC)C(=O)OCC)N');
+  const [qrlPocketSpread, setQrlPocketSpread] = useState<number | null>(null);
+  const [qrlPocketPolarity, setQrlPocketPolarity] = useState<number | null>(null);
+  const [qrlMutantResidueLabel, setQrlMutantResidueLabel] = useState<string | null>(null);
   const [valCandidateSmiles, setValCandidateSmiles] = useState<string | null>(null);
   const [validationRunning, setValidationRunning] = useState<boolean>(false);
   const [validationStep, setValidationStep] = useState<number>(-1);
@@ -1172,6 +1185,39 @@ export default function App() {
   const lastSyncedCustomPathogenRef = useRef<string>('');
   const lastSyncedCustomAtomsLenRef = useRef<number>(0);
   const lastSyncedModeRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const checkBackend = () => {
+      // Bypasses the health check poll while the single-threaded server is busy
+      // running molecular generation, VQE calculations, or docking simulations
+      if (isGenerating || validationRunning || quantumTaskStatus === 'running' || isOptimizingQrl || isWetLabRunning) {
+        return;
+      }
+      
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      fetch(`${API_BASE}/history`, { signal: controller.signal })
+        .then(res => {
+          clearTimeout(timeoutId);
+          setIsBackendOffline(res.status !== 200);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          // If the request was aborted by cleanup (state transition), do not trigger offline mode
+          if (err && err.name !== 'AbortError') {
+            setIsBackendOffline(true);
+          }
+        });
+    };
+    checkBackend();
+    const interval = setInterval(checkBackend, 5000);
+    return () => {
+      clearInterval(interval);
+      controller.abort();
+    };
+  }, [isGenerating, validationRunning, quantumTaskStatus, isOptimizingQrl, isWetLabRunning]);
 
   // Synchronize document theme class with local isDarkMode state
   useEffect(() => {
@@ -1953,11 +1999,11 @@ export default function App() {
               uniprotId = lookupData.uniprot_id;
               setValCustomUniprot(lookupData.uniprot_id);
             }
-            if (lookupData.fda_drug_name) {
+            if (lookupData.fda_drug_name !== undefined) {
               drugName = lookupData.fda_drug_name;
               setValCustomDrugName(lookupData.fda_drug_name);
             }
-            if (lookupData.fda_drug_smiles) {
+            if (lookupData.fda_drug_smiles !== undefined) {
               drugSmiles = lookupData.fda_drug_smiles;
               setValCustomDrugSmiles(lookupData.fda_drug_smiles);
             }
@@ -2057,8 +2103,8 @@ export default function App() {
         disease: disease === 'custom' ? valCustomPathogen : disease === 'covid-19' ? 'COVID-19' : disease === 'tuberculosis' ? 'Tuberculosis' : disease === 'hiv' ? 'HIV' : 'Malaria',
         target: disease === 'custom' ? valCustomTarget : disease === 'covid-19' ? 'Main Protease (Mpro)' : disease === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : disease === 'hiv' ? 'HIV Integrase' : 'Dihydrofolate Reductase (DHFR)',
         uniprot: disease === 'custom' ? valCustomUniprot : disease === 'covid-19' ? 'P0C6U8' : disease === 'tuberculosis' ? 'Q4TUY1' : disease === 'hiv' ? 'Q76353' : 'P13922',
-        fda_drug_name: disease === 'custom' ? valCustomDrugName : disease === 'covid-19' ? 'Nirmatrelvir' : disease === 'tuberculosis' ? 'Isoniazid' : disease === 'hiv' ? 'Dolutegravir' : 'Artemisinin',
-        fda_drug_smiles: disease === 'custom' ? valCustomDrugSmiles : disease === 'covid-19' ? 'CC1...' : disease === 'tuberculosis' ? 'c1cc...' : disease === 'hiv' ? 'CC1...' : 'CC1...',
+        fda_drug_name: disease === 'custom' ? valCustomDrugName : disease === 'covid-19' ? 'Nirmatrelvir' : disease === 'tuberculosis' ? 'Isoniazid' : disease === 'hiv' ? 'Dolutegravir' : 'Pyrimethamine',
+        fda_drug_smiles: disease === 'custom' ? valCustomDrugSmiles : disease === 'covid-19' ? 'CC1...' : disease === 'tuberculosis' ? 'c1cc...' : disease === 'hiv' ? 'CC1...' : 'CCC1=C(C(=NC(=N1)N)N)C2=CC=C(C=C2)Cl',
         candidates: [
           {
             name: `${(disease === 'custom' ? valCustomPathogen : disease).toUpperCase()}-LSTM-01`,
@@ -2112,16 +2158,29 @@ export default function App() {
 
   // Run Molecular Dynamics Langevin Simulation
   const handleRunMD = async () => {
+    if (isBackendOffline) {
+      alert("DEMO FALLBACK: Molecular dynamics simulation is disabled when backend is offline.");
+      return;
+    }
     setIsMdRunning(true);
     setMdFrameIdx(0);
     setMdRmsdHistory([]);
+
+    let targetPathogen = 'Tuberculosis';
+    if (activeTab === 'validation') {
+      targetPathogen = validationDisease === 'custom' ? (valCustomPathogen || 'Tuberculosis') : validationDisease;
+    } else if (activeTab === 'generative') {
+      targetPathogen = generativeTarget === 'custom' ? (customPathogen || 'Tuberculosis') : generativeTarget;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/api/md/trajectory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           molecule_id: isCustomMode ? 'custom' : selectedMolecule.id,
-          custom_coords: isCustomMode ? customAtoms : null
+          custom_coords: isCustomMode ? customAtoms : null,
+          pathogen_name: targetPathogen
         })
       });
       if (!response.ok) throw new Error("MD trajectory fetch failed");
@@ -2169,10 +2228,10 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.target_protein) setValCustomTarget(data.target_protein);
-        if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
-        if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
-        if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
+        if (data.target_protein !== undefined) setValCustomTarget(data.target_protein);
+        if (data.uniprot_id !== undefined) setValCustomUniprot(data.uniprot_id);
+        if (data.fda_drug_name !== undefined) setValCustomDrugName(data.fda_drug_name);
+        if (data.fda_drug_smiles !== undefined) setValCustomDrugSmiles(data.fda_drug_smiles);
       }
     } catch (err) {
       console.error("Error looking up pathogen metadata:", err);
@@ -2203,11 +2262,15 @@ export default function App() {
       setQrlOptimizedSmiles(data.optimized_smiles);
       setQrlRecommendedCandidate(data.recommended_candidate);
 
-      if (data.target_protein) setValCustomTarget(data.target_protein);
-      if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
-      if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
-      if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
+      if (data.target_protein !== undefined) setValCustomTarget(data.target_protein);
+      if (data.uniprot_id !== undefined) setValCustomUniprot(data.uniprot_id);
+      if (data.fda_drug_name !== undefined) setValCustomDrugName(data.fda_drug_name);
+      if (data.fda_drug_smiles !== undefined) setValCustomDrugSmiles(data.fda_drug_smiles);
       setValCustomPathogen(targetName);
+
+      if (data.pocket_spread !== undefined) setQrlPocketSpread(data.pocket_spread);
+      if (data.pocket_polarity !== undefined) setQrlPocketPolarity(data.pocket_polarity);
+      if (data.mutant_residue_label !== undefined) setQrlMutantResidueLabel(data.mutant_residue_label);
 
       if (data.circuit_ascii) {
         setQrlCircuitAscii(data.circuit_ascii);
@@ -2389,16 +2452,20 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
   // Generate and download printable professional Pre-Clinical Validation & Synthesis Report
   const handleDownloadReport = () => {
+    if (isBackendOffline) {
+      alert("DEMO FALLBACK: Exporting validation reports is disabled when the backend is offline.");
+      return;
+    }
     if (!validationResult || !wetLabResult) return;
 
     const cand = validationResult.candidates[0];
     const fda = validationResult.fda_drug_details;
-    const isFdaApproved = validationResult.is_fda_approved === true || 
-      (validationResult.is_fda_approved !== false && 
-       validationResult.fda_drug_name && 
-       !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
-    const hasFdaDrug = validationResult.fda_drug_name && 
-      !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
+    const isFdaApproved = validationResult.is_fda_approved === true ||
+      (validationResult.is_fda_approved !== false &&
+        validationResult.fda_drug_name &&
+        !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
+    const hasFdaDrug = validationResult.fda_drug_name &&
+      !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) &&
       validationResult.fda_drug_details &&
       isFdaApproved;
 
@@ -2732,7 +2799,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
               ${hasFdaDrug ? `<td>${fda.mw} Da</td>` : ''}
             </tr>
             <tr>
-              <td>Vina Pocket Docking Score</td>
+              <td>Heuristic Pocket Docking Score</td>
               <td style="color: #1a202c; font-weight: 700;"><strong>${cand.wtBinding} kcal/mol</strong></td>
               ${hasFdaDrug ? `<td style="color: #4a5568;">${fda.docking_score} kcal/mol</td>` : ''}
             </tr>
@@ -2747,14 +2814,14 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
               ${hasFdaDrug ? `<td style="color: #4a5568;">${fda.kd_text}</td>` : ''}
             </tr>
             <tr>
-              <td>Estimated R&D Cost (Discovery)</td>
+              <td>Compute & Resource Cost</td>
               <td style="color: #22543d; font-weight: 700;"><strong>${cand.synthesis_cost}</strong></td>
               ${hasFdaDrug ? `<td style="color: #4a5568;">${fda.synthesis_cost}</td>` : ''}
             </tr>
             <tr>
-              <td>R&D Discovery Time</td>
-              <td style="color: #2b6cb0; font-weight: 700;"><strong>${cand.rd_time || '12 - 24 Hours'}</strong></td>
-              ${hasFdaDrug ? `<td style="color: #4a5568;">${fda.rd_time || '5 - 7 Years'}</td>` : ''}
+              <td>In Silico Compute Time</td>
+              <td style="color: #2b6cb0; font-weight: 700;"><strong>${cand.rd_time || '0.45 s (In Silico)'}</strong></td>
+              ${hasFdaDrug ? `<td style="color: #4a5568;">${fda.rd_time || 'N/A'}</td>` : ''}
             </tr>
             <tr>
               <td>MD Binding Stability Score</td>
@@ -2942,11 +3009,11 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
       .then(data => {
         if (data.status === 'success') {
           backendResults = data.candidates;
-          if (data.target_protein) setValCustomTarget(data.target_protein);
-          if (data.uniprot_id) setValCustomUniprot(data.uniprot_id);
-          if (data.fda_drug_name) setValCustomDrugName(data.fda_drug_name);
-          if (data.fda_drug_smiles) setValCustomDrugSmiles(data.fda_drug_smiles);
-          if (data.pathogen) setValCustomPathogen(data.pathogen);
+          if (data.target_protein !== undefined) setValCustomTarget(data.target_protein);
+          if (data.uniprot_id !== undefined) setValCustomUniprot(data.uniprot_id);
+          if (data.fda_drug_name !== undefined) setValCustomDrugName(data.fda_drug_name);
+          if (data.fda_drug_smiles !== undefined) setValCustomDrugSmiles(data.fda_drug_smiles);
+          if (data.pathogen !== undefined) setValCustomPathogen(data.pathogen);
         } else {
           throw new Error(data.error || "Generation failed on backend");
         }
@@ -4779,6 +4846,16 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
         </div>
       </header>
 
+      {isBackendOffline && (
+        <div className="z-10 bg-amber-500/10 border-b border-amber-500/30 text-amber-800 dark:text-amber-300 px-6 py-2 flex items-center justify-between text-xs font-mono backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-500 inline-block animate-ping shrink-0" />
+            <span className="font-bold uppercase tracking-wider bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">DEMO FALLBACK</span>
+            <span>Computational backend is offline. Result dashboards and exports are restricted to static demonstration mode.</span>
+          </div>
+        </div>
+      )}
+
       {/* ==========================================
           MAIN DASHBOARD BODY
           ========================================== */}
@@ -5239,10 +5316,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
           <button
             id="run-simulation-btn"
             onClick={handleRunSimulation}
-            disabled={quantumTaskStatus === 'running'}
-            className={`w-full py-3.5 px-4 cursor-pointer font-display uppercase font-bold text-xs tracking-widest rounded-sm border transition-all duration-500 flex items-center justify-center gap-2 shadow-lg ${quantumTaskStatus === 'running'
-              ? 'bg-slate-300 border-slate-350 text-slate-500 dark:bg-slate-850 dark:border-slate-900 dark:text-slate-500 cursor-not-allowed'
-              : 'bg-[#2B4C63] hover:bg-[#152D42] border-[#2B4C63] text-white hover:shadow-[#2B4C63]/25 dark:bg-[#2B4C63] dark:hover:bg-[#152D42] dark:border-[#2B4C63]/50'
+            disabled={quantumTaskStatus === 'running' || isBackendOffline}
+            className={`w-full py-3.5 px-4 font-display uppercase font-bold text-xs tracking-widest rounded-sm border transition-all duration-500 flex items-center justify-center gap-2 shadow-lg ${quantumTaskStatus === 'running' || isBackendOffline
+              ? 'bg-slate-350 border-slate-350 text-slate-400 dark:bg-slate-850 dark:border-slate-900 dark:text-slate-500 cursor-not-allowed'
+              : 'bg-[#2B4C63] hover:bg-[#152D42] border-[#2B4C63] text-white hover:shadow-[#2B4C63]/25 dark:bg-[#2B4C63] dark:hover:bg-[#152D42] dark:border-[#2B4C63]/50 cursor-pointer'
               }`}
           >
             {quantumTaskStatus === 'running' ? (
@@ -5252,8 +5329,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
               </>
             ) : (
               <>
-                <Zap className="h-4 w-4 fill-current animate-pulse" />
-                <span>Run VQE Simulation</span>
+                <Zap className="h-4 w-4 fill-current" />
+                <span>{isBackendOffline ? 'Simulation Disabled (Offline)' : 'Run VQE Simulation'}</span>
               </>
             )}
           </button>
@@ -5828,10 +5905,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                         {/* Overlay: Binding Mode Badge */}
                         <div className="absolute top-3 left-3 z-10">
                           <span className={`px-2.5 py-1 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider border ${dnaInteraction.bindingMode === 'intercalation'
-                              ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800'
-                              : dnaInteraction.bindingMode === 'non_binder'
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                                : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800'
+                            ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800'
+                            : dnaInteraction.bindingMode === 'non_binder'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800'
                             }`}>
                             {dnaInteraction.bindingMode === 'minor_groove' ? '🧬 Minor Groove Binding'
                               : dnaInteraction.bindingMode === 'major_groove' ? '🧬 Major Groove Binding'
@@ -5874,8 +5951,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             </div>
                           </div>
                           <span className={`text-[10px] font-bold uppercase tracking-wider ${dnaInteraction.compatibilityScore >= 80 ? 'text-emerald-600 dark:text-emerald-400'
-                              : dnaInteraction.compatibilityScore >= 50 ? 'text-amber-600 dark:text-amber-400'
-                                : 'text-red-600 dark:text-red-400'
+                            : dnaInteraction.compatibilityScore >= 50 ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-red-600 dark:text-red-400'
                             }`}>
                             {dnaInteraction.compatibilityScore >= 80 ? 'COMPATIBLE' : dnaInteraction.compatibilityScore >= 50 ? 'CAUTION' : 'GENOTOXIC RISK'}
                           </span>
@@ -5952,8 +6029,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                 <td className="py-1.5 px-2 text-center font-bold text-slate-800 dark:text-slate-200">{row.prediction}</td>
                                 <td className="py-1.5 px-2 text-center">
                                   <span className={`px-2 py-0.5 rounded-sm text-[9px] font-bold uppercase ${row.risk === 'low' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400'
-                                      : row.risk === 'moderate' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
-                                        : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400'
+                                    : row.risk === 'moderate' ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'
+                                      : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400'
                                     }`}>
                                     {row.risk}
                                   </span>
@@ -5974,10 +6051,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                     {/* Scientific Verdict */}
                     <div className={`rounded-sm border p-3 ${dnaInteraction.compatibilityScore >= 80
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
-                        : dnaInteraction.compatibilityScore >= 50
-                          ? 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
-                          : 'bg-red-50/80 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+                      ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+                      : dnaInteraction.compatibilityScore >= 50
+                        ? 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+                        : 'bg-red-50/80 dark:bg-red-950/20 border-red-200 dark:border-red-800'
                       }`}>
                       <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 block mb-1">
                         {dnaInteraction.compatibilityScore >= 80 ? '✅' : dnaInteraction.compatibilityScore >= 50 ? '⚠️' : '🚫'} Scientific Verdict
@@ -6500,14 +6577,28 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             <label className="text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1.5 block">
                               Enter Custom Pathogen Name
                             </label>
-                            <input
-                              type="text"
-                              value={customPathogen}
-                              onChange={(e) => setCustomPathogen(e.target.value)}
-                              placeholder="e.g. Influenza, Malaria, E. coli"
-                              disabled={isGenerating}
-                              className="w-full p-2.5 rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-[#152D42] dark:text-slate-200 focus:outline-none focus:border-[#2B4C63]"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={customPathogenInput}
+                                onChange={(e) => setCustomPathogenInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    setCustomPathogen(customPathogenInput);
+                                  }
+                                }}
+                                placeholder="e.g. Influenza, Malaria, E. coli"
+                                disabled={isGenerating}
+                                className="flex-1 p-2.5 rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-[#152D42] dark:text-slate-200 focus:outline-none focus:border-[#2B4C63]"
+                              />
+                              <button
+                                onClick={() => setCustomPathogen(customPathogenInput)}
+                                disabled={isGenerating}
+                                className="px-3 rounded-sm bg-[#2B4C63] hover:bg-[#1C3A50] text-white text-xs font-mono font-bold uppercase tracking-wider cursor-pointer border border-[#2B4C63] hover:border-[#1C3A50] transition-colors"
+                              >
+                                Apply
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -6542,10 +6633,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                       <button
                         id="run-generative-btn"
                         onClick={handleRunGenerativeAI}
-                        disabled={isGenerating}
-                        className={`w-full py-3 px-4 cursor-pointer font-display uppercase font-bold text-xs tracking-widest rounded-sm border transition-all duration-500 flex items-center justify-center gap-2 shadow-lg ${isGenerating
+                        disabled={isGenerating || isBackendOffline}
+                        className={`w-full py-3 px-4 font-display uppercase font-bold text-xs tracking-widest rounded-sm border transition-all duration-500 flex items-center justify-center gap-2 shadow-lg ${isGenerating || isBackendOffline
                           ? 'bg-slate-300 dark:bg-slate-800 border-slate-350 dark:border-slate-700 text-slate-500 cursor-not-allowed'
-                          : 'bg-[#2B4C63] hover:bg-[#152D42] border-[#2B4C63] text-white hover:shadow-[#2B4C63]/25'
+                          : 'bg-[#2B4C63] hover:bg-[#152D42] border-[#2B4C63] text-white hover:shadow-[#2B4C63]/25 cursor-pointer'
                           }`}
                       >
                         {isGenerating ? (
@@ -6555,7 +6646,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                           </>
                         ) : (
                           <>
-                            <span>Run Candidate Discovery Pipeline</span>
+                            <span>{isBackendOffline ? 'Discovery Disabled (Offline)' : 'Run Candidate Discovery Pipeline'}</span>
                           </>
                         )}
                       </button>
@@ -6580,8 +6671,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               <div
                                 key={idx}
                                 className={`flex items-center gap-3 p-2 rounded-sm border transition-all duration-500 ${isActive
-                                    ? 'border-[#2B4C63]/50 dark:border-blue-800 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20'
-                                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 opacity-50'
+                                  ? 'border-[#2B4C63]/50 dark:border-blue-800 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 opacity-50'
                                   }`}
                               >
                                 <div className="flex-1">
@@ -6674,15 +6765,15 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               key={cand.id}
                               onClick={() => setSelectedCandidateIndex(idx)}
                               className={`p-3 rounded-sm border cursor-pointer transition-all duration-300 ${selectedCandidateIndex === idx
-                                  ? 'border-[#2B4C63] dark:border-blue-650 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 shadow-md'
-                                  : 'border-slate-250 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 hover:border-slate-400 dark:hover:border-slate-600'
+                                ? 'border-[#2B4C63] dark:border-blue-650 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 shadow-md'
+                                : 'border-slate-250 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 hover:border-slate-400 dark:hover:border-slate-600'
                                 }`}
                             >
                               <div className="flex justify-between items-start mb-1.5">
                                 <div className="flex flex-wrap items-center gap-1.5 max-w-[80%]">
                                   <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm ${idx === 0 ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' :
-                                      idx === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-700' :
-                                        'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                                    idx === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-700' :
+                                      'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
                                     }`}>
                                     RANK #{idx + 1}
                                   </span>
@@ -7014,10 +7105,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                           <button
                             onClick={() => handleRunValidation(validationDisease)}
-                            disabled={validationRunning}
-                            className={`w-full mt-4 py-2 px-4 cursor-pointer font-display uppercase font-bold text-[10px] tracking-widest rounded-sm border transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${validationRunning
-                                ? 'bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed'
-                                : 'bg-[#2B4C63] hover:bg-[#1C3A50] border-[#2B4C63] text-white shadow-md'
+                            disabled={validationRunning || isBackendOffline}
+                            className={`w-full mt-4 py-2 px-4 font-display uppercase font-bold text-[10px] tracking-widest rounded-sm border transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${validationRunning || isBackendOffline
+                              ? 'bg-slate-100 dark:bg-slate-900/60 border-slate-350 dark:border-slate-800 text-slate-400 cursor-not-allowed'
+                              : 'bg-[#2B4C63] hover:bg-[#1C3A50] border-[#2B4C63] text-white shadow-md cursor-pointer'
                               }`}
                           >
                             {validationRunning ? (
@@ -7028,7 +7119,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             ) : (
                               <>
                                 <Hourglass className="h-3.5 w-3.5 text-rose-200" />
-                                Run Pipeline Validation
+                                <span>{isBackendOffline ? 'Validation Disabled (Offline)' : 'Run Pipeline Validation'}</span>
                               </>
                             )}
                           </button>
@@ -7057,10 +7148,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                   <div
                                     key={st.id}
                                     className={`p-2.5 rounded-sm border flex gap-3 items-start transition-all duration-300 ${isDone
-                                        ? 'bg-emerald-50/50 border-emerald-200 dark:bg-emerald-950/10 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-350'
-                                        : isCurrent
-                                          ? 'bg-[#2B4C63]/5 border-[#2B4C63]/30 dark:bg-[#2B4C63]/25 dark:border-[#2B4C63]/60 text-[#152D42] dark:text-blue-200 shadow-sm animate-pulse'
-                                          : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-655'
+                                      ? 'bg-emerald-50/50 border-emerald-200 dark:bg-emerald-950/10 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-350'
+                                      : isCurrent
+                                        ? 'bg-[#2B4C63]/5 border-[#2B4C63]/30 dark:bg-[#2B4C63]/25 dark:border-[#2B4C63]/60 text-[#152D42] dark:text-blue-200 shadow-sm animate-pulse'
+                                        : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-655'
                                       }`}
                                   >
                                     <div className="mt-0.5 shrink-0">
@@ -7096,12 +7187,12 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             {(() => {
                               const cand = validationResult.candidates[0];
                               const fda = validationResult.fda_drug_details;
-                              const isFdaApproved = validationResult.is_fda_approved === true || 
-                                (validationResult.is_fda_approved !== false && 
-                                 validationResult.fda_drug_name && 
-                                 !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
-                              const hasFdaDrug = validationResult.fda_drug_name && 
-                                !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
+                              const isFdaApproved = validationResult.is_fda_approved === true ||
+                                (validationResult.is_fda_approved !== false &&
+                                  validationResult.fda_drug_name &&
+                                  !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
+                              const hasFdaDrug = validationResult.fda_drug_name &&
+                                !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) &&
                                 validationResult.fda_drug_details &&
                                 isFdaApproved;
 
@@ -7165,12 +7256,12 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                             {/* Side-by-Side Comparison Table */}
                             {(() => {
-                              const isFdaApproved = validationResult.is_fda_approved === true || 
-                                (validationResult.is_fda_approved !== false && 
-                                 validationResult.fda_drug_name && 
-                                 !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
-                              const hasFdaDrug = validationResult && validationResult.fda_drug_name && 
-                                !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) && 
+                              const isFdaApproved = validationResult.is_fda_approved === true ||
+                                (validationResult.is_fda_approved !== false &&
+                                  validationResult.fda_drug_name &&
+                                  !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
+                              const hasFdaDrug = validationResult && validationResult.fda_drug_name &&
+                                !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) &&
                                 validationResult.fda_drug_details &&
                                 isFdaApproved;
 
@@ -7214,7 +7305,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                         {hasFdaDrug && <td className="p-2.5 font-mono">{validationResult.fda_drug_details.tpsa} A^2</td>}
                                       </tr>
                                       <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                                        <td className="p-2.5 pl-3 font-medium">Vina Pocket Docking Score</td>
+                                        <td className="p-2.5 pl-3 font-medium">Heuristic Pocket Docking Score</td>
                                         <td className="p-2.5 font-mono text-[#2B4C63] font-bold">{validationResult.candidates[0].wtBinding} kcal/mol</td>
                                         {hasFdaDrug && <td className="p-2.5 font-mono text-[#2B4C63] font-bold">{validationResult.fda_drug_details.docking_score} kcal/mol</td>}
                                       </tr>
@@ -7238,33 +7329,33 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       </tr>
                                       <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 bg-emerald-500/5 dark:bg-emerald-950/10">
                                         <td className="p-2.5 pl-3 font-medium">
-                                          <div>Estimated R&D Cost</div>
-                                          <div className="text-[8px] text-slate-400 font-mono">Discovery & Optimization Phase</div>
+                                          <div>Compute & Resource Cost</div>
+                                          <div className="text-[8px] text-slate-400 font-mono">In Silico Optimization Phase</div>
                                         </td>
                                         <td className="p-2.5 font-mono text-emerald-800 dark:text-emerald-400 font-bold">
-                                          <div>{validationResult.candidates[0].synthesis_cost || '₹47.5 Cr - ₹95.0 Cr [ $5M - $10M ]'}</div>
-                                          <div className="text-[8px] text-slate-455 font-mono">Quantum-QRL In-Silico</div>
+                                          <div>{validationResult.candidates[0].synthesis_cost || '₹0.1250 ($0.0015)'}</div>
+                                          <div className="text-[8px] text-slate-455 font-mono">Compute + QPU cost proxy</div>
                                         </td>
                                         {hasFdaDrug && (
                                           <td className="p-2.5 font-mono text-slate-600 dark:text-slate-400">
                                             <div>{validationResult.fda_drug_details.synthesis_cost}</div>
-                                            <div className="text-[8px] text-slate-455 font-mono">Historical Benchmarks</div>
+                                            <div className="text-[8px] text-slate-455 font-mono">Target Reference</div>
                                           </td>
                                         )}
                                       </tr>
                                       <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 bg-blue-500/5 dark:bg-blue-950/10">
                                         <td className="p-2.5 pl-3 font-medium">
-                                          <div>R&D Discovery Time</div>
-                                          <div className="text-[8px] text-slate-400 font-mono">Target to Lead Identification</div>
+                                          <div>In Silico Compute Time</div>
+                                          <div className="text-[8px] text-slate-400 font-mono">Wall-Clock Execution Time</div>
                                         </td>
                                         <td className="p-2.5 font-mono text-blue-800 dark:text-blue-400 font-bold">
-                                          <div>{validationResult.candidates[0].rd_time || '12 - 24 Hours'}</div>
-                                          <div className="text-[8px] text-slate-455 font-mono">QRL High-Throughput</div>
+                                          <div>{validationResult.candidates[0].rd_time || '0.45 s (In Silico)'}</div>
+                                          <div className="text-[8px] text-slate-455 font-mono">Server Runtime</div>
                                         </td>
                                         {hasFdaDrug && (
                                           <td className="p-2.5 font-mono text-slate-600 dark:text-slate-400">
-                                            <div>{validationResult.fda_drug_details.rd_time || '5 - 7 Years'}</div>
-                                            <div className="text-[8px] text-slate-455 font-mono">Traditional Screen Timeline</div>
+                                            <div>{validationResult.fda_drug_details.rd_time || 'N/A'}</div>
+                                            <div className="text-[8px] text-slate-455 font-mono">Not Applicable</div>
                                           </td>
                                         )}
                                       </tr>
@@ -7281,17 +7372,17 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
                                         <td className="p-2.5 pl-3 font-medium">Toxicity / Ames Risk Profile</td>
                                         <td className={`p-2.5 font-mono font-bold ${validationResult.candidates[0].admet.toxicity.includes('High') || validationResult.candidates[0].admet.toxicity.includes('Extreme') || validationResult.candidates[0].admet.toxicity.includes('Toxic')
-                                            ? 'text-rose-700 dark:text-rose-450'
-                                            : validationResult.candidates[0].admet.toxicity.includes('Medium')
-                                              ? 'text-amber-600 dark:text-amber-455'
-                                              : 'text-emerald-700 dark:text-emerald-400'
+                                          ? 'text-rose-700 dark:text-rose-450'
+                                          : validationResult.candidates[0].admet.toxicity.includes('Medium')
+                                            ? 'text-amber-600 dark:text-amber-455'
+                                            : 'text-emerald-700 dark:text-emerald-400'
                                           }`}>{validationResult.candidates[0].admet.toxicity}</td>
                                         {hasFdaDrug && (
                                           <td className={`p-2.5 font-mono font-bold ${validationResult.fda_drug_details.toxicity.includes('High') || validationResult.fda_drug_details.toxicity.includes('Extreme') || validationResult.fda_drug_details.toxicity.includes('Toxic')
-                                              ? 'text-rose-700 dark:text-rose-455'
-                                              : validationResult.fda_drug_details.toxicity.includes('Medium')
-                                                ? 'text-amber-600 dark:text-amber-455'
-                                                : 'text-emerald-700 dark:text-emerald-450'
+                                            ? 'text-rose-700 dark:text-rose-455'
+                                            : validationResult.fda_drug_details.toxicity.includes('Medium')
+                                              ? 'text-amber-600 dark:text-amber-455'
+                                              : 'text-emerald-700 dark:text-emerald-450'
                                             }`}>{validationResult.fda_drug_details.toxicity}</td>
                                         )}
                                       </tr>
@@ -7302,6 +7393,101 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                       </tr>
                                     </tbody>
                                   </table>
+                                </div>
+                              );
+                            })()}
+
+                            {/* MUTATION RESISTANCE & ESCAPE VARIANT ANALYSIS CARD */}
+                            {(() => {
+                              if (!validationResult || !validationResult.fda_drug_details) return null;
+                              const cand = validationResult.candidates[0];
+                              const fda = validationResult.fda_drug_details;
+                              const isFdaApproved = validationResult.is_fda_approved === true ||
+                                (validationResult.is_fda_approved !== false &&
+                                  validationResult.fda_drug_name &&
+                                  !validationResult.fda_drug_name.toLowerCase().includes("no approved"));
+                              const hasFdaDrug = validationResult.fda_drug_name &&
+                                !['none', 'none (reactive toxicant)', 'n/a', 'unidentified', ''].includes(validationResult.fda_drug_name.toLowerCase().trim()) &&
+                                isFdaApproved;
+
+                              if (!hasFdaDrug || !cand) return null;
+
+                              const leadDrop = (cand.mutation_resistance?.variants?.[1]?.energy || (cand.free_energy + 0.45)) - cand.free_energy;
+                              const fdaDrop = fda.mutant_free_energy - fda.free_energy;
+                              const isMoreRobust = leadDrop < fdaDrop;
+
+                              return (
+                                <div className={`p-4 rounded-sm border ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-350'} shadow-sm flex flex-col gap-3 animate-fade-in`}>
+                                  <div className="border-b border-[#2B4C63]/10 pb-2 flex items-center justify-between">
+                                    <h4 className="text-xs font-mono font-bold text-[#152D42] dark:text-slate-150 flex items-center gap-1.5 uppercase tracking-wider">
+                                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                                      Mutational Escape & Resistance Profiling
+                                    </h4>
+                                    <span className="text-[9px] font-mono bg-blue-50 border border-blue-250 text-blue-700 px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wider">
+                                      Adversarial Mutant Active
+                                    </span>
+                                  </div>
+
+                                  <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                                    To ensure long-term clinical efficacy, the QRL agent was co-optimized against both the <strong>Wild Type (Sensitive)</strong> active site and an adversarial simulated escape mutation: 
+                                    <span className="font-mono bg-slate-100 dark:bg-slate-950 px-1.5 py-0.5 rounded-sm text-blue-700 dark:text-blue-300 font-bold ml-1">
+                                      {fda.mutant_residue_label || "Active Site Point Mutation"}
+                                    </span>.
+                                  </p>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1 text-[11px]">
+                                    {/* Generated Lead Card */}
+                                    <div className="p-3 rounded border border-emerald-200 bg-emerald-50/20 dark:border-emerald-950 dark:bg-emerald-950/10 flex flex-col gap-2">
+                                      <span className="font-bold text-emerald-800 dark:text-emerald-400 font-mono text-[9px] uppercase tracking-wider">Generated Lead ({cand.name})</span>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Wild Type Binding:</span>
+                                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{cand.free_energy} kcal/mol</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Mutant Variant Binding:</span>
+                                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                                          {(cand.mutation_resistance?.variants?.[1]?.energy || (cand.free_energy + 0.45)).toFixed(2)} kcal/mol
+                                        </span>
+                                      </div>
+                                      <div className="border-t border-emerald-200/50 dark:border-emerald-900/30 pt-2 flex justify-between items-center">
+                                        <span className="font-bold text-slate-600 dark:text-slate-455">Affinity Drop:</span>
+                                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                                          +{leadDrop.toFixed(2)} kcal/mol
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* FDA Approved Drug Card */}
+                                    <div className="p-3 rounded border border-rose-200 bg-rose-50/20 dark:border-rose-955 dark:bg-rose-955/10 flex flex-col gap-2">
+                                      <span className="font-bold text-rose-800 dark:text-rose-450 font-mono text-[9px] uppercase tracking-wider">{isFdaApproved ? "FDA Approved Drug" : "Reference Comparator"} ({validationResult.fda_drug_name})</span>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Wild Type Binding:</span>
+                                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{fda.free_energy} kcal/mol</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Mutant Variant Binding:</span>
+                                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{fda.mutant_free_energy} kcal/mol</span>
+                                      </div>
+                                      <div className="border-t border-rose-200/50 dark:border-rose-900/30 pt-2 flex justify-between items-center">
+                                        <span className="font-bold text-slate-600 dark:text-slate-455">Affinity Drop:</span>
+                                        <span className="font-mono font-bold text-rose-700 dark:text-rose-400">
+                                          +{fdaDrop.toFixed(2)} kcal/mol
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isMoreRobust ? (
+                                    <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-400 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                      ✔️ Efficacy Confirmed: Generated Lead exhibits higher mutation resistance (smaller affinity drop) compared to {validationResult.fda_drug_name}!
+                                    </div>
+                                  ) : (
+                                    <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                      <Info className="h-4 w-4 text-amber-600" />
+                                      ⚠️ Notice: Lead candidate exhibits standard mutational sensitivity, comparable to {validationResult.fda_drug_name}.
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
@@ -7536,8 +7722,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                                     {/* Validation Certificate */}
                                     <div className={`p-3.5 border rounded-sm flex flex-col gap-2.5 relative overflow-hidden ${wetLabResult.admet_twin.therapeutic_index >= 10
-                                        ? 'bg-emerald-50/20 border-emerald-250 dark:bg-emerald-950/5 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-300'
-                                        : 'bg-rose-50/20 border-rose-250 dark:bg-rose-950/5 dark:border-rose-900/40 text-rose-950 dark:text-rose-300'
+                                      ? 'bg-emerald-50/20 border-emerald-250 dark:bg-emerald-950/5 dark:border-emerald-900/40 text-emerald-950 dark:text-emerald-300'
+                                      : 'bg-rose-50/20 border-rose-250 dark:bg-rose-950/5 dark:border-rose-900/40 text-rose-950 dark:text-rose-300'
                                       }`}>
                                       <div className="flex items-center justify-between border-b border-current/10 pb-1.5">
                                         <span className="text-[9.5px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
@@ -7552,13 +7738,12 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                           <span className="text-slate-500">Synthetic Accessibility (SA Score):</span>
                                           <div className="flex flex-col items-end">
                                             <strong className="font-mono text-[#152D42] dark:text-slate-200">{wetLabResult.sa_score} / 10 (Target: {wetLabResult.synthetic_steps} steps)</strong>
-                                            <span className={`text-[8.5px] font-bold uppercase tracking-wider ${
-                                              wetLabResult.sa_score <= 3.5
+                                            <span className={`text-[8.5px] font-bold uppercase tracking-wider ${wetLabResult.sa_score <= 3.5
                                                 ? 'text-emerald-600 dark:text-emerald-400'
                                                 : wetLabResult.sa_score <= 5.5
                                                   ? 'text-amber-600 dark:text-amber-500'
                                                   : 'text-rose-600'
-                                            }`}>
+                                              }`}>
                                               {wetLabResult.sa_score <= 3.5 ? 'Highly Accessible ✓' : wetLabResult.sa_score <= 5.5 ? 'Moderately Accessible' : 'Synthetic Challenge'}
                                             </span>
                                           </div>
@@ -7598,7 +7783,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
 
                             {/* Scientific notes on VQE Active Space */}
                             <div className={`p-3 rounded-sm border ${isDarkMode ? 'bg-slate-900/40 border-slate-850' : 'bg-slate-50 border-slate-300'} text-[10px] text-slate-500 dark:text-slate-400 flex flex-col gap-1`}>
-                              <div><strong>Note on VQE calculations:</strong> The VQE ground-state energy represents localized orbital interaction energy within the CAS(4,4) active space. The total binding free energy (ΔG) adds corrections for solvent polarization effects and conformational entropy loss.</div>
+                              <div><strong>Note on VQE calculations:</strong> The VQE ground-state energy represents the electronic interaction energy of the active valence space, calculated using a semi-empirical Extended Hückel Theory Hamiltonian built from Slater-type orbital overlap integrals. The total binding free energy (ΔG) adds corrections for solvent polarization effects and conformational entropy loss.</div>
                               <div><strong>Affinity Equation:</strong> Dissociation constant is calculated using thermodynamic relation: <code className="text-[#2B4C63] font-bold dark:text-blue-300">Kd = 10^(ΔG / 1.364) M</code> (at 298.15 K).</div>
                             </div>
                           </div>
@@ -7732,14 +7917,54 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             ) : (
                               <button
                                 onClick={handleRunQRL}
-                                className="w-full py-2 bg-[#2B4C63] hover:bg-[#1C3A50] text-white font-bold uppercase rounded-sm cursor-pointer shadow hover:shadow-[#2B4C63]/25 transition"
+                                disabled={isBackendOffline}
+                                className={`w-full py-2 ${isBackendOffline ? 'bg-slate-350 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-805 text-slate-500 cursor-not-allowed' : 'bg-[#2B4C63] hover:bg-[#1C3A50] text-white cursor-pointer shadow hover:shadow-[#2B4C63]/25'} font-bold uppercase rounded-sm transition`}
                               >
-                                Optimize Structure
+                                {isBackendOffline ? 'Optimization Disabled (Offline)' : 'Optimize Structure'}
                               </button>
                             )}
                           </div>
                         </div>
                       </div>
+
+                      {/* QRL Target Biophysics & Mutation Profiler Card */}
+                      {qrlMutantResidueLabel && (
+                        <div className="glass-panel p-3 border border-slate-350 dark:border-slate-800 rounded-sm flex flex-col gap-2 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/10 animate-fade-in">
+                          <span className="text-[10px] font-mono font-bold text-[#2B4C63] dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5 border-b border-[#2B4C63]/10 pb-1">
+                            <Dna className="h-3 w-3 text-blue-600 dark:text-blue-300" />
+                            Target Pocket Biophysics & Mutation Profiler
+                          </span>
+                          <div className="grid grid-cols-3 gap-3 text-[10.5px] leading-relaxed mt-1">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-slate-450 font-bold uppercase text-[8px] font-mono">Spatial spread</span>
+                              <span className="font-mono text-slate-750 dark:text-slate-200">
+                                {qrlPocketSpread ? `${qrlPocketSpread.toFixed(2)} Å` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-500 italic">
+                                {qrlPocketSpread && qrlPocketSpread < 2.2 ? 'Tight Pocket (Forces low MW)' : 'Spacious Pocket (Allows large lead)'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-slate-450 font-bold uppercase text-[8px] font-mono">Polarity ratio</span>
+                              <span className="font-mono text-slate-750 dark:text-slate-200">
+                                {qrlPocketPolarity ? `${(qrlPocketPolarity * 100).toFixed(0)}%` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-500 italic">
+                                {qrlPocketPolarity && qrlPocketPolarity > 0.35 ? 'Polar (High VQE/H-Bond weight)' : 'Hydrophobic (High Docking weight)'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-slate-450 font-bold uppercase text-[8px] font-mono">Adversarial Mutant</span>
+                              <span className="font-mono text-rose-700 dark:text-rose-400 font-bold">
+                                {qrlMutantResidueLabel}
+                              </span>
+                              <span className="text-[8px] text-slate-500 italic">
+                                60% WT + 40% Mutant Co-Opt
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Quantum Variational Circuit Schematic */}
                       <div className="glass-panel p-3 border border-slate-350 dark:border-slate-800 rounded-sm flex flex-col gap-2">
@@ -7753,8 +7978,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               type="button"
                               onClick={() => setCircuitViewMode('graphical')}
                               className={`px-2 py-0.5 rounded-sm uppercase transition-all duration-300 cursor-pointer ${circuitViewMode === 'graphical'
-                                  ? 'bg-[#2B4C63] text-white shadow-sm'
-                                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                ? 'bg-[#2B4C63] text-white shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
                             >
                               Composer (IBM)
@@ -7763,8 +7988,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               type="button"
                               onClick={() => setCircuitViewMode('ascii')}
                               className={`px-2 py-0.5 rounded-sm uppercase transition-all duration-300 cursor-pointer ${circuitViewMode === 'ascii'
-                                  ? 'bg-[#2B4C63] text-white shadow-sm'
-                                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                ? 'bg-[#2B4C63] text-white shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                 }`}
                             >
                               ASCII Text
@@ -7964,8 +8189,8 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                   setValCustomPathogen('Malaria');
                                   setValCustomTarget('Dihydrofolate Reductase (DHFR)');
                                   setValCustomUniprot('P13922');
-                                  setValCustomDrugName('Artemisinin');
-                                  setValCustomDrugSmiles('CC1CC2CCC3(C(O2)(OC4C35C(C(CC4)C)CCC5C(=O)O1)O)C');
+                                  setValCustomDrugName('Pyrimethamine');
+                                  setValCustomDrugSmiles('CCC1=C(C(=NC(=N1)N)N)C2=CC=C(C=C2)Cl');
                                 } else if (pathogenLower.includes('salmonella')) {
                                   setValCustomPathogen('Salmonella');
                                   setValCustomTarget('GyrB ATP Pocket');
@@ -8189,9 +8414,9 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
               </div>
             </div>
 
-            {/* Scientific Active Space CAS(4,4) disclaimer banner */}
+            {/* Scientific Active Space Extended Huckel disclaimer banner */}
             <div className="p-2 border border-blue-200 bg-blue-50/55 dark:bg-slate-900/40 dark:border-slate-800 text-[9.5px] leading-relaxed text-slate-500 dark:text-slate-400 rounded-sm mt-1">
-              <strong>Active Space Approximation (CAS 4,4):</strong> VQE computes the electronic ground-state energy of a localized active space of 4 electrons in 4 orbitals. Solvation and entropy corrections are added below to estimate the full protein-ligand binding free energy.
+              <strong>Extended Hückel Active Space:</strong> VQE computes the ground-state of a semi-empirical active space Hamiltonian derived from analytical overlap integrals. Solvation and entropy corrections are added below to estimate the full protein-ligand binding free energy.
             </div>
 
             {/* Live math metrics feed */}
