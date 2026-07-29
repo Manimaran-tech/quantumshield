@@ -200,6 +200,7 @@ def get_molecular_hamiltonian(molecule_id, active_orbitals, mapper_type, custom_
     """
     Generates a realistic parameter-driven Hamiltonian (represented as a SparsePauliOp)
     for the selected molecule, target pocket, or complex.
+    Hamiltonian terms (Z, ZZ, XX) are derived from the physical 3D coordinates and element properties.
     """
     # 1. Base energy calculation (coordinate driven or database)
     coords = custom_coords if (custom_coords and len(custom_coords) > 0) else get_preset_molecule_coords(molecule_id)
@@ -218,25 +219,59 @@ def get_molecular_hamiltonian(molecule_id, active_orbitals, mapper_type, custom_
     # Identity term (baseline core energy)
     pauli_list.append(("I" * num_qubits, target_energy + 0.5))
     
-    # Z terms (orbital energies)
-    for i in range(num_qubits):
-        pauli_label = ["I"] * num_qubits
-        pauli_label[i] = "Z"
-        pauli_list.append(("".join(pauli_label), -0.2 / num_qubits))
+    # Element electronegativity weights to modulate Z orbital energies per qubit
+    chi_map = {'H': 2.20, 'Li': 0.98, 'C': 2.55, 'N': 3.04, 'O': 3.44, 'F': 3.98, 'Cl': 3.16, 'S': 2.58}
+    
+    if coords and len(coords) > 0:
+        n_atoms = len(coords)
+        for i in range(num_qubits):
+            atom_idx = i % n_atoms
+            el = coords[atom_idx].get('element', coords[atom_idx].get('type', 'H'))
+            chi = chi_map.get(el, 2.5)
+            # Scale Z term by atomic electronegativity / active space size
+            z_coeff = -0.1 * (chi / 2.5) / num_qubits
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "Z"
+            pauli_list.append(("".join(pauli_label), float(z_coeff)))
+            
+        # Double excitation/entanglement terms (ZZ and XX) based on interatomic distances
+        for i in range(num_qubits - 1):
+            idx1 = i % n_atoms
+            idx2 = (i + 1) % n_atoms
+            c1, c2 = coords[idx1], coords[idx2]
+            dist = np.sqrt((float(c1.get('x',0))-float(c2.get('x',0)))**2 + 
+                           (float(c1.get('y',0))-float(c2.get('y',0)))**2 + 
+                           (float(c1.get('z',0))-float(c2.get('z',0)))**2)
+            if dist < 0.1: dist = 0.1
+            
+            zz_coeff = -0.05 * (1.5 / dist) / num_qubits
+            xx_coeff = 0.08 * (1.5 / dist) / num_qubits
+            
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "Z"
+            pauli_label[i+1] = "Z"
+            pauli_list.append(("".join(pauli_label), float(zz_coeff)))
+            
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "X"
+            pauli_label[i+1] = "X"
+            pauli_list.append(("".join(pauli_label), float(xx_coeff)))
+    else:
+        for i in range(num_qubits):
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "Z"
+            pauli_list.append(("".join(pauli_label), -0.2 / num_qubits))
 
-    # Double excitation/entanglement terms (ZZ and XX)
-    for i in range(num_qubits - 1):
-        # ZZ term (coulomb repulsion between orbitals)
-        pauli_label = ["I"] * num_qubits
-        pauli_label[i] = "Z"
-        pauli_label[i+1] = "Z"
-        pauli_list.append(("".join(pauli_label), -0.05 / num_qubits))
-        
-        # XX term (entanglement / quantum exchange interaction)
-        pauli_label = ["I"] * num_qubits
-        pauli_label[i] = "X"
-        pauli_label[i+1] = "X"
-        pauli_list.append(("".join(pauli_label), 0.08 / num_qubits))
+        for i in range(num_qubits - 1):
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "Z"
+            pauli_label[i+1] = "Z"
+            pauli_list.append(("".join(pauli_label), -0.05 / num_qubits))
+            
+            pauli_label = ["I"] * num_qubits
+            pauli_label[i] = "X"
+            pauli_label[i+1] = "X"
+            pauli_list.append(("".join(pauli_label), 0.08 / num_qubits))
 
     qubit_op = SparsePauliOp.from_list(pauli_list)
     return qubit_op, target_energy
@@ -1209,7 +1244,8 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
         if error_mitigation:
             jitter_amp *= 0.15
 
-        jitter = jitter_amp * np.sin(step * 1.8) * np.sin(step * 0.612 + 0.5)
+        # Gaussian stochastic noise for NISQ simulation
+        jitter = np.random.normal(0, max(1e-5, jitter_amp))
         measured_energy = ideal_energy + bias + jitter
 
         processed_history.append({
@@ -1219,18 +1255,15 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
             "error": float(abs(measured_energy - fci_energy))
         })
 
-    # Fallback populator
+    # Fallback populator if no history was recorded
     if not processed_history:
-        for i in range(41):
-            decay = 0.88 ** i
-            ideal_val = fci_energy + 1.62 * decay
-            measured_val = ideal_val + bias
-            processed_history.append({
-                "step": i,
-                "ideal": float(ideal_val),
-                "measured": float(measured_val),
-                "error": float(abs(measured_val - fci_energy))
-            })
+        measured_val = fci_energy + bias
+        processed_history.append({
+            "step": 0,
+            "ideal": float(fci_energy),
+            "measured": float(measured_val),
+            "error": float(abs(measured_val - fci_energy))
+        })
 
     # 9. Calculate final binding energy in kcal/mol dynamically
     mol_id = molecule_id.lower().strip()
@@ -1243,6 +1276,7 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
             import json
             import os
             
+            gen = EvolutionaryGenerator()
             pocket_residues = None
             if pathogen_name:
                 p_name = pathogen_name.lower().strip()
@@ -1285,7 +1319,7 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
             if not pocket_residues:
                 print(f"Simulation fallback: Dynamically simulating custom pocket for pathogen '{pathogen_name}'")
                 import random
-                seed = sum(ord(c) for c in pathogen_name)
+                seed = sum(ord(c) for c in pathogen_name) if pathogen_name else 42
                 rng = random.Random(seed)
                 pocket_residues = []
                 elements = ["C", "N", "O", "S", "C", "N", "O", "C", "N", "O"]
@@ -1301,12 +1335,14 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
                         "charge": rng.choice([-0.4, 0.0, 0.4, -0.3, 0.3])
                     })
             
-            gen = EvolutionaryGenerator()
             raw_docking_score = gen.calculate_docking_energy(coords, pocket_residues)
-            binding_energy = -14.0 + 0.8 * (raw_docking_score - 2.0)
+            classical_docking = -14.0 + 0.8 * (raw_docking_score - 2.0)
+            classical_docking = max(-22.0, min(-6.0, classical_docking))
+            
+            # Quantum correction: VQE error relative to FCI baseline scales the energy prediction
+            vqe_delta = (final_energy - fci_energy) * 0.5
+            binding_energy = classical_docking + vqe_delta
             binding_energy = max(-22.0, min(-6.0, binding_energy))
-            if error_mitigation:
-                binding_energy -= 0.3
             binding_energy = float(round(binding_energy, 2))
         else:
             binding_energy = -7.1

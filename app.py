@@ -399,6 +399,7 @@ def run_validation():
     disease = data.get('disease', 'covid-19').strip().lower()
     is_qrl_optimized = bool(data.get('is_qrl_optimized', False))
     
+    disease_info = None
     if disease != 'custom':
         from qrl_optimizer import resolve_pathogen_metadata
         res = resolve_pathogen_metadata(disease)
@@ -435,8 +436,6 @@ def run_validation():
             
         custom_norm = normalize_name(custom_name)
         
-        pass
-                
         # 2. If not found in cache, fetch dynamically via AlphaFold using the custom_uniprot
         if not pocket_residues and custom_uniprot and custom_uniprot != 'P12345':
             print(f"Validation: Dynamically resolving pocket residues from AlphaFold for UniProt {custom_uniprot}...")
@@ -453,7 +452,6 @@ def run_validation():
                                 pocket_residues = molecular_generator.parse_pdb_to_pocket(pdb_res.text, num_residues=10)
                                 if pocket_residues:
                                     print(f"Validation: Successfully loaded pocket residues for {custom_uniprot}")
-                                    pass
             except Exception as e:
                 print(f"Error fetching from AlphaFold in validation: {e}")
         
@@ -489,6 +487,17 @@ def run_validation():
             'fda_drug_smiles': "" if is_unidentified else (custom_ref_smiles or 'CC1=CC=C(C=C1)C(=O)NN'),
             'fda_drug_details': None if is_unidentified else ref_details,
             'is_fda_approved': False if is_unidentified else custom_is_fda_approved
+        }
+    else:
+        # Fallback if disease was not resolved to custom
+        disease_info = {
+            'name': disease.title(),
+            'target': 'Target Protein',
+            'uniprot': 'P12345',
+            'fda_drug_name': 'None',
+            'fda_drug_smiles': '',
+            'fda_drug_details': None,
+            'is_fda_approved': False
         }
 
             
@@ -939,7 +948,7 @@ def static_proxy(path):
 
 if __name__ == '__main__':
     # Using port 5000 as configured in the architectural plan, enabling threading for concurrent health-checks
-    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
 
 
 

@@ -21,6 +21,10 @@ from simulation import (
     get_dynamic_molecular_properties
 )
 
+# Global in-memory caches to eliminate redundant external API queries
+_PATHOGEN_METADATA_CACHE = {}
+_POCKET_CACHE = {}
+
 # PAINS and toxicological alert SMARTS patterns
 PAINS_SMARTS = [
     "[#6](=[#8])-[#6]1=[#6]-[#6](=[#8])-[#6]=[#6]-[#6]1", # Quinone
@@ -130,7 +134,14 @@ class QuantumRLAgent:
         self.lr = lr
         
         # 8 qubits -> 32 parameters for variational layers (RY and RZ on 8 qubits, repeated in 2 layers)
-        self.theta = np.random.uniform(0, 2 * np.pi, 32)
+        self.checkpoint_path = os.path.join(os.path.dirname(__file__), "qrl_policy_checkpoint.npy")
+        if os.path.exists(self.checkpoint_path):
+            try:
+                self.theta = np.load(self.checkpoint_path)
+            except Exception:
+                self.theta = np.random.uniform(0, 2 * np.pi, 32)
+        else:
+            self.theta = np.random.uniform(0, 2 * np.pi, 32)
         self.estimator = StatevectorEstimator()
         
         # 12 actions (11 chemical reactions + stop)
@@ -331,6 +342,12 @@ class QuantumRLAgent:
         # Gradient ascent to maximize expected return
         self.theta += self.lr * gradients
         self.theta = np.mod(self.theta, 2 * np.pi)
+        
+        # Save updated policy checkpoint to disk
+        try:
+            np.save(self.checkpoint_path, self.theta)
+        except Exception:
+            pass
 
 
 class ChemicalEnvironment:
@@ -832,7 +849,12 @@ def resolve_pocket_and_reference(pathogen_name):
     """
     Dynamically resolves target pocket residues and reference SMILES in real time for a pathogen name
     by querying resolve_pathogen_metadata and fetching the 3D structure from AlphaFold.
+    Caches results in memory to avoid repetitive network requests.
     """
+    cache_key = pathogen_name.lower().strip() if pathogen_name else "default"
+    if cache_key in _POCKET_CACHE:
+        return _POCKET_CACHE[cache_key]
+
     import requests
     from rdkit import Chem
     from generator import EvolutionaryGenerator
@@ -869,7 +891,7 @@ def resolve_pocket_and_reference(pathogen_name):
     if not pocket:
         print(f"QRL: Dynamically simulating custom fallback pocket for pathogen '{pathogen_name}'")
         import random
-        seed = sum(ord(c) for c in pathogen_name)
+        seed = sum(ord(c) for c in pathogen_name) if pathogen_name else 42
         rng = random.Random(seed)
         pocket = []
         elements = ["C", "N", "O", "S", "C", "N", "O", "C", "N", "O"]
@@ -885,7 +907,9 @@ def resolve_pocket_and_reference(pathogen_name):
                 "charge": rng.choice([-0.4, 0.0, 0.4, -0.3, 0.3])
             })
         
-    return pocket, ref_smiles
+    result = (pocket, ref_smiles)
+    _POCKET_CACHE[cache_key] = result
+    return result
 
 
 def fetch_pubchem_smiles(drug_name):
@@ -1458,19 +1482,12 @@ def resolve_pathogen_metadata(pathogen_name):
     """
     Dynamically resolves the target protein, UniProt ID, FDA reference drug name,
     and reference drug SMILES for a given pathogen/disease name.
-    
-    Uses ONLY authoritative, free public data sources — NO LLM API calls:
-    
-    Pipeline:
-      1. Open Targets Platform (EMBL-EBI) -> disease -> drug candidates
-      2. ChEMBL Database (EMBL-EBI)        -> resolve pathogen-specific drug & target component (if any)
-      3. UniProt KB (EMBL-EBI)            -> gene symbol / disease name -> UniProt ID
-      4. OpenFDA (US FDA)                 -> verify real FDA approval status
-      5. EMA (European Medicines Agency)  -> verify EU approval status
-      6. PubChem (NCBI/NIH)              -> get canonical SMILES for approved drug
-    
-    All APIs are free, require no API keys, and return authoritative curated data.
+    Caches results in memory to eliminate redundant external network requests.
     """
+    cache_key = pathogen_name.lower().strip() if pathogen_name else "default"
+    if cache_key in _PATHOGEN_METADATA_CACHE:
+        return dict(_PATHOGEN_METADATA_CACHE[cache_key])
+
     import requests
 
     # 1. Normalize disease name using alias map
@@ -1865,7 +1882,7 @@ def resolve_pathogen_metadata(pathogen_name):
     print(f"  EMA Approved: {is_ema_approved}")
     print(f"  Data Sources: {', '.join(data_sources)}")
 
-    return {
+    res = {
         'status': 'success',
         'pathogen': pathogen_name,
         'target_protein': target_protein,
@@ -1876,6 +1893,8 @@ def resolve_pathogen_metadata(pathogen_name):
         'is_ema_approved': is_ema_approved,
         'data_sources': data_sources
     }
+    _PATHOGEN_METADATA_CACHE[cache_key] = res
+    return res
 
 
 
@@ -1941,33 +1960,9 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
         mask = get_valid_action_mask(current_smiles, agent.actions)
         # Force exploration on the first few steps to prevent immediate termination
         if step < 4 and len(mask) > 11:
-            mask[11] = 0.0
-        
-        # 2. Policy-Guided Action Selection (Quantum-Classical Hybrid Filter)
-        probs, expectations = agent.get_action_probabilities(state, mask)
-        
-        valid_indices = [i for i, m in enumerate(mask) if m > 0]
-        valid_indices.sort(key=lambda idx: probs[idx], reverse=True)
-        
-        best_candidate_idx = valid_indices[0] if valid_indices else 11
-        best_candidate_reward = -9999.0
-        
-        top_candidates = valid_indices[:3]
-        for idx in top_candidates:
-            act_name = agent.actions[idx]
-            cand_smiles = apply_chemical_action(current_smiles, act_name)
-            if cand_smiles:
-                try:
-                    r = calculate_chemical_reward(cand_smiles, pocket_residues, ref_smiles, pathogen_name)
-                except:
-                    r = -20.0
-                if r > best_candidate_reward:
-                    best_candidate_reward = r
-                    best_candidate_idx = idx
-                    
-        action_idx = best_candidate_idx
+            mask[11] = 0.0        # 2. Policy-Based Action Selection (Sampling from Parameterized Quantum Circuit Policy)
+        action_idx, prob = agent.select_action(state, mask)
         action_name = agent.actions[action_idx]
-        prob = probs[action_idx]
         
         # 3. Environment step
         next_state, reward, done, info = env.step(action_name)
@@ -2047,42 +2042,6 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
     # 5. Policy analytical parameter-shift gradient update with discounted returns and masks
     agent.update_policy(states_batch, actions_batch, action_masks_batch, rewards_batch)
     
-    # Lead Polishing: ensure the QRL candidate beats the reference drug's free energy
-    try:
-        ref_details = gen.score_molecule(ref_smiles, pathogen_name, pocket_residues=pocket_residues)
-        cand_details = gen.score_molecule(best_smiles, pathogen_name, pocket_residues=pocket_residues)
-        if ref_details and cand_details:
-            ref_free_energy = ref_details.get("free_energy", -10.0)
-            cand_free_energy = cand_details.get("free_energy", -5.0)
-            
-            if cand_free_energy > ref_free_energy:
-                print(f"QRL: Lead candidate ({cand_free_energy:.2f}) is weaker than reference ({ref_free_energy:.2f}). Polishing lead...")
-                polishing_actions = [
-                    "add_trifluoromethyl", 
-                    "bioisostere_h_to_f", 
-                    "bioisostere_oh_to_f",
-                    "add_methyl",
-                    "scaffold_hop_benzene_to_pyridine"
-                ]
-                polished_smiles = best_smiles
-                polished_free_energy = cand_free_energy
-                
-                for act in polishing_actions:
-                    trial_smiles = apply_chemical_action(best_smiles, act)
-                    if trial_smiles:
-                        trial_details = gen.score_molecule(trial_smiles, pathogen_name, pocket_residues=pocket_residues)
-                        if trial_details:
-                            trial_fe = trial_details.get("free_energy", 0.0)
-                            if trial_fe < polished_free_energy:
-                                polished_free_energy = trial_fe
-                                polished_smiles = trial_smiles
-                                print(f"QRL Polishing: Applied {act} -> New Free Energy: {trial_fe:.2f} kcal/mol")
-                                
-                if polished_free_energy < cand_free_energy:
-                    best_smiles = polished_smiles
-    except Exception as pe:
-        print(f"Error during QRL lead polishing: {pe}")
-        
     current_smiles = best_smiles
     
     # Generate 3D coordinates for final molecule
