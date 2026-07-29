@@ -908,6 +908,3 @@ class EvolutionaryGenerator:
             print(f"Error scoring molecule: {e}")
             return None
 
-            print(f"Error scoring molecule: {e}")
-            return None
-
