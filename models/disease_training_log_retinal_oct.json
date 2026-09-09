@@ -1,0 +1,52 @@
+{
+  "modality": "retinal_oct",
+  "dataset": "octmnist",
+  "dataset_info": {
+    "task": "multi-class",
+    "n_classes": 4,
+    "n_channels": 1,
+    "train_samples": 97477,
+    "test_samples": 1000
+  },
+  "config": {
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "pca_components": 4,
+    "vqc_layers": 3,
+    "vqc_shots": 4096,
+    "vqc_optimizer": "COBYLA",
+    "vqc_max_iter": 1000,
+    "classical_svm_kernel": "rbf",
+    "classical_rf_estimators": 200,
+    "test_split": 0.2,
+    "random_seed": 42
+  },
+  "vqc_results": {
+    "train_accuracy": 0.31266666666666665,
+    "test_accuracy": 0.222,
+    "training_time_s": 729.0,
+    "num_qubits": 4,
+    "num_layers": 3,
+    "num_params": 16,
+    "optimizer": "COBYLA",
+    "shots": 4096
+  },
+  "classical_results": {
+    "svm": {
+      "accuracy": 0.476,
+      "f1_score": 0.3198218599033817,
+      "training_time_s": 2.2,
+      "kernel": "rbf"
+    },
+    "random_forest": {
+      "accuracy": 0.463,
+      "f1_score": 0.3200748246025473,
+      "training_time_s": 0.4,
+      "n_estimators": 200
+    },
+    "best_model": "SVM"
+  },
+  "total_training_time_s": 781.1,
+  "timestamp": "2026-09-09T15:37:15.196551",
+  "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+}

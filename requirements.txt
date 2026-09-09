@@ -12,3 +12,9 @@ requests==2.34.2
 matplotlib==3.10.9
 pydantic==2.13.4
 pytest==8.2.2
+Pillow==11.2.1
+scikit-learn==1.6.1
+medmnist==3.0.2
+torchvision==0.22.1
+qiskit-machine-learning==0.8.2
+torchxrayvision==1.2.1

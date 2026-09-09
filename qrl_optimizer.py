@@ -2062,19 +2062,16 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
         except Exception as ex:
             print(f"Failed to generate 3d coordinates for QRL recommended lead: {ex}")
             
-    # Generate final circuit diagram using Qiskit text drawer and matplotlib svg drawer
+    # Generate the graphical Qiskit circuit used by the browser.
     import io
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    circuit_ascii = "Error drawing Qiskit circuit."
     circuit_svg = ""
 
     try:
         final_qc = agent.build_pqc_circuit(state, agent.theta)
-        circuit_ascii = str(final_qc.draw(output='text', fold=-1))
-        
         fig = final_qc.draw(output='mpl')
         buf = io.BytesIO()
         fig.savefig(buf, format='svg', bbox_inches='tight')
@@ -2112,7 +2109,6 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
         "seed_smiles": seed_smiles,
         "optimized_smiles": current_smiles,
         "history": history,
-        "circuit_ascii": circuit_ascii,
         "circuit_svg": circuit_svg,
         "target_protein": pathogen_meta.get("target_protein", "Target Protein"),
         "uniprot_id": pathogen_meta.get("uniprot_id", "P12345"),

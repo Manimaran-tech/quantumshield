@@ -1,0 +1,52 @@
+{
+  "modality": "pathology",
+  "dataset": "pathmnist",
+  "dataset_info": {
+    "task": "multi-class",
+    "n_classes": 9,
+    "n_channels": 3,
+    "train_samples": 89996,
+    "test_samples": 7180
+  },
+  "config": {
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "pca_components": 4,
+    "vqc_layers": 3,
+    "vqc_shots": 4096,
+    "vqc_optimizer": "COBYLA",
+    "vqc_max_iter": 1000,
+    "classical_svm_kernel": "rbf",
+    "classical_rf_estimators": 200,
+    "test_split": 0.2,
+    "random_seed": 42
+  },
+  "vqc_results": {
+    "train_accuracy": 0.16866666666666666,
+    "test_accuracy": 0.256,
+    "training_time_s": 1090.6,
+    "num_qubits": 4,
+    "num_layers": 3,
+    "num_params": 16,
+    "optimizer": "COBYLA",
+    "shots": 4096
+  },
+  "classical_results": {
+    "svm": {
+      "accuracy": 0.613,
+      "f1_score": 0.5890729026586434,
+      "training_time_s": 1.5,
+      "kernel": "rbf"
+    },
+    "random_forest": {
+      "accuracy": 0.577,
+      "f1_score": 0.5709368070907084,
+      "training_time_s": 0.5,
+      "n_estimators": 200
+    },
+    "best_model": "SVM"
+  },
+  "total_training_time_s": 1122.5,
+  "timestamp": "2026-09-09T15:09:51.482136",
+  "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+}

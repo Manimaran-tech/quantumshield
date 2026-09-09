@@ -37,7 +37,12 @@ import {
   Copy,
   Check,
   X,
-  Download
+  Download,
+  Upload,
+  ArrowRight,
+  BarChart3,
+  Microscope,
+  ScanEye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LOGO2_BASE64 } from './logo2_base64';
@@ -1010,7 +1015,24 @@ export default function App() {
   const [noiseLevel, setNoiseLevel] = useState<number>(15); // Percentage 0% to 100%
   const [errorMitigation, setErrorMitigation] = useState<boolean>(true);
   const [quantumTaskStatus, setQuantumTaskStatus] = useState<'idle' | 'running' | 'completed'>('idle');
-  const [activeTab, setActiveTab] = useState<'viewport' | 'docking' | 'predict' | 'generative' | 'codesign' | 'validation' | 'qrl'>('viewport');
+  const [activeTab, setActiveTab] = useState<'viewport' | 'docking' | 'predict' | 'generative' | 'codesign' | 'validation' | 'qrl' | 'disease' | 'disease_3d'>('disease');
+
+  // QML Disease Detection States
+  const [diseaseUploadedImage, setDiseaseUploadedImage] = useState<string | null>(null);
+  const [diseaseImageFile, setDiseaseImageFile] = useState<File | null>(null);
+  const [diseaseModality, setDiseaseModality] = useState<string>('chest_xray');
+  const [diseaseResult, setDiseaseResult] = useState<any>(null);
+  const [isDiseaseAnalyzing, setIsDiseaseAnalyzing] = useState<boolean>(false);
+  const [diseaseError, setDiseaseError] = useState<string | null>(null);
+  const [qrlError, setQrlError] = useState<string | null>(null);
+
+  // Disease 3D Visualization States
+  const [disease3dPdbData, setDisease3dPdbData] = useState<string | null>(null);
+  const [disease3dLoading, setDisease3dLoading] = useState<boolean>(false);
+  const [disease3dMeta, setDisease3dMeta] = useState<any>(null);
+  const [disease3dStyle, setDisease3dStyle] = useState<'cartoon' | 'stick' | 'sphere' | 'surface'>('cartoon');
+  const [disease3dError, setDisease3dError] = useState<string | null>(null);
+  const disease3dViewerRef = useRef<HTMLDivElement>(null);
   const [rotationSpeed, setRotationSpeed] = useState<number>(1.2);
   const [selectedQuantumMapper, setSelectedQuantumMapper] = useState<'jw' | 'parity' | 'bk'>('parity');
   const [optimizationHistory, setOptimizationHistory] = useState<any[]>([]);
@@ -1127,9 +1149,7 @@ export default function App() {
   const [qrlSeedSmiles, setQrlSeedSmiles] = useState<string>('c1cc(ccn1)C(=O)NN');
   const [qrlOptimizedSmiles, setQrlOptimizedSmiles] = useState<string>('');
   const [qrlRecommendedCandidate, setQrlRecommendedCandidate] = useState<any>(null);
-  const [qrlCircuitAscii, setQrlCircuitAscii] = useState<string>('');
   const [qrlCircuitSvg, setQrlCircuitSvg] = useState<string>('');
-  const [circuitViewMode, setCircuitViewMode] = useState<'graphical' | 'ascii'>('graphical');
 
   const [isMdRunning, setIsMdRunning] = useState<boolean>(false);
   const [mdTrajectory, setMdTrajectory] = useState<any[]>([]);
@@ -1187,7 +1207,7 @@ export default function App() {
   const lastSyncedModeRef = useRef<boolean>(false);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let activeController: AbortController | null = null;
 
     const checkBackend = () => {
       // Bypasses the health check poll while the single-threaded server is busy
@@ -1195,7 +1215,9 @@ export default function App() {
       if (isGenerating || validationRunning || quantumTaskStatus === 'running' || isOptimizingQrl || isWetLabRunning) {
         return;
       }
-      
+      activeController?.abort();
+      const controller = new AbortController();
+      activeController = controller;
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       fetch(`${API_BASE}/history`, { signal: controller.signal })
@@ -1212,10 +1234,11 @@ export default function App() {
         });
     };
     checkBackend();
-    const interval = setInterval(checkBackend, 5000);
+    // Health status is informational; it must not compete with scientific jobs.
+    const interval = setInterval(checkBackend, 30000);
     return () => {
       clearInterval(interval);
-      controller.abort();
+      activeController?.abort();
     };
   }, [isGenerating, validationRunning, quantumTaskStatus, isOptimizingQrl, isWetLabRunning]);
 
@@ -2239,10 +2262,16 @@ export default function App() {
   };
 
   // Run Quantum RL Optimization (REINFORCE PQC)
-  const handleRunQRL = async () => {
+  const handleRunQRL = async (event?: React.MouseEvent<HTMLButtonElement>) => {
+    // Defensive: a button defaults to submit when a layout is ever embedded
+    // inside a form; submitting would reload the single-page application.
+    event?.preventDefault();
     setIsOptimizingQrl(true);
+    setQrlError(null);
     setQrlHistory([]);
     setQrlRecommendedCandidate(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 120000);
     try {
       const smiles = qrlSeedSmiles.trim() || 'c1cc(ccn1)C(=O)NN';
       const targetName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption;
@@ -2253,8 +2282,9 @@ export default function App() {
         body: JSON.stringify({
           smiles,
           pathogen_name: targetName,
-          epochs: 5
-        })
+          epochs: 3
+        }),
+        signal: controller.signal
       });
       if (!response.ok) throw new Error("QRL optimization endpoint failed");
       const data = await response.json();
@@ -2272,59 +2302,26 @@ export default function App() {
       if (data.pocket_polarity !== undefined) setQrlPocketPolarity(data.pocket_polarity);
       if (data.mutant_residue_label !== undefined) setQrlMutantResidueLabel(data.mutant_residue_label);
 
-      if (data.circuit_ascii) {
-        setQrlCircuitAscii(data.circuit_ascii);
-      }
       if (data.circuit_svg) {
         setQrlCircuitSvg(data.circuit_svg);
       }
     } catch (err) {
       console.error(err);
-      const mockHistory = [
-        { epoch: 1, action: "ADD FLUORINATION", smiles: "CCN...", vqe_energy: -7.5, fsp3: 0.15, mw: 155.1, logp: -0.2, reward: 2.5, pqc_parameters: [0.1, 0.4, 0.8, 1.2, 0.5, 0.9, 1.3, 0.6] },
-        { epoch: 2, action: "ADD METHYLATION", smiles: "CC(C)N...", vqe_energy: -8.8, fsp3: 0.35, mw: 170.2, logp: 0.2, reward: 4.8, pqc_parameters: [0.2, 0.5, 0.7, 1.3, 0.6, 1.0, 1.2, 0.7] },
-        { epoch: 3, action: "INCREASE SATURATION", smiles: "CC(C)N...", vqe_energy: -9.2, fsp3: 0.55, mw: 172.2, logp: 0.1, reward: 7.2, pqc_parameters: [0.3, 0.6, 0.6, 1.4, 0.7, 1.1, 1.1, 0.8] },
-        { epoch: 4, action: "ADD HYDROXYL", smiles: "CC(C)(O)N...", vqe_energy: -11.5, fsp3: 0.60, mw: 188.2, logp: -0.15, reward: 12.4, pqc_parameters: [0.4, 0.7, 0.5, 1.5, 0.8, 1.2, 1.0, 0.9] },
-        { epoch: 5, action: "STOP", smiles: "CC(C)(O)N...", vqe_energy: -11.5, fsp3: 0.60, mw: 188.2, logp: -0.15, reward: 12.4, pqc_parameters: [0.45, 0.75, 0.48, 1.52, 0.82, 1.22, 0.98, 0.92] }
-      ];
-      setQrlHistory(mockHistory);
-      setQrlOptimizedSmiles("CC(C)(O)NNC(=O)c1ccncc1");
-      setQrlRecommendedCandidate({
-        smiles: "CC(C)(O)NNC(=O)c1ccncc1",
-        formula: "C9H13N3O2",
-        mw: 195.2,
-        logp: -0.15,
-        atoms: [
-          { x: 0.0, y: 0.0, z: 0.12, type: 'O', isActiveSpace: true },
-          { x: 0.0, y: 0.76, z: -0.48, type: 'H', isActiveSpace: true },
-          { x: 0.0, y: -0.76, z: -0.48, type: 'H', isActiveSpace: true }
-        ]
-      });
-      setQrlCircuitAscii(`     ┌──────────┐┌──────────┐ ░ ┌─────────────┐ ┌────────────┐ ░                                    ┌───┐ ░ 
-q_0: ┤ Ry(π/10) ├┤ Ry(π/10) ├─░─┤ Ry(0.45000) ├─┤ Rz(0.92000) ├─░───■────────────────────────────────┤ X ├─░─
-     ├──────────┤├──────────┤ ░ └┬────────────┤ ├────────────┤ ░ ┌─┴─┐                              └─┬─┘ ░ 
-q_1: ┤ Ry(π/10) ├┤ Ry(π/10) ├─░──┤ Ry(0.75000) ├─┤ Rz(0.82050) ├─░─┤ X ├──■─────────────────────────────┼───░─
-     ├──────────┤├──────────┤ ░  ├────────────┤ ├────────────┤ ░ └───┘┌─┴─┐                           │   ░ 
-q_2: ┤ Ry(π/10) ├┤ Ry(π/10) ├─░──┤ Ry(0.48000) ├─┤ Rz(1.2200)  ├─░──────┤ X ├──■────────────────────────┼───░─
-     ├──────────┤├──────────┤ ░  ├────────────┤ ├────────────┤ ░      └───┘┌─┴─┐                      │   ░ 
-q_3: ┤ Ry(π/10) ├┤ Ry(π/10) ├─░──┤ Ry(1.5200)  ├─┤ Rz(0.98000) ├─░───────────┤ X ├──■───────────────────┼───░─
-     ├──────────┤└──────────┘ ░  ├────────────┤ ├────────────┤ ░           └───┘┌─┴─┐                 │   ░ 
-q_4: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.82000) ├─┤ Rz(0.55000) ├─░────────────────┤ X ├──■──────────────┼───░─
-     ├──────────┤             ░  ├────────────┤ ├────────────┤ ░                └───┘┌─┴─┐            │   ░ 
-q_5: ┤ Ry(π/10) ├─────────────░──┤ Ry(1.2200)  ├─┤ Rz(0.66000) ├─░─────────────────────┤ X ├──■─────────┼───░─
-     ├──────────┤             ░ ┌┴────────────┤┌┴────────────┤ ░                     └───┘┌─┴─┐       │   ░ 
-q_6: ┤ Ry(π/10) ├─────────────░─┤ Ry(0.98000) ├┤ Rz(0.44000)  ├─░──────────────────────────┤ X ├──■────┼───░─
-     ├──────────┤             ░ └┬───────────┬┘└┬────────────┤ ░                          └───┘┌─┴─┐  │   ░ 
-q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.92000) ├┤ Rz(0.33000)  ├─░───────────────────────────────┤ X ├──■───░─
-     └──────────┘             ░  └───────────┘  └────────────┘ ░                               └───┘      ░`);
+      setQrlError(err instanceof DOMException && err.name === 'AbortError'
+        ? 'Optimization exceeded two minutes and was stopped. Please try again; repeated inputs are cached once completed.'
+        : 'QRL optimization could not be completed. Please check that the backend is running and try again.');
     } finally {
+      window.clearTimeout(timeout);
       setIsOptimizingQrl(false);
     }
   };
 
-  // Fetch actual QRL circuit layout from the backend on input changes
+  // Fetch a real Qiskit-rendered circuit only after input has settled. This
+  // prevents a costly render request for every character typed in the seed.
   useEffect(() => {
-    const fetchQrlCircuit = async () => {
+    if (activeTab !== 'qrl' || isOptimizingQrl) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
       try {
         const smiles = qrlSeedSmiles.trim() || 'c1cc(ccn1)C(=O)NN';
         const targetName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption;
@@ -2332,6 +2329,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
         const response = await fetch(`${API_BASE}/api/qrl/circuit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({
             smiles,
             pathogen_name: targetName
@@ -2339,19 +2337,167 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
         });
         if (response.ok) {
           const data = await response.json();
-          if (data.circuit_ascii) {
-            setQrlCircuitAscii(data.circuit_ascii);
-          }
           if (data.circuit_svg) {
             setQrlCircuitSvg(data.circuit_svg);
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch initial QRL circuit", err);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') console.error("Failed to fetch Qiskit circuit", err);
       }
+    }, 700);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
     };
-    fetchQrlCircuit();
-  }, [qrlSeedSmiles, selectedTargetOption, customPathogen]);
+  }, [activeTab, isOptimizingQrl, qrlSeedSmiles, selectedTargetOption, customPathogen]);
+
+  // ==========================================
+  // QML DISEASE DETECTION HANDLER
+  // ==========================================
+  const handleDiseaseDetect = async () => {
+    if (!diseaseImageFile) {
+      setDiseaseError('Please upload a medical image first.');
+      return;
+    }
+    setIsDiseaseAnalyzing(true);
+    setDiseaseError(null);
+    setDiseaseResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('image', diseaseImageFile);
+      formData.append('modality', diseaseModality);
+      const response = await fetch(`${API_BASE}/api/disease/detect`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const data = await response.json();
+      if (data.status === 'error') throw new Error(data.error);
+      setDiseaseResult(data);
+    } catch (err: any) {
+      setDiseaseError(err.message || 'Disease detection failed.');
+    } finally {
+      setIsDiseaseAnalyzing(false);
+    }
+  };
+
+  const handleDiseaseImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // A filename is the only reliable signal available before inference. This
+      // avoids routing clearly named X-ray/OCT/dermoscopy files to a different
+      // clinical label set; the user can still override the selection.
+      const name = file.name.toLowerCase();
+      const detectedModality = name.includes('xray') || name.includes('x-ray') || name.includes('chest') || name.includes('pneumonia')
+        ? 'chest_xray'
+        : name.includes('path') || name.includes('colon') || name.includes('tissue') || name.includes('histo')
+          ? 'pathology'
+          : name.includes('derma') || name.includes('skin') || name.includes('melan') || name.includes('lesion')
+            ? 'dermatoscopy'
+            : name.includes('oct') || name.includes('retina') || name.includes('macular')
+              ? 'retinal_oct'
+              : null;
+      if (detectedModality) setDiseaseModality(detectedModality);
+      setDiseaseImageFile(file);
+      setDiseaseResult(null);
+      setDiseaseError(null);
+      const reader = new FileReader();
+      reader.onload = (ev) => setDiseaseUploadedImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBridgeToDrugDiscovery = () => {
+    if (!diseaseResult?.drug_target) return;
+    const target = diseaseResult.drug_target;
+    setCustomPathogen(target.pathogen || target.disease);
+    setCustomPathogenInput(target.pathogen || target.disease);
+    setGenerativeTarget('custom');
+    setIsCustomMode(true);
+    setActiveTab('generative');
+  };
+
+  // Generate 3D disease target protein visualization
+  const handleGenerate3DView = async () => {
+    if (!diseaseResult?.drug_target) return;
+    const target = diseaseResult.drug_target;
+    setDisease3dLoading(true);
+    setDisease3dError(null);
+    setDisease3dPdbData(null);
+    setDisease3dMeta(null);
+    setActiveTab('disease_3d');
+    try {
+      const response = await fetch(`${API_BASE}/api/disease/3d-structure`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          disease: target.disease || '',
+          pathogen: target.pathogen || ''
+        })
+      });
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const data = await response.json();
+      if (data.status === 'error') throw new Error(data.error);
+      setDisease3dPdbData(data.pdb_data);
+      setDisease3dMeta(data);
+    } catch (err: any) {
+      setDisease3dError(err.message || 'Failed to fetch 3D structure.');
+    } finally {
+      setDisease3dLoading(false);
+    }
+  };
+
+  // Bridge from 3D tab to drug discovery
+  const handleBridgeFrom3D = () => {
+    const diseaseName = disease3dMeta?.disease || diseaseResult?.drug_target?.disease || '';
+    const pathogenName = disease3dMeta?.disease || diseaseResult?.drug_target?.pathogen || diseaseName;
+    if (pathogenName) {
+      setCustomPathogen(pathogenName);
+      setCustomPathogenInput(pathogenName);
+      setGenerativeTarget('custom');
+      setIsCustomMode(true);
+    }
+    setActiveTab('generative');
+  };
+
+  // 3Dmol.js viewer initialization and updates
+  useEffect(() => {
+    if (activeTab !== 'disease_3d' || !disease3dPdbData || !disease3dViewerRef.current) return;
+    // Clear previous viewer content
+    disease3dViewerRef.current.innerHTML = '';
+    const $3Dmol = (window as any).$3Dmol;
+    if (!$3Dmol) {
+      console.warn('3Dmol.js not loaded yet');
+      return;
+    }
+    try {
+      const viewer = $3Dmol.createViewer(disease3dViewerRef.current, {
+        backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc',
+        antialias: true,
+      });
+      viewer.addModel(disease3dPdbData, 'pdb');
+      // Apply style based on current selection
+      if (disease3dStyle === 'cartoon') {
+        viewer.setStyle({}, { cartoon: { color: 'spectrum', opacity: 0.95 } });
+      } else if (disease3dStyle === 'stick') {
+        viewer.setStyle({}, { stick: { colorscheme: 'Jmol', radius: 0.15 } });
+      } else if (disease3dStyle === 'sphere') {
+        viewer.setStyle({}, { sphere: { colorscheme: 'Jmol', scale: 0.3 } });
+      } else if (disease3dStyle === 'surface') {
+        viewer.setStyle({}, { cartoon: { color: 'spectrum', opacity: 0.5 } });
+        viewer.addSurface($3Dmol.SurfaceType.VDW, {
+          opacity: 0.6,
+          color: 'white',
+          voldata: null,
+        });
+      }
+      viewer.zoomTo();
+      viewer.spin('y', 0.8);
+      viewer.render();
+    } catch (e) {
+      console.error('3Dmol viewer init error:', e);
+    }
+  }, [activeTab, disease3dPdbData, disease3dStyle, isDarkMode]);
 
   // Run simulated Wet-Lab Virtual Twin Validation
   const handleRunWetLab = async (smilesString: string, pathogenName: string) => {
@@ -5345,6 +5491,28 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
           <div className="glass-panel ibm-card rounded-sm flex-1 flex flex-col overflow-hidden relative min-h-[640px]">
             <div className="flex border-b border-[#2B4C63]/10 bg-[#EDEEEB]/80 flex-wrap">
               <button
+                id="tab-btn-disease"
+                onClick={() => setActiveTab('disease')}
+                className={`flex-1 py-3 px-2 text-[10px] font-semibold uppercase font-display border-b-2 tracking-wider transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer min-w-[140px] ${activeTab === 'disease'
+                  ? 'border-[#2B4C63] text-[#2B4C63] bg-[#2B4C63]/5 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-[#EDEEEB]'
+                  }`}
+              >
+                <ScanEye className="h-3.5 w-3.5 text-[#2B4C63]" />
+                QML Disease Detection
+              </button>
+              <button
+                id="tab-btn-disease-3d"
+                onClick={() => setActiveTab('disease_3d')}
+                className={`flex-1 py-3 px-2 text-[10px] font-semibold uppercase font-display border-b-2 tracking-wider transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer min-w-[110px] ${activeTab === 'disease_3d'
+                  ? 'border-[#2B4C63] text-[#2B4C63] bg-[#2B4C63]/5 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-[#EDEEEB]'
+                  }`}
+              >
+                <Dna className="h-3.5 w-3.5 text-[#2B4C63]" />
+                Disease 3D
+              </button>
+              <button
                 id="tab-btn-generative"
                 onClick={() => setActiveTab('generative')}
                 className={`flex-1 py-3 px-2 text-[10px] font-semibold uppercase font-display border-b-2 tracking-wider transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer min-w-[110px] ${activeTab === 'generative'
@@ -5412,6 +5580,494 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
             </div>
 
             <div className="flex-1 p-4 flex flex-col relative">
+
+              {/* TAB 0: QML DISEASE DETECTION */}
+              {activeTab === 'disease' && (
+                <div id="tab-disease-content" className="flex-1 flex flex-col gap-4 overflow-y-auto">
+                  <div className="flex justify-between items-center border-b border-[#2B4C63]/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <ScanEye className="h-5 w-5 text-[#2B4C63]" />
+                      <h2 className="text-sm font-bold text-[#152D42] dark:text-slate-200 font-display uppercase tracking-widest">
+                        Hybrid Quantum ML Disease Detection
+                      </h2>
+                    </div>
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded border bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 border-[#2B4C63]/30 text-[#2B4C63] dark:text-slate-300">
+                      DenseNet-121 + Qiskit VQC (ZZFeatureMap + RealAmplitudes)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 text-xs">
+                    {/* LEFT COLUMN: Input Panel */}
+                    <div className="flex flex-col gap-4">
+                      {/* Image Upload Zone */}
+                      <div className="glass-panel p-4 border border-[#2B4C63]/5 rounded-sm flex flex-col gap-3 shadow-sm">
+                        <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Upload className="h-3 w-3" />
+                          Upload Medical Image
+                        </span>
+                        <label className={`relative flex flex-col items-center justify-center min-h-[290px] border-2 border-dashed rounded-sm cursor-pointer transition-all duration-300 ${diseaseUploadedImage
+                          ? 'border-[#2B4C63]/40 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/10'
+                          : 'border-[#2B4C63]/20 dark:border-slate-700 hover:border-[#2B4C63]/50 hover:bg-[#2B4C63]/5 bg-slate-50/30 dark:bg-slate-900/30'
+                        }`}>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/bmp"
+                            onChange={handleDiseaseImageUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          {diseaseUploadedImage ? (
+                            <div className="flex flex-col items-center gap-2 p-2 w-full">
+                              <div className="relative max-h-[260px] max-w-[95%]">
+                                <img src={diseaseUploadedImage} alt="Uploaded medical image" className="max-h-[260px] max-w-full object-contain rounded-sm shadow-sm" />
+                                {diseaseResult?.attention_overlay && (
+                                  <img
+                                    src={diseaseResult.attention_overlay}
+                                    alt="Model attention overlay"
+                                    className="absolute inset-0 w-full h-full object-fill pointer-events-none rounded-sm"
+                                  />
+                                )}
+                              </div>
+                              {diseaseResult?.attention_label && (
+                                <div className="text-center space-y-0.5">
+                                  <span className="block text-[8px] text-rose-700 font-mono">{diseaseResult.attention_label}</span>
+                                  {diseaseResult.attention_location && (
+                                    <span className="block text-[9px] font-bold text-rose-800 dark:text-rose-300">{diseaseResult.attention_location}</span>
+                                  )}
+                                </div>
+                              )}
+                              <span className="text-[9px] text-[#2B4C63] font-mono max-w-[90%] truncate block text-center">{diseaseImageFile?.name} ({(diseaseImageFile?.size || 0 / 1024).toFixed(0)} KB)</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-slate-400">
+                              <Upload className="h-8 w-8" />
+                              <span className="text-[10px] font-semibold text-[#152D42] dark:text-slate-300">Drop X-Ray, MRI, CT Scan, or Pathology Image</span>
+                              <span className="text-[9px]">JPEG, PNG — Click or drag to upload</span>
+                            </div>
+                          )}
+                        </label>
+                      </div>
+
+                      {/* Modality Selector */}
+                      <div className="glass-panel p-3 border border-[#2B4C63]/5 rounded-sm flex flex-col gap-2 shadow-sm">
+                        <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Microscope className="h-3 w-3" />
+                          Select Imaging Modality
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'chest_xray', label: 'Chest X-Ray', desc: '14 Pathologies' },
+                            { id: 'pathology', label: 'Pathology Slide', desc: '9 Tissue Types' },
+                            { id: 'dermatoscopy', label: 'Dermatoscopy', desc: '7 Skin Conditions' },
+                            { id: 'retinal_oct', label: 'Retinal OCT', desc: '4 Conditions' },
+                          ].map(mod => (
+                            <button
+                              key={mod.id}
+                              type="button"
+                              onClick={() => setDiseaseModality(mod.id)}
+                              className={`p-2 rounded-sm border text-left transition-all duration-200 cursor-pointer ${diseaseModality === mod.id
+                                ? 'border-[#2B4C63]/50 bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 text-[#152D42] dark:text-slate-200 shadow-sm'
+                                : 'border-[#2B4C63]/10 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-[#2B4C63]/30 hover:bg-slate-50/50'
+                              }`}
+                            >
+                              <div className="text-[10px] font-bold">{mod.label}</div>
+                              <div className="text-[8px] text-slate-400 mt-0.5">{mod.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Analyze Button */}
+                      <button
+                        type="button"
+                        onClick={handleDiseaseDetect}
+                        disabled={!diseaseImageFile || isDiseaseAnalyzing || isBackendOffline}
+                        className={`w-full py-3.5 font-display font-bold uppercase tracking-widest rounded-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${
+                          !diseaseImageFile || isDiseaseAnalyzing || isBackendOffline
+                            ? 'bg-slate-200 dark:bg-slate-800/50 text-slate-400 cursor-not-allowed border border-transparent'
+                            : 'bg-[#2B4C63] hover:bg-[#152D42] border border-[#2B4C63] text-white cursor-pointer hover:shadow-[#2B4C63]/20'
+                        }`}
+                      >
+                        {isDiseaseAnalyzing ? (
+                          <><RotateCw className="h-4 w-4 animate-spin" /> Analyzing with VQC + DenseNet...</>
+                        ) : isBackendOffline ? (
+                          'Detection Disabled (Offline)'
+                        ) : (
+                          <><ScanEye className="h-4 w-4" /> Run Hybrid QML Detection</>
+                        )}
+                      </button>
+
+                      {diseaseError && (
+                        <div className="p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-sm text-red-700 dark:text-red-400 text-[10px] flex items-center gap-1.5">
+                          <AlertCircle className="h-3 w-3 shrink-0" /> {diseaseError}
+                        </div>
+                      )}
+
+                      {/* Quantum Circuit Info Card */}
+                      {diseaseResult?.quantum_classification?.circuit_metrics && (
+                        <div className="glass-panel p-3 border border-[#2B4C63]/5 rounded-sm shadow-sm">
+                          <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                            <Cpu className="h-3 w-3" /> VQC Circuit Metrics
+                          </span>
+                          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                            <div><span className="text-slate-500">Qubits:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.qubits}</strong></div>
+                            <div><span className="text-slate-500">Depth:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.depth}</strong></div>
+                            <div><span className="text-slate-500">Gates:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.gates}</strong></div>
+                            <div><span className="text-slate-500">Params:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.parameters}</strong></div>
+                          </div>
+                          <div className="mt-2 p-2 bg-white rounded border border-slate-300 h-[230px] overflow-hidden vqc-circuit-container">
+                            {diseaseResult.quantum_classification.circuit_metrics.circuit_svg ? (
+                              <div
+                                dangerouslySetInnerHTML={{ __html: diseaseResult.quantum_classification.circuit_metrics.circuit_svg }}
+                              />
+                            ) : (
+                              <span className="text-[9px] font-mono text-slate-500">Rendering Qiskit VQC circuit...</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Results Panel */}
+                    <div className="flex flex-col gap-4">
+                      {!diseaseResult && !isDiseaseAnalyzing && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-600 gap-3 min-h-[300px]">
+                          <ScanEye className="h-12 w-12 opacity-30" />
+                          <div className="text-sm font-bold text-[#152D42] dark:text-slate-400">Upload a Medical Image to Begin</div>
+                          <div className="text-[10px] max-w-[280px] leading-relaxed">
+                            The hybrid quantum-classical pipeline will run DenseNet-121 feature extraction → PCA dimensionality reduction → Qiskit VQC classification on your image.
+                          </div>
+                        </div>
+                      )}
+
+                      {isDiseaseAnalyzing && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 min-h-[300px]">
+                          <div className="relative">
+                            <div className="h-16 w-16 rounded-full border-4 border-slate-200 border-t-[#2B4C63] animate-spin" />
+                            <ScanEye className="h-6 w-6 text-[#2B4C63] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                          </div>
+                          <div className="text-xs font-bold text-[#152D42] dark:text-slate-300">Running Hybrid QML Pipeline...</div>
+                          <div className="text-[9px] text-slate-500 max-w-[250px]">
+                            DenseNet-121 → PCA(1024→4) → VQC (4-qubit, 4096 shots) → Classification
+                          </div>
+                        </div>
+                      )}
+
+                      {diseaseResult && diseaseResult.status === 'success' && (
+                        <>
+                          {/* Risk Assessment Header */}
+                          <div className={`p-3 rounded-sm border flex items-center justify-between shadow-sm ${diseaseResult.risk_level === 'HIGH'
+                            ? 'border-red-300 bg-red-50/80 dark:bg-red-950/20'
+                            : diseaseResult.risk_level === 'MODERATE'
+                              ? 'border-amber-300 bg-amber-50/80 dark:bg-amber-950/20'
+                              : 'border-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/20'
+                          }`}>
+                            <div>
+                              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Primary Diagnosis</div>
+                              <div className="text-sm font-black text-[#152D42] dark:text-slate-100">{diseaseResult.top_diagnosis}</div>
+                              <div className="text-[9px] text-slate-500 font-mono mt-0.5">{diseaseResult.selection_reason}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-2xl font-black ${diseaseResult.risk_level === 'HIGH' ? 'text-red-600' : diseaseResult.risk_level === 'MODERATE' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                {(diseaseResult.confidence * 100).toFixed(1)}%
+                              </div>
+                              <div className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-sm inline-block ${diseaseResult.risk_level === 'HIGH'
+                                ? 'bg-red-600 text-white'
+                                : diseaseResult.risk_level === 'MODERATE'
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-emerald-500 text-white'
+                              }`}>
+                                {diseaseResult.risk_level} RISK
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Disease Risk Scores (Bar Chart) */}
+                          <div className="glass-panel p-3 border border-[#2B4C63]/5 rounded-sm shadow-sm">
+                            <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                              <BarChart3 className="h-3 w-3 text-[#2B4C63]" /> Disease Probability Scores
+                            </span>
+                            <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
+                              {(diseaseResult.quantum_classification?.predictions || []).slice(0, 8).map((pred: any, i: number) => {
+                                const pct = (pred.probability * 100);
+                                const color = pct >= 70 ? 'bg-red-500' : pct >= 30 ? 'bg-amber-500' : 'bg-emerald-500';
+                                return (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <span className="text-[9px] font-mono w-[140px] truncate text-slate-600 dark:text-slate-400">{pred.class}</span>
+                                    <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
+                                      <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${Math.max(2, pct)}%` }} />
+                                    </div>
+                                    <span className="text-[9px] font-mono font-bold w-[40px] text-right text-slate-600">{pct.toFixed(1)}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Quantum vs Classical Benchmark */}
+                          <div className="glass-panel p-3 border border-[#2B4C63]/5 rounded-sm shadow-sm">
+                            <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                              <Atom className="h-3 w-3 text-[#2B4C63]" /> Quantum vs Classical Benchmark
+                            </span>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-[9px] font-mono">
+                                <thead>
+                                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                                    <th className="text-left py-1 px-1 text-slate-500">Metric</th>
+                                    <th className="text-center py-1 px-1 text-[#2B4C63] font-bold">Quantum (VQC)</th>
+                                    <th className="text-center py-1 px-1 text-slate-600">Classical</th>
+                                    <th className="text-center py-1 px-1 text-emerald-600">Δ Advantage</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {['accuracy', 'f1_score', 'sensitivity', 'specificity', 'auroc'].map(metric => {
+                                    const q = diseaseResult.benchmark?.quantum?.[metric] || 0;
+                                    const c = diseaseResult.benchmark?.classical?.[metric] || 0;
+                                    const diff = ((q - c) * 100).toFixed(2);
+                                    return (
+                                      <tr key={metric} className="border-b border-slate-100 dark:border-slate-800">
+                                        <td className="py-1 px-1 uppercase text-slate-500">{metric.replace('_', ' ')}</td>
+                                        <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{(q * 100).toFixed(2)}%</td>
+                                        <td className="py-1 px-1 text-center text-slate-500">{(c * 100).toFixed(2)}%</td>
+                                        <td className={`py-1 px-1 text-center font-bold ${parseFloat(diff) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>+{diff}%</td>
+                                      </tr>
+                                    );
+                                  })}
+                                  <tr>
+                                    <td className="py-1 px-1 uppercase text-slate-500">Inference</td>
+                                    <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{diseaseResult.benchmark?.quantum?.inference_time_ms?.toFixed(0)}ms</td>
+                                    <td className="py-1 px-1 text-center text-slate-500">{diseaseResult.benchmark?.classical?.inference_time_ms?.toFixed(0)}ms</td>
+                                    <td className="py-1 px-1 text-center font-bold text-emerald-600">+{diseaseResult.benchmark?.quantum_advantage_pct?.toFixed(1)}%</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Bridge Buttons: 3D View & Drug Discovery */}
+                          {diseaseResult.drug_target && (
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={handleGenerate3DView}
+                                className="w-full py-3 bg-gradient-to-r from-[#2B4C63] to-[#1a3a52] hover:from-[#152D42] hover:to-[#0f2030] text-white font-display font-bold uppercase tracking-widest rounded-sm transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow-[#2B4C63]/20 group border border-[#2B4C63]/50"
+                              >
+                                <Dna className="h-4 w-4 animate-pulse" />
+                                Visualize Disease Target in 3D
+                                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                              </button>
+                              <button
+                                onClick={handleBridgeToDrugDiscovery}
+                                className="w-full py-3 bg-[#2B4C63]/10 hover:bg-[#2B4C63] text-[#2B4C63] hover:text-white border border-[#2B4C63]/40 font-display font-bold uppercase tracking-widest rounded-sm transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-sm group"
+                              >
+                                <FlaskConical className="h-4 w-4" />
+                                Skip to Drug Discovery for {diseaseResult.drug_target.disease}
+                                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Report Summary */}
+                          <div className="glass-panel p-3 border border-[#2B4C63]/5 rounded-sm text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed shadow-sm">
+                            <span className="font-bold text-[#152D42] dark:text-slate-300 block mb-1">📋 Report Summary</span>
+                            {diseaseResult.report_summary}
+                            <div className="mt-2 text-[8px] italic text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-1">
+                              {diseaseResult.disclaimer}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: DISEASE 3D VISUALIZATION */}
+              {activeTab === 'disease_3d' && (
+                <div id="tab-disease-3d-content" className="flex-1 flex flex-col gap-4 overflow-y-auto">
+                  <div className="flex justify-between items-center border-b border-[#2B4C63]/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Dna className="h-5 w-5 text-[#2B4C63]" />
+                      <h2 className="text-sm font-bold text-[#152D42] dark:text-slate-200 font-display uppercase tracking-widest">
+                        Disease Target 3D Structure
+                      </h2>
+                    </div>
+                    {disease3dMeta && (
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded border bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 border-[#2B4C63]/30 text-[#2B4C63] dark:text-slate-300">
+                        {disease3dMeta.source || 'PDB Structure'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Loading State */}
+                  {disease3dLoading && (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-[400px]">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-full border-4 border-slate-200 border-t-[#2B4C63] animate-spin" />
+                        <Dna className="h-6 w-6 text-[#2B4C63] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                      </div>
+                      <div className="text-xs font-bold text-[#152D42] dark:text-slate-300">Fetching Protein Structure...</div>
+                      <div className="text-[9px] text-slate-500">Querying RCSB PDB / AlphaFold Database</div>
+                    </div>
+                  )}
+
+                  {/* Error State */}
+                  {disease3dError && !disease3dLoading && (
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-sm text-red-700 dark:text-red-400 text-xs flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0" /> {disease3dError}
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {!disease3dPdbData && !disease3dLoading && !disease3dError && (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-600 gap-3 min-h-[400px]">
+                      <Dna className="h-12 w-12 opacity-30" />
+                      <div className="text-sm font-bold text-[#152D42] dark:text-slate-400">No 3D Structure Loaded</div>
+                      <div className="text-[10px] max-w-[280px] leading-relaxed">
+                        Run disease detection first, then click "Visualize Disease Target in 3D" to fetch the target protein structure from RCSB PDB.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3D Viewer + Info Panel */}
+                  {disease3dPdbData && !disease3dLoading && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+                      {/* 3D Viewer (2/3 width) */}
+                      <div className="lg:col-span-2 flex flex-col gap-3">
+                        {/* Style Controls */}
+                        <div className="flex items-center gap-2">
+                          {(['cartoon', 'stick', 'sphere', 'surface'] as const).map(style => (
+                            <button
+                              key={style}
+                              onClick={() => setDisease3dStyle(style)}
+                              className={`px-3 py-1.5 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider border transition-all duration-200 cursor-pointer ${
+                                disease3dStyle === style
+                                  ? 'bg-[#2B4C63] text-white border-[#2B4C63] shadow-sm'
+                                  : 'bg-transparent text-slate-500 border-slate-300 dark:border-slate-600 hover:border-[#2B4C63]/50 hover:text-[#2B4C63]'
+                              }`}
+                            >
+                              {style}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* 3Dmol.js Viewer Container */}
+                        <div className="relative rounded-sm overflow-hidden border border-[#2B4C63]/20 shadow-lg" style={{ minHeight: '420px' }}>
+                          <div
+                            ref={disease3dViewerRef}
+                            className="w-full h-full absolute inset-0"
+                            style={{ minHeight: '420px', background: 'linear-gradient(135deg, #0c1222 0%, #0f172a 50%, #1a1a2e 100%)' }}
+                          />
+                          {/* Floating labels */}
+                          <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                            <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm border border-white/10">
+                              <span className="text-[9px] font-mono text-cyan-400 font-bold">
+                                {disease3dMeta?.protein_name || 'Protein Structure'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="absolute bottom-3 right-3 z-10 pointer-events-none">
+                            <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm border border-white/10 flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-[8px] font-mono text-emerald-400">LIVE 3D RENDER</span>
+                            </div>
+                          </div>
+                          <div className="absolute top-3 right-3 z-10 pointer-events-none">
+                            <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm border border-white/10">
+                              <span className="text-[8px] font-mono text-slate-400">
+                                {disease3dMeta?.atom_count?.toLocaleString() || '?'} atoms
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-[8px] font-mono text-slate-400 text-center">
+                          Click and drag to rotate • Scroll to zoom • Right-click to pan
+                        </div>
+                      </div>
+
+                      {/* Info Panel (1/3 width) */}
+                      <div className="flex flex-col gap-3">
+                        {/* Disease Info Card */}
+                        <div className="glass-panel p-3 border border-[#2B4C63]/10 rounded-sm shadow-sm">
+                          <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                            <Info className="h-3 w-3" /> Structure Metadata
+                          </span>
+                          <div className="space-y-2 text-[10px] font-mono">
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Disease:</span>
+                              <span className="font-bold text-[#152D42] dark:text-slate-200 text-right max-w-[140px] truncate">{disease3dMeta?.disease}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Protein:</span>
+                              <span className="font-bold text-[#152D42] dark:text-slate-200 text-right max-w-[140px] truncate">{disease3dMeta?.protein_name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Organism:</span>
+                              <span className="font-bold text-[#152D42] dark:text-slate-200 italic text-right max-w-[140px] truncate">{disease3dMeta?.organism}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">PDB ID:</span>
+                              <span className="font-bold text-cyan-600 dark:text-cyan-400">{disease3dMeta?.pdb_id}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Atoms:</span>
+                              <span className="font-bold text-[#152D42] dark:text-slate-200">{disease3dMeta?.atom_count?.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Source:</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-right max-w-[140px] truncate">{disease3dMeta?.source}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Render Style Info */}
+                        <div className="glass-panel p-3 border border-[#2B4C63]/10 rounded-sm shadow-sm">
+                          <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                            <Eye className="h-3 w-3" /> Visualization Mode
+                          </span>
+                          <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                            {disease3dStyle === 'cartoon' && 'Ribbon/Cartoon mode shows secondary structure elements (α-helices, β-sheets, loops) colored by residue sequence position (spectrum).'}
+                            {disease3dStyle === 'stick' && 'Ball-and-stick mode shows individual atoms and covalent bonds, colored by element type (Jmol scheme).'}
+                            {disease3dStyle === 'sphere' && 'Space-filling mode shows atoms as Van der Waals spheres, revealing the molecular surface and steric bulk.'}
+                            {disease3dStyle === 'surface' && 'Molecular surface mode shows the solvent-accessible surface with the backbone ribbon underneath.'}
+                          </div>
+                        </div>
+
+                        {/* Detection Context */}
+                        {diseaseResult && (
+                          <div className={`p-3 rounded-sm border shadow-sm ${diseaseResult.risk_level === 'HIGH'
+                            ? 'border-red-300 bg-red-50/80 dark:bg-red-950/20'
+                            : diseaseResult.risk_level === 'MODERATE'
+                              ? 'border-amber-300 bg-amber-50/80 dark:bg-amber-950/20'
+                              : 'border-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/20'
+                          }`}>
+                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Detection Result</div>
+                            <div className="text-sm font-black text-[#152D42] dark:text-slate-100">{diseaseResult.top_diagnosis}</div>
+                            <div className={`text-lg font-black mt-1 ${diseaseResult.risk_level === 'HIGH' ? 'text-red-600' : diseaseResult.risk_level === 'MODERATE' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                              {(diseaseResult.confidence * 100).toFixed(1)}% confidence
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bridge to Drug Discovery */}
+                        <button
+                          onClick={handleBridgeFrom3D}
+                          className="w-full min-h-12 px-3 py-2.5 bg-gradient-to-r from-[#2B4C63] to-[#152D42] hover:from-[#152D42] hover:to-[#0f1f2e] text-white text-[11px] font-display font-bold uppercase tracking-wide text-center leading-tight rounded-sm transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-[#2B4C63]/30 group border border-[#2B4C63]/50"
+                        >
+                          <FlaskConical className="h-4 w-4 shrink-0" />
+                          <span>Discover Drugs for {disease3dMeta?.disease || 'This Target'}</span>
+                          <ArrowRight className="h-4 w-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+                        </button>
+
+                        {/* Research Note */}
+                        <div className="glass-panel p-2 border border-slate-200 dark:border-slate-700 rounded-sm text-[8px] text-slate-400 italic leading-relaxed">
+                          Structure sourced from {disease3dMeta?.source || 'RCSB PDB'}. For research purposes only.
+                          Rendered via 3Dmol.js (Rego & Koes, 2015).
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* TAB 1: 3D MOLECULE */}
               {activeTab === 'viewport' && (() => {
@@ -5910,10 +6566,10 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                               : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800'
                             }`}>
-                            {dnaInteraction.bindingMode === 'minor_groove' ? '🧬 Minor Groove Binding'
-                              : dnaInteraction.bindingMode === 'major_groove' ? '🧬 Major Groove Binding'
-                                : dnaInteraction.bindingMode === 'intercalation' ? '⚠️ DNA Intercalation'
-                                  : '✅ Non-Binder (Safe)'}
+                            {dnaInteraction.bindingMode === 'minor_groove' ? 'Minor Groove Binding'
+                              : dnaInteraction.bindingMode === 'major_groove' ? 'Major Groove Binding'
+                                : dnaInteraction.bindingMode === 'intercalation' ? 'DNA Intercalation'
+                                  : 'Non-Binder (Safe)'}
                           </span>
                         </div>
                         {/* Overlay: ΔG Badge */}
@@ -6043,7 +6699,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                       {dnaInteraction.structuralAlerts.length > 0 && (
                         <div className="mt-2 px-2 py-1.5 rounded-sm bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
                           <span className="text-[9px] font-mono font-bold text-amber-700 dark:text-amber-400">
-                            ⚠ STRUCTURAL ALERTS: {dnaInteraction.structuralAlerts.join(' · ')}
+                            STRUCTURAL ALERTS: {dnaInteraction.structuralAlerts.join(' · ')}
                           </span>
                         </div>
                       )}
@@ -6057,7 +6713,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                         : 'bg-red-50/80 dark:bg-red-950/20 border-red-200 dark:border-red-800'
                       }`}>
                       <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 block mb-1">
-                        {dnaInteraction.compatibilityScore >= 80 ? '✅' : dnaInteraction.compatibilityScore >= 50 ? '⚠️' : '🚫'} Scientific Verdict
+                        Scientific Verdict
                       </span>
                       <p className="text-[10.5px] leading-relaxed text-slate-700 dark:text-slate-300 font-sans">
                         {dnaInteraction.verdict}
@@ -7231,7 +7887,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                 bannerClass = 'bg-amber-50 border-amber-250 text-amber-955 dark:bg-amber-955/20 dark:border-amber-900/50 dark:text-amber-200';
                                 badgeClass = 'text-amber-700 dark:text-amber-455';
                                 iconClass = 'text-amber-600 dark:text-amber-455';
-                                statusTitle = isFdaApproved ? '⚠️ OPTIMIZATION CLOSE - Comparable Affinity' : '⚠️ OPTIMIZATION CLOSE - Comparable Benchmark Affinity';
+                                statusTitle = isFdaApproved ? 'OPTIMIZATION CLOSE - Comparable Affinity' : 'OPTIMIZATION CLOSE - Comparable Benchmark Affinity';
                                 statusMessage = `De novo candidate exhibits comparable binding affinity to ${isFdaApproved ? 'reference drug' : 'reference comparator drug'} ${validationResult.fda_drug_name} within typical chemical accuracy margins.`;
                               }
 
@@ -7480,12 +8136,12 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                                   {isMoreRobust ? (
                                     <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-400 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
                                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                                      ✔️ Efficacy Confirmed: Generated Lead exhibits higher mutation resistance (smaller affinity drop) compared to {validationResult.fda_drug_name}!
+                                      Efficacy Confirmed: Generated Lead exhibits higher mutation resistance (smaller affinity drop) compared to {validationResult.fda_drug_name}.
                                     </div>
                                   ) : (
                                     <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
                                       <Info className="h-4 w-4 text-amber-600" />
-                                      ⚠️ Notice: Lead candidate exhibits standard mutational sensitivity, comparable to {validationResult.fda_drug_name}.
+                                      Notice: Lead candidate exhibits standard mutational sensitivity, comparable to {validationResult.fda_drug_name}.
                                     </div>
                                   )}
                                 </div>
@@ -7916,6 +8572,7 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                               </button>
                             ) : (
                               <button
+                                type="button"
                                 onClick={handleRunQRL}
                                 disabled={isBackendOffline}
                                 className={`w-full py-2 ${isBackendOffline ? 'bg-slate-350 dark:bg-slate-900/60 border border-slate-300 dark:border-slate-805 text-slate-500 cursor-not-allowed' : 'bg-[#2B4C63] hover:bg-[#1C3A50] text-white cursor-pointer shadow hover:shadow-[#2B4C63]/25'} font-bold uppercase rounded-sm transition`}
@@ -7926,6 +8583,13 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                           </div>
                         </div>
                       </div>
+
+                      {qrlError && (
+                        <div role="alert" className="p-3 border border-red-200 bg-red-50 text-red-700 rounded-sm text-xs flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          {qrlError}
+                        </div>
+                      )}
 
                       {/* QRL Target Biophysics & Mutation Profiler Card */}
                       {qrlMutantResidueLabel && (
@@ -7973,63 +8637,27 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
                             <Cpu className="h-3 w-3" />
                             Parameterized Quantum Circuit (PQC) Policy
                           </span>
-                          <div className="flex bg-slate-200/60 dark:bg-slate-900 rounded p-0.5 border border-slate-300 dark:border-slate-800 text-[8.5px] font-mono font-bold">
-                            <button
-                              type="button"
-                              onClick={() => setCircuitViewMode('graphical')}
-                              className={`px-2 py-0.5 rounded-sm uppercase transition-all duration-300 cursor-pointer ${circuitViewMode === 'graphical'
-                                ? 'bg-[#2B4C63] text-white shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                }`}
-                            >
-                              Composer (IBM)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCircuitViewMode('ascii')}
-                              className={`px-2 py-0.5 rounded-sm uppercase transition-all duration-300 cursor-pointer ${circuitViewMode === 'ascii'
-                                ? 'bg-[#2B4C63] text-white shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                }`}
-                            >
-                              ASCII Text
-                            </button>
-                          </div>
+                          <span className="text-[8.5px] font-mono font-bold uppercase px-2 py-0.5 rounded-sm bg-[#2B4C63] text-white shadow-sm">
+                            Qiskit Circuit
+                          </span>
                         </div>
 
-                        <div className={`min-h-[240px] max-h-[300px] relative rounded border border-slate-300 dark:border-slate-850 flex flex-col justify-center overflow-hidden transition-colors duration-300 ${circuitViewMode === 'graphical' ? 'bg-white text-slate-900 p-3' : 'bg-slate-950 text-[#A6C0D0] p-2.5'
-                          }`}>
+                        <div className="min-h-[240px] max-h-[300px] relative rounded border border-slate-300 dark:border-slate-850 flex flex-col justify-center overflow-hidden bg-white text-slate-900 p-3">
                           {isOptimizingQrl && (
-                            <div className={`absolute inset-0 ${circuitViewMode === 'graphical' ? 'bg-white/80' : 'bg-slate-950/80'} backdrop-blur-[0.5px] flex items-center justify-center z-10 pointer-events-none`}>
+                            <div className="absolute inset-0 bg-white/80 backdrop-blur-[0.5px] flex items-center justify-center z-10 pointer-events-none">
                               <span className="text-[9px] font-mono text-[#2B4C63] dark:text-amber-500 uppercase tracking-widest animate-pulse font-bold">Evaluating Policy Gradients...</span>
                             </div>
                           )}
                           <div className="flex-1 overflow-auto flex items-center justify-center">
-                            {circuitViewMode === 'graphical' ? (
-                              qrlCircuitSvg ? (
+                            {qrlCircuitSvg ? (
                                 <div
-                                  className="w-full h-full flex items-center justify-center scale-90 sm:scale-100 origin-center qiskit-svg-container"
+                                  className="w-full h-full flex items-center justify-center qiskit-svg-container"
                                   dangerouslySetInnerHTML={{ __html: qrlCircuitSvg }}
                                 />
-                              ) : qrlCircuitAscii ? (
-                                <div className="text-[10px] font-mono text-slate-500 w-full text-center py-8">
-                                  Generating IBM graphical schematic...
-                                </div>
                               ) : (
                                 <div className="text-[10px] font-mono text-slate-500 w-full text-center py-8">
-                                  Loading parameterized quantum circuit...
+                                  Rendering Qiskit circuit...
                                 </div>
-                              )
-                            ) : (
-                              qrlCircuitAscii ? (
-                                <pre className="font-mono text-[8.5px] leading-[1.1] whitespace-pre select-all pr-4 text-left w-full">
-                                  {qrlCircuitAscii}
-                                </pre>
-                              ) : (
-                                <div className="text-[10px] font-mono text-slate-500 w-full text-center py-8">
-                                  Loading parameterized quantum circuit...
-                                </div>
-                              )
                             )}
                           </div>
                         </div>

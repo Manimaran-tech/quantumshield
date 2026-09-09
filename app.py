@@ -1,11 +1,15 @@
 import os
 import json
+import time
+from collections import OrderedDict
+from threading import Lock
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 import requests
 from simulation import run_vqe_simulation, analyze_dna_interaction, calculate_qpu_codesign, run_molecular_dynamics_simulation, simulate_wet_lab_validation
 from generator import EvolutionaryGenerator
+from disease_detector import detect_disease, get_available_modalities
 # Load environment variables
 load_dotenv()
 
@@ -14,6 +18,28 @@ CORS(app)  # Enable CORS for all routes (important for cross-origin local dev se
 
 # Initialize the evolutionary candidate generator
 molecular_generator = EvolutionaryGenerator()
+
+# Expensive molecular generation and Qiskit drawing are deterministic for the
+# same input.  Keeping a small, bounded TTL cache prevents browser retries and
+# repeated UI renders from exhausting the Python worker.
+_response_cache = OrderedDict()
+_cache_lock = Lock()
+
+def _cached(key, ttl_seconds):
+    now = time.monotonic()
+    with _cache_lock:
+        entry = _response_cache.get(key)
+        if entry and now - entry[0] < ttl_seconds:
+            _response_cache.move_to_end(key)
+            return entry[1]
+    return None
+
+def _store_cached(key, value):
+    with _cache_lock:
+        _response_cache[key] = (time.monotonic(), value)
+        _response_cache.move_to_end(key)
+        while len(_response_cache) > 32:
+            _response_cache.popitem(last=False)
 
 def fetch_nadac_price(ingredient_name):
     """
@@ -220,6 +246,10 @@ def simulate():
 def generate_molecules():
     data = request.json or {}
     pathogen_name = data.get('pathogen_name', 'Tuberculosis').strip()
+    cache_key = ('generation', pathogen_name.lower())
+    cached = _cached(cache_key, 15 * 60)
+    if cached is not None:
+        return jsonify(cached)
     
     def normalize_name(name):
         norm = "".join(name.lower().split()).replace("-", "").replace("_", "")
@@ -364,7 +394,7 @@ def generate_molecules():
         )
         pass
 
-        return jsonify({
+        payload = {
             "status": "success",
             "pathogen": pathogen_name,
             "target_protein": pocket_specs.get("target_protein", "Target Protein") if pocket_specs else "Target Protein",
@@ -372,7 +402,9 @@ def generate_molecules():
             "fda_drug_name": (pocket_specs.get("fda_drug_name") or "None") if pocket_specs else "None",
             "fda_drug_smiles": seed_smiles or "",
             "candidates": candidates
-        })
+        }
+        _store_cached(cache_key, payload)
+        return jsonify(payload)
     except Exception as e:
         return jsonify({"error": f"Evolution failed: {str(e)}"}), 500
 
@@ -820,11 +852,19 @@ def qrl_optimize():
     data = request.json or {}
     seed_smiles = data.get('smiles', data.get('seed_smiles', 'c1cc(ccn1)C(=O)NN'))
     pathogen_name = data.get('pathogen_name', 'Tuberculosis')
-    epochs = int(data.get('epochs', data.get('episodes', 5)))
+    # This is an interactive endpoint.  A full QRL episode performs VQE,
+    # docking and molecular-dynamics work at every step, so prevent an
+    # accidentally large browser payload from tying up the UI for minutes.
+    epochs = max(1, min(int(data.get('epochs', data.get('episodes', 3))), 3))
+    cache_key = ('qrl-optimize', seed_smiles.strip(), pathogen_name.strip().lower(), epochs)
+    cached = _cached(cache_key, 15 * 60)
+    if cached is not None:
+        return jsonify(cached)
     
     try:
         from qrl_optimizer import run_qrl_optimization
         result = run_qrl_optimization(seed_smiles, pathogen_name, epochs)
+        _store_cached(cache_key, result)
         return jsonify(result)
     except Exception as e:
         import traceback
@@ -837,20 +877,25 @@ def qrl_circuit():
     data = request.json or {}
     smiles = data.get('smiles', 'c1cc(ccn1)C(=O)NN')
     pathogen_name = data.get('pathogen_name', 'Tuberculosis')
+    cache_key = ('qiskit-circuit', smiles.strip(), pathogen_name.strip().lower())
+    cached = _cached(cache_key, 60 * 60)
+    if cached is not None:
+        return jsonify(cached)
     
     try:
-        from qrl_optimizer import QuantumRLAgent, resolve_pocket_and_reference, get_rich_molecular_state
+        from qrl_optimizer import QuantumRLAgent
         import io
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         
-        pocket_residues, ref_smiles = resolve_pocket_and_reference(pathogen_name)
         agent = QuantumRLAgent(num_qubits=8)
-        state = get_rich_molecular_state(smiles, pocket_residues, ref_smiles)
+        # Previewing a circuit must not launch AlphaFold/Open Targets lookups,
+        # 3D embedding, docking, MD, or VQE. Those run only when the user
+        # clicks Optimize Structure. A fixed normalized state retains the real
+        # Qiskit PQC topology while making this endpoint fast and reliable.
+        state = [0.5] * 12
         qc = agent.build_pqc_circuit(state, agent.theta)
-        
-        circuit_ascii = str(qc.draw(output='text', fold=-1))
         
         fig = qc.draw(output='mpl')
         buf = io.BytesIO()
@@ -862,12 +907,19 @@ def qrl_circuit():
             if idx != -1:
                 circuit_svg = circuit_svg[idx:]
         
-        return jsonify({
+        payload = {
             "status": "success",
-            "circuit_ascii": circuit_ascii,
-            "circuit_svg": circuit_svg
-        })
+            # SVG comes directly from Qiskit's matplotlib circuit drawer.
+            "circuit_svg": circuit_svg,
+            "qubits": qc.num_qubits,
+            "depth": qc.depth(),
+            "gate_count": len(qc.data)
+        }
+        _store_cached(cache_key, payload)
+        return jsonify(payload)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Failed to draw circuit: {str(e)}"}), 500
 
 
@@ -937,6 +989,202 @@ def validation_wetlab():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"Wet-lab validation simulation failed: {str(e)}"}), 500
+
+
+# ==========================================
+# DISEASE 3D STRUCTURE ENDPOINT
+# ==========================================
+
+# Map disease names to well-known PDB IDs for instant structural lookups
+DISEASE_PDB_MAP = {
+    # Respiratory
+    "pneumonia": {"pdb_id": "1N8Z", "protein": "Pneumolysin", "organism": "Streptococcus pneumoniae"},
+    "tuberculosis": {"pdb_id": "4DQU", "protein": "InhA (Enoyl-ACP Reductase)", "organism": "Mycobacterium tuberculosis"},
+    "copd": {"pdb_id": "1M17", "protein": "EGFR Kinase Domain", "organism": "Homo sapiens"},
+    "pulmonary fibrosis": {"pdb_id": "4R7P", "protein": "TGF-beta Receptor", "organism": "Homo sapiens"},
+    "lung cancer": {"pdb_id": "4ZAU", "protein": "EGFR T790M Mutant", "organism": "Homo sapiens"},
+    # Cardiac
+    "heart failure": {"pdb_id": "6GDG", "protein": "Beta-1 Adrenergic Receptor", "organism": "Homo sapiens"},
+    "cardiovascular disease": {"pdb_id": "6GDG", "protein": "Beta-1 Adrenergic Receptor", "organism": "Homo sapiens"},
+    # Skin
+    "melanoma": {"pdb_id": "4XV2", "protein": "BRAF V600E Kinase", "organism": "Homo sapiens"},
+    "skin cancer": {"pdb_id": "4XV2", "protein": "BRAF V600E Kinase", "organism": "Homo sapiens"},
+    "basal cell carcinoma": {"pdb_id": "5L7D", "protein": "Smoothened Receptor (SMO)", "organism": "Homo sapiens"},
+    "actinic keratosis": {"pdb_id": "4XV2", "protein": "BRAF V600E Kinase", "organism": "Homo sapiens"},
+    # Colorectal
+    "colorectal cancer": {"pdb_id": "4DGU", "protein": "KRAS G12D Mutant", "organism": "Homo sapiens"},
+    # Retinal
+    "macular degeneration": {"pdb_id": "1BJ1", "protein": "VEGF-A", "organism": "Homo sapiens"},
+    "diabetic retinopathy": {"pdb_id": "1BJ1", "protein": "VEGF-A", "organism": "Homo sapiens"},
+    "age-related macular degeneration": {"pdb_id": "1BJ1", "protein": "VEGF-A", "organism": "Homo sapiens"},
+    "amd": {"pdb_id": "1BJ1", "protein": "VEGF-A", "organism": "Homo sapiens"},
+    # Infectious
+    "covid-19": {"pdb_id": "6LU7", "protein": "Main Protease (Mpro)", "organism": "SARS-CoV-2"},
+    "sars-cov-2": {"pdb_id": "6LU7", "protein": "Main Protease (Mpro)", "organism": "SARS-CoV-2"},
+    "hiv": {"pdb_id": "1HXW", "protein": "HIV-1 Protease", "organism": "HIV-1"},
+    "malaria": {"pdb_id": "1J3I", "protein": "Dihydrofolate Reductase", "organism": "Plasmodium falciparum"},
+    "influenza": {"pdb_id": "4MWJ", "protein": "Neuraminidase", "organism": "Influenza A"},
+    "diabetes": {"pdb_id": "1BJ1", "protein": "VEGF-A (Diabetic Complications)", "organism": "Homo sapiens"},
+}
+
+
+@app.route('/api/disease/3d-structure', methods=['POST'])
+def disease_3d_structure():
+    """Fetch 3D protein structure for the detected disease target.
+    
+    Uses RCSB PDB and AlphaFold to find the relevant protein structure,
+    returns PDB data that can be rendered by 3Dmol.js in the frontend.
+    """
+    data = request.json or {}
+    disease_name = data.get('disease', '').strip()
+    pathogen = data.get('pathogen', '').strip()
+    
+    if not disease_name and not pathogen:
+        return jsonify({"error": "Missing disease or pathogen name"}), 400
+    
+    lookup_key = (disease_name or pathogen).lower().strip()
+    
+    # 1. Try direct PDB map lookup
+    pdb_info = DISEASE_PDB_MAP.get(lookup_key)
+    if not pdb_info:
+        # Try partial match
+        for key, val in DISEASE_PDB_MAP.items():
+            if key in lookup_key or lookup_key in key:
+                pdb_info = val
+                break
+    
+    pdb_data = None
+    source = None
+    protein_name = "Target Protein"
+    organism = "Unknown"
+    pdb_id = None
+    
+    if pdb_info:
+        pdb_id = pdb_info["pdb_id"]
+        protein_name = pdb_info["protein"]
+        organism = pdb_info["organism"]
+        
+        # Fetch from RCSB PDB
+        try:
+            pdb_url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+            print(f"[Disease3D] Fetching PDB structure: {pdb_id} from RCSB...")
+            r = requests.get(pdb_url, timeout=15)
+            if r.status_code == 200:
+                pdb_data = r.text
+                source = f"RCSB PDB ({pdb_id})"
+                print(f"[Disease3D] Successfully fetched {pdb_id} ({len(pdb_data)} bytes)")
+        except Exception as e:
+            print(f"[Disease3D] RCSB fetch failed: {e}")
+    
+    # 2. Fallback: Try AlphaFold via pathogen metadata
+    if not pdb_data:
+        try:
+            from qrl_optimizer import resolve_pathogen_metadata
+            res = resolve_pathogen_metadata(pathogen or disease_name)
+            if res.get("status") == "success":
+                uniprot_id = res.get("uniprot_id")
+                protein_name = res.get("target_protein", protein_name)
+                if uniprot_id:
+                    af_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
+                    print(f"[Disease3D] Trying AlphaFold for UniProt {uniprot_id}...")
+                    af_res = requests.get(af_url, timeout=10)
+                    if af_res.status_code == 200:
+                        af_data = af_res.json()
+                        if af_data and len(af_data) > 0:
+                            af_pdb_url = af_data[0].get("pdbUrl")
+                            if af_pdb_url:
+                                pdb_res = requests.get(af_pdb_url, timeout=10)
+                                if pdb_res.status_code == 200:
+                                    pdb_data = pdb_res.text
+                                    source = f"AlphaFold DB ({uniprot_id})"
+                                    pdb_id = uniprot_id
+                                    print(f"[Disease3D] Got AlphaFold structure for {uniprot_id}")
+        except Exception as e:
+            print(f"[Disease3D] AlphaFold fallback failed: {e}")
+    
+    # 3. If we still have no PDB data, try a generic RCSB search
+    if not pdb_data:
+        try:
+            search_query = disease_name or pathogen
+            search_url = f"https://search.rcsb.org/rcsbsearch/v2/query?json=%7B%22query%22:%7B%22type%22:%22terminal%22,%22service%22:%22full_text%22,%22parameters%22:%7B%22value%22:%22{search_query}%22%7D%7D,%22return_type%22:%22entry%22,%22request_options%22:%7B%22results_content_type%22:[%22experimental%22],%22paginate%22:%7B%22start%22:0,%22rows%22:1%7D%7D%7D"
+            r = requests.get(search_url, timeout=10)
+            if r.status_code == 200:
+                results = r.json().get("result_set", [])
+                if results:
+                    found_id = results[0].get("identifier")
+                    if found_id:
+                        pdb_url = f"https://files.rcsb.org/download/{found_id}.pdb"
+                        pdb_res = requests.get(pdb_url, timeout=10)
+                        if pdb_res.status_code == 200:
+                            pdb_data = pdb_res.text
+                            pdb_id = found_id
+                            source = f"RCSB PDB Search ({found_id})"
+        except Exception as e:
+            print(f"[Disease3D] RCSB search fallback failed: {e}")
+    
+    if not pdb_data:
+        return jsonify({
+            "status": "error",
+            "error": f"Could not find 3D structure for '{disease_name or pathogen}'. Try a different disease name."
+        }), 404
+    
+    return jsonify({
+        "status": "success",
+        "pdb_data": pdb_data,
+        "pdb_id": pdb_id,
+        "protein_name": protein_name,
+        "organism": organism,
+        "disease": disease_name or pathogen,
+        "source": source,
+        "atom_count": pdb_data.count("\nATOM ") + pdb_data.count("\nHETATM")
+    })
+
+
+# ==========================================
+# DISEASE DETECTION ENDPOINTS
+# ==========================================
+
+@app.route('/api/disease/detect', methods=['POST'])
+def disease_detect():
+    """Hybrid quantum-classical disease detection from medical images.
+    
+    Accepts a medical image (X-ray, MRI, pathology slide, etc.) and runs
+    both a classical DenseNet-121 backbone and a Qiskit VQC for classification.
+    Returns a full diagnostic report with risk scores, benchmarks, and a
+    drug discovery bridge target.
+    """
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided. Send as multipart/form-data with key 'image'."}), 400
+    
+    image_file = request.files['image']
+    modality = request.form.get('modality', 'chest_xray').strip()
+    
+    try:
+        image_bytes = image_file.read()
+        if len(image_bytes) == 0:
+            return jsonify({"error": "Empty image file."}), 400
+        
+        print(f"[Disease Detection] Processing {modality} image ({len(image_bytes)} bytes)")
+        result = detect_disease(image_bytes, modality)
+        
+        if result.get("status") == "error":
+            return jsonify(result), 500
+        
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Disease detection failed: {str(e)}"}), 500
+
+
+@app.route('/api/disease/modalities', methods=['GET'])
+def disease_modalities():
+    """Return available disease detection modalities and their metadata."""
+    try:
+        modalities = get_available_modalities()
+        return jsonify({"status": "success", "modalities": modalities})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/<path:path>')

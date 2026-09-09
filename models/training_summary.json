@@ -1,0 +1,210 @@
+{
+  "chest_xray": {
+    "modality": "chest_xray",
+    "dataset": "pneumoniamnist",
+    "dataset_info": {
+      "task": "binary-class",
+      "n_classes": 2,
+      "n_channels": 1,
+      "train_samples": 4708,
+      "test_samples": 624
+    },
+    "config": {
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "pca_components": 4,
+      "vqc_layers": 3,
+      "vqc_shots": 4096,
+      "vqc_optimizer": "COBYLA",
+      "vqc_max_iter": 1000,
+      "classical_svm_kernel": "rbf",
+      "classical_rf_estimators": 200,
+      "test_split": 0.2,
+      "random_seed": 42
+    },
+    "vqc_results": {
+      "train_accuracy": 0.698,
+      "test_accuracy": 0.642,
+      "training_time_s": 928.3,
+      "num_qubits": 4,
+      "num_layers": 3,
+      "num_params": 16,
+      "optimizer": "COBYLA",
+      "shots": 4096
+    },
+    "classical_results": {
+      "svm": {
+        "accuracy": 0.7612179487179487,
+        "f1_score": 0.744327605956472,
+        "training_time_s": 0.7,
+        "kernel": "rbf"
+      },
+      "random_forest": {
+        "accuracy": 0.7532051282051282,
+        "f1_score": 0.7376788024618212,
+        "training_time_s": 0.3,
+        "n_estimators": 200
+      },
+      "best_model": "SVM"
+    },
+    "total_training_time_s": 959.2,
+    "timestamp": "2026-09-09T14:51:08.923401",
+    "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+  },
+  "pathology": {
+    "modality": "pathology",
+    "dataset": "pathmnist",
+    "dataset_info": {
+      "task": "multi-class",
+      "n_classes": 9,
+      "n_channels": 3,
+      "train_samples": 89996,
+      "test_samples": 7180
+    },
+    "config": {
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "pca_components": 4,
+      "vqc_layers": 3,
+      "vqc_shots": 4096,
+      "vqc_optimizer": "COBYLA",
+      "vqc_max_iter": 1000,
+      "classical_svm_kernel": "rbf",
+      "classical_rf_estimators": 200,
+      "test_split": 0.2,
+      "random_seed": 42
+    },
+    "vqc_results": {
+      "train_accuracy": 0.16866666666666666,
+      "test_accuracy": 0.256,
+      "training_time_s": 1090.6,
+      "num_qubits": 4,
+      "num_layers": 3,
+      "num_params": 16,
+      "optimizer": "COBYLA",
+      "shots": 4096
+    },
+    "classical_results": {
+      "svm": {
+        "accuracy": 0.613,
+        "f1_score": 0.5890729026586434,
+        "training_time_s": 1.5,
+        "kernel": "rbf"
+      },
+      "random_forest": {
+        "accuracy": 0.577,
+        "f1_score": 0.5709368070907084,
+        "training_time_s": 0.5,
+        "n_estimators": 200
+      },
+      "best_model": "SVM"
+    },
+    "total_training_time_s": 1122.5,
+    "timestamp": "2026-09-09T15:09:51.482136",
+    "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+  },
+  "dermatoscopy": {
+    "modality": "dermatoscopy",
+    "dataset": "dermamnist",
+    "dataset_info": {
+      "task": "multi-class",
+      "n_classes": 7,
+      "n_channels": 3,
+      "train_samples": 7007,
+      "test_samples": 2005
+    },
+    "config": {
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "pca_components": 4,
+      "vqc_layers": 3,
+      "vqc_shots": 4096,
+      "vqc_optimizer": "COBYLA",
+      "vqc_max_iter": 1000,
+      "classical_svm_kernel": "rbf",
+      "classical_rf_estimators": 200,
+      "test_split": 0.2,
+      "random_seed": 42
+    },
+    "vqc_results": {
+      "train_accuracy": 0.052,
+      "test_accuracy": 0.042,
+      "training_time_s": 829.9,
+      "num_qubits": 4,
+      "num_layers": 3,
+      "num_params": 16,
+      "optimizer": "COBYLA",
+      "shots": 4096
+    },
+    "classical_results": {
+      "svm": {
+        "accuracy": 0.679,
+        "f1_score": 0.5777102817869525,
+        "training_time_s": 2.8,
+        "kernel": "rbf"
+      },
+      "random_forest": {
+        "accuracy": 0.669,
+        "f1_score": 0.6060658397576827,
+        "training_time_s": 0.4,
+        "n_estimators": 200
+      },
+      "best_model": "SVM"
+    },
+    "total_training_time_s": 862.6,
+    "timestamp": "2026-09-09T15:24:14.104107",
+    "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+  },
+  "retinal_oct": {
+    "modality": "retinal_oct",
+    "dataset": "octmnist",
+    "dataset_info": {
+      "task": "multi-class",
+      "n_classes": 4,
+      "n_channels": 1,
+      "train_samples": 97477,
+      "test_samples": 1000
+    },
+    "config": {
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "pca_components": 4,
+      "vqc_layers": 3,
+      "vqc_shots": 4096,
+      "vqc_optimizer": "COBYLA",
+      "vqc_max_iter": 1000,
+      "classical_svm_kernel": "rbf",
+      "classical_rf_estimators": 200,
+      "test_split": 0.2,
+      "random_seed": 42
+    },
+    "vqc_results": {
+      "train_accuracy": 0.31266666666666665,
+      "test_accuracy": 0.222,
+      "training_time_s": 729.0,
+      "num_qubits": 4,
+      "num_layers": 3,
+      "num_params": 16,
+      "optimizer": "COBYLA",
+      "shots": 4096
+    },
+    "classical_results": {
+      "svm": {
+        "accuracy": 0.476,
+        "f1_score": 0.3198218599033817,
+        "training_time_s": 2.2,
+        "kernel": "rbf"
+      },
+      "random_forest": {
+        "accuracy": 0.463,
+        "f1_score": 0.3200748246025473,
+        "training_time_s": 0.4,
+        "n_estimators": 200
+      },
+      "best_model": "SVM"
+    },
+    "total_training_time_s": 781.1,
+    "timestamp": "2026-09-09T15:37:15.196551",
+    "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+  }
+}

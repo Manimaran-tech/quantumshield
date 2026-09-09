@@ -440,12 +440,17 @@ class EvolutionaryGenerator:
         # Lazy load the ZINC LSTM model
         if self.trained_model is None:
             model_path = os.path.join(os.path.dirname(__file__), "pretrained.rnn.pth")
-            self.trained_model = load_from_file(model_path, device="cpu")
+            if not os.path.isfile(model_path):
+                raise FileNotFoundError(f"RNN checkpoint was not found: {model_path}")
+            device_str = "cuda:0" if torch.cuda.is_available() else "cpu"
+            self.trained_model = load_from_file(model_path, device=device_str)
+            self.trained_model.network.to(device_str)
+            self.trained_model.network.eval()
             
         # Sample SMILES using the pre-trained ZINC LSTM model
         valid_candidates = []
         attempts = 0
-        device = "cpu"
+        device = next(self.trained_model.network.parameters()).device
         
         while len(valid_candidates) < num_candidates and attempts < 150:
             attempts += 1
@@ -472,7 +477,7 @@ class EvolutionaryGenerator:
                     
             sequences = torch.cat(sequences, 1).long()
             
-            for seq in sequences.numpy():
+            for seq in sequences.cpu().numpy():
                 decoded_tokens = self.trained_model.vocabulary.decode(seq)
                 smiles = self.trained_model.tokenizer.untokenize(decoded_tokens)
                 
@@ -508,6 +513,12 @@ class EvolutionaryGenerator:
                     })
                     if len(valid_candidates) == num_candidates:
                         break
+
+        if not valid_candidates:
+            raise RuntimeError(
+                "The pretrained.rnn.pth model did not produce any valid SMILES "
+                f"after {attempts} sampling batches. Check the checkpoint and tokenizer compatibility."
+            )
                         
         # Score final generated candidates
         result_list = []
