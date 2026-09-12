@@ -356,6 +356,7 @@
     for (var i = 0; i < N; i++) {
       var op = sceneOpacity(i, seg);
       sceneEls[i].style.opacity = op.toFixed(3);
+      sceneEls[i].style.visibility = op > 0.005 ? 'visible' : 'hidden';
       if (op > maxOp) { maxOp = op; winner = i; }
     }
 

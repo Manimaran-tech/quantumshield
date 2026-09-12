@@ -28,16 +28,7 @@ const helixArt = `
     <circle class="svg-fill-teal" cx="34" cy="70" r="2.4"/><circle class="svg-fill-grey" cx="66" cy="70" r="2.4"/>
   </g>`;
 
-const orbitArt = `
-  <g stroke-width="1">
-    <circle class="svg-teal" cx="50" cy="50" r="42" opacity=".5"/>
-    <ellipse class="svg-grey" cx="50" cy="50" rx="42" ry="16" opacity=".6"/>
-    <ellipse class="svg-teal" cx="50" cy="50" rx="16" ry="42" opacity=".5"/>
-  </g>
-  <circle class="svg-fill-teal" cx="50" cy="50" r="5"/>
-  <circle class="svg-fill-grey" cx="92" cy="50" r="2.6"/>
-  <circle class="svg-fill-grey" cx="34" cy="34" r="2.2"/>
-  <circle class="svg-fill-teal" cx="50" cy="8" r="2.6"/>`;
+const orbitArt = ``;
 
 const latticeArt = `
   <g stroke-width="1" opacity=".7">
@@ -181,8 +172,7 @@ const SCENES = [
       ['Founded on', `<b>QM/MM hybrid modeling</b> + Quantum Reinforcement Learning`],
       ['Built against', `Drug-resistant <b>M. tuberculosis</b>, <b>SARS-CoV-2</b>, <b>Salmonella</b>`],
       ['Deployed on', `Local CPU statevector <i>and</i> physical IBM QPUs`],
-    ],
-    art: ()=>svg(orbitArt)
+    ]
   },
   // 02 — What We're Doing
   {
@@ -265,7 +255,7 @@ const SCENES = [
       ['Force field', 'MMFF94 relaxation'],
       ['Alignment', 'Center-of-mass → pocket centroid'],
     ],
-    art: ()=>svg(orbitArt)
+    art: ()=>svg(dockArtMod)
   },
   // 08 — Layer 4 — VQE
   {
@@ -434,7 +424,7 @@ const SCENES = [
     eyebrow: ['Enter the platform', 'Begin a discovery run', ''],
     title: 'Spin up the <span class="accent">pipeline</span>',
     lede: `Open the live workspace: name a pathogen, set the optimization flags, and watch the six layers resolve a quantum-verified candidate with full comparative reporting.`,
-    art: ()=>svg(orbitArt)
+    art: ()=>svg(chipArt)
   }
 ];
 

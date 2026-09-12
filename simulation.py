@@ -1,12 +1,26 @@
 import numpy as np
-from qiskit.quantum_info import SparsePauliOp
-from qiskit.circuit.library import TwoLocal
-from qiskit_algorithms import VQE, NumPyMinimumEigensolver
-from qiskit_algorithms.optimizers import COBYLA, SLSQP, SPSA
-from qiskit.primitives import StatevectorEstimator
 import time
-from rdkit import Chem
-from rdkit.Chem import AllChem
+
+try:
+    from qiskit.quantum_info import SparsePauliOp
+    from qiskit.circuit.library import TwoLocal
+    from qiskit_algorithms import VQE, NumPyMinimumEigensolver
+    from qiskit_algorithms.optimizers import COBYLA, SLSQP, SPSA
+    from qiskit.primitives import StatevectorEstimator
+except ImportError:
+    SparsePauliOp = None
+    TwoLocal = None
+    VQE = None
+    NumPyMinimumEigensolver = None
+    COBYLA = SLSQP = SPSA = None
+    StatevectorEstimator = None
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+except ImportError:
+    Chem = None
+    AllChem = None
 
 PRESET_MOLECULES_COORDS = {
     'hydrazine': [

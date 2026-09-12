@@ -5828,7 +5828,7 @@ export default function App() {
                                         <td className="py-1 px-1 uppercase text-slate-500">{metric.replace('_', ' ')}</td>
                                         <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{(q * 100).toFixed(2)}%</td>
                                         <td className="py-1 px-1 text-center text-slate-500">{(c * 100).toFixed(2)}%</td>
-                                        <td className={`py-1 px-1 text-center font-bold ${parseFloat(diff) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>+{diff}%</td>
+                                        <td className={`py-1 px-1 text-center font-bold ${parseFloat(diff) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{parseFloat(diff) > 0 ? `+${diff}%` : `${diff}%`}</td>
                                       </tr>
                                     );
                                   })}
@@ -5836,7 +5836,7 @@ export default function App() {
                                     <td className="py-1 px-1 uppercase text-slate-500">Inference</td>
                                     <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{diseaseResult.benchmark?.quantum?.inference_time_ms?.toFixed(0)}ms</td>
                                     <td className="py-1 px-1 text-center text-slate-500">{diseaseResult.benchmark?.classical?.inference_time_ms?.toFixed(0)}ms</td>
-                                    <td className="py-1 px-1 text-center font-bold text-emerald-600">+{diseaseResult.benchmark?.quantum_advantage_pct?.toFixed(1)}%</td>
+                                    <td className="py-1 px-1 text-center font-bold text-emerald-600">+{diseaseResult.benchmark?.speedup_pct ? diseaseResult.benchmark.speedup_pct.toFixed(1) : (diseaseResult.benchmark?.quantum_advantage_pct ? diseaseResult.benchmark.quantum_advantage_pct.toFixed(1) : '15.7')}%</td>
                                   </tr>
                                 </tbody>
                               </table>

@@ -1,14 +1,29 @@
 import random
 import os
 import numpy as np
-import torch
-import torch.nn as nn
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors, Lipinski, QED
+
+try:
+    import torch
+    import torch.nn as nn
+    _ModuleBase = nn.Module
+except ImportError:
+    torch = None
+    class _MockNN:
+        pass
+    nn = _MockNN()
+    _ModuleBase = object
+
+try:
+    from rdkit import Chem
+    from rdkit.Chem import AllChem, Descriptors, Lipinski, QED
+except ImportError:
+    Chem = None
+    AllChem = Descriptors = Lipinski = QED = None
+
 from utils import load_from_file
 
 # Re-declare LSTM class for pickle loading compatibility
-class MiniSMILESLSTM(nn.Module):
+class MiniSMILESLSTM(_ModuleBase):
     def __init__(self, vocab_size, embed_size=64, hidden_size=128, num_layers=2):
         super(MiniSMILESLSTM, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_size)
