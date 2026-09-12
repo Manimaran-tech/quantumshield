@@ -37,31 +37,36 @@
 
   // ---------- CSS per-scene needs (loaded images optional) ----------
   // seg = scrollProgress * (N-1)  → ranges 0 .. N-1
-  // Scene i is centered at integer i. Around each center there is a 0.8-unit
-  // HOLD (opacity 1) and a crisp 0.2-unit crossfade at each boundary (i±0.5),
-  // so adjacent scenes overlap with sum ≈ 1 (no fade-to-black dip).
+  // Scene i is centered at integer i. Around each center there is a 0.44-unit
+  // HOLD (opacity 1) [-0.22, +0.22], a 0.20-unit fade-out [+0.22, +0.42],
+  // a clean 0.16-unit delay dead-band [+0.42, +0.58] where both adjacent scenes
+  // are at 0 (preventing any text or art overlap), and a smooth 0.20-unit
+  // fade-in [-0.42, -0.22] for the next scene.
   function smoothstep(a, b, x) {
     if (x <= a) return 0; if (x >= b) return 1;
     var t = (x - a) / (b - a);
     return t * t * (3 - 2 * t);
   }
   function sceneOpacity(i, seg) {
-    var fadeIn, fadeOut;
-    // Wider 0.4-unit crossfade ramp (previously 0.2) → a slower, more
-    // luxurious dissolve. The math still guarantees adjacent scenes sum to
-    // exactly 1.000 across the whole scroll (no fade-to-black dip), because
-    // fadeOut_i spans the same band [i+0.3, i+0.7] as fadeIn_{i+1}.
-    if (i === 0) {
-      fadeIn = 1; // hero full at the very top
-    } else {
-      fadeIn = smoothstep(i - 0.7, i - 0.3, seg);
+    if (i === 0 && seg <= 0.22) {
+      return 1;
     }
-    if (i === N - 1) {
-      fadeOut = 1; // CTA scene holds through the final scroll
-    } else {
-      fadeOut = 1 - smoothstep(i + 0.3, i + 0.7, seg);
+    if (i === N - 1 && seg >= (N - 1) - 0.22) {
+      return 1;
     }
-    return fadeIn * fadeOut;
+    var d = seg - i;
+    if (Math.abs(d) <= 0.22) {
+      return 1;
+    }
+    if (d < 0) {
+      // Approaching scene i from previous scroll
+      if (d <= -0.42) return 0;
+      return smoothstep(-0.42, -0.22, d);
+    } else {
+      // Leaving scene i toward next scene
+      if (d >= 0.42) return 0;
+      return 1 - smoothstep(0.22, 0.42, d);
+    }
   }
 
   // ---------- Render scenes ----------
@@ -241,7 +246,7 @@
     artCol.className = 'col-art';
     var frame = document.createElement('div');
     frame.className = 'art-frame';
-    if (typeof s.art === 'function') {
+    if (typeof s.art === 'function' && !s.img) {
       frame.innerHTML = s.art();
     }
     // blueprint viewfinder corners — drawn in on art-column hover
@@ -252,7 +257,7 @@
     if (s.img) {
       var img = document.createElement('img');
       img.className = 'opt-img';
-      img.loading = 'lazy';
+      img.loading = 'eager';
       img.decoding = 'async';
       img.alt = s.id;
       img.addEventListener('error', function () { img.remove(); }); // keep SVG art
@@ -261,6 +266,10 @@
         frame.classList.add('has-img');
       });
       img.src = '/images/' + s.img;
+      if (img.complete) {
+        img.classList.add('on');
+        frame.classList.add('has-img');
+      }
       frame.appendChild(img);
       var cap = document.createElement('span');
       cap.className = 'art-caption';
@@ -352,17 +361,32 @@
     PROGRESS.style.width = (p * 100) + '%';
 
     // fade each scene; track whose band we're "in"
-    var maxOp = 0, winner = 0;
+    var maxOp = 0;
+    var closestScene = Math.min(N - 1, Math.max(0, Math.round(seg)));
+    var winner = closestScene;
+
     for (var i = 0; i < N; i++) {
       var op = sceneOpacity(i, seg);
       sceneEls[i].style.opacity = op.toFixed(3);
-      sceneEls[i].style.visibility = op > 0.005 ? 'visible' : 'hidden';
-      if (op > maxOp) { maxOp = op; winner = i; }
+      if (op > 0.005) {
+        sceneEls[i].style.visibility = 'visible';
+        var d = seg - i;
+        sceneEls[i].style.transform = 'translateY(' + (-d * 20).toFixed(1) + 'px)';
+      } else {
+        sceneEls[i].style.visibility = 'hidden';
+        sceneEls[i].style.transform = 'translateY(22px)';
+      }
+      if (op > maxOp) {
+        maxOp = op;
+        winner = i;
+      }
     }
 
     // Toggle active classes based on winner to prevent pointer-events dead zones
     for (var j = 0; j < N; j++) {
-      sceneEls[j].classList.toggle('is-active', j === winner);
+      var isAct = (j === winner && maxOp > 0.05);
+      sceneEls[j].classList.toggle('is-active', isAct);
+      sceneEls[j].style.pointerEvents = isAct ? 'auto' : 'none';
     }
     if (winner !== currentScene) {
       currentScene = winner;
@@ -385,12 +409,6 @@
         }
       });
     }
-
-    // subtle parallax: 0 px at the scene's exact center, drifts up as you
-    // approach the next scene (no rest-state offset).
-    var localSeg = seg - winner;
-    var wf = sceneEls[winner];
-    wf.style.transform = 'translateY(' + (-(localSeg) * 22).toFixed(1) + 'px) scale(1)';
 
     // hint fades after first scroll
     HINT.style.opacity = (p < 0.02) ? '0.9' : '0';

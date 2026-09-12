@@ -184,8 +184,7 @@ const SCENES = [
       ['10⁶⁰', 'Drug-like molecules in chemical space — classically intractable to enumerate'],
       ['5–7 yr', 'Classical timeline, replaced by a single optimized pipeline pass'],
       ['$800M↑', 'Vs. our run-cost reduction of roughly two orders of magnitude'],
-    ],
-    art: ()=>svg(waveArt)
+    ]
   },
   // 03 — Theory
   {
@@ -199,8 +198,7 @@ const SCENES = [
       ['Kd', `<b>Dissociation constant</b> — concentration inhibiting 50% of receptors. Derived from ΔG.`],
       ['HOMO–LUMO', `<b>Frontier-orbital gap</b>. Wide = stable & shelf-safe. Narrow (<8 eV) = toxicity flag (covalent latch).`],
       ['Fsp³', `<b>Carbon saturation index</b>. Fsp³=0.0 = flat aromatic = <b>Extreme Risk</b> DNA intercalation.`],
-    ],
-    art: ()=>svg(latticeArt)
+    ]
   },
   // 04 — Pipeline overview
   {
@@ -228,8 +226,7 @@ const SCENES = [
       ['LLM', 'NVIDIA NIM · llama-3.1-8b-instruct (NVIDIA_API_KEY)'],
       ['Structures', 'EBI AlphaFold API · PDB parse → pocket residues'],
       ['Failover', 'UniProt KB primary-accession + search API'],
-    ],
-    art: ()=>svg(apiArt)
+    ]
   },
   // 06 — Layer 2
   {
@@ -241,8 +238,7 @@ const SCENES = [
       ['Model', '3-layer LSTM · embedding 256 · hidden 512'],
       ['Policy', 'PyTorch QRL · policy-gradient optimization'],
       ['Reward', 'QED + SA Score + VQE binding energy'],
-    ],
-    art: ()=>svg(helixArt)
+    ]
   },
   // 07 — Layer 3
   {
@@ -254,8 +250,7 @@ const SCENES = [
       ['Conformer', 'RDKit 3D embedding'],
       ['Force field', 'MMFF94 relaxation'],
       ['Alignment', 'Center-of-mass → pocket centroid'],
-    ],
-    art: ()=>svg(dockArtMod)
+    ]
   },
   // 08 — Layer 4 — VQE
   {
@@ -268,8 +263,7 @@ const SCENES = [
       ['Mapping', 'Jordan–Wigner · Parity + Z₂ · Bravyi-Kitaev'],
       ['Ansatz', 'TwoLocal (RY rotations, CZ entanglers)'],
       ['Optimizer', 'COBYLA · SSPA'],
-    ],
-    art: ()=>svg(chipArt)
+    ]
   },
   // 09 — Layer 5
   {
@@ -281,8 +275,7 @@ const SCENES = [
       ['ADMET', 'MW · LogP · HBD/HBA · TPSA · Lipinski'],
       ['Mutagenicity', 'Fsp³ carbon-saturation index'],
       ['Alert', 'Flat aromatic (Fsp³=0) → DNA intercalation risk'],
-    ],
-    art: ()=>svg(latticeArt)
+    ]
   },
   // 10 — Layer 6
   {
@@ -294,8 +287,7 @@ const SCENES = [
       ['Assay', '5-point log-dilution centered on Kd'],
       ['MD', 'Stability trajectory simulation'],
       ['Pricing', 'CMS NADAC (wholesale) + myUpchar (INR retail)'],
-    ],
-    art: ()=>svg(waveArt)
+    ]
   },
   // 11 — SMILES LSTM
   {
@@ -309,16 +301,7 @@ const SCENES = [
       ['Output', 'Linear → vocabulary logits'],
       ['Weights', 'pretrained.rnn.pth (PyTorch)'],
       ['Lineage', 'AstraZeneca REINVENT (MolecularAI/Reinvent)'],
-    ],
-    art: ()=>svg(`
-      <g stroke-width="1.2">
-        <rect class="svg-teal" x="8" y="44" width="14" height="14" fill="rgba(19,138,165,.08)"/>
-        <rect class="svg-grey" x="30" y="40" width="14" height="22" fill="none"/>
-        <rect class="svg-grey" x="52" y="36" width="14" height="30" fill="none"/>
-        <rect class="svg-teal" x="74" y="32" width="14" height="38" fill="rgba(19,138,165,.08)"/>
-        <circle class="svg-fill-grey" cx="15" cy="51" r="2"/>
-        <path class="svg-teal" d="M22 51 H30 M44 51 H52 M66 51 H74"/>
-      </g>`)
+    ]
   },
   // 12 — AlphaFold
   {
@@ -330,15 +313,7 @@ const SCENES = [
       ['Primary', 'AlphaFold EBI prediction API → pdbUrl'],
       ['Failover', 'UniProt KB JSON · search API by pathogen keyword'],
       ['Parser', 'parse_pdb_to_pocket → 10 closest residues'],
-    ],
-    art: ()=>svg(`
-      <g stroke-width="1.2">
-        <path class="svg-teal" d="M20 20 Q50 10 80 20 Q90 50 80 80 Q50 90 20 80 Q10 50 20 20Z" fill="rgba(19,138,165,.05)"/>
-        <path class="svg-grey" d="M28 36 Q50 30 72 36 M28 64 Q50 70 72 64" opacity=".6"/>
-        <circle class="svg-fill-teal" cx="50" cy="50" r="3.4"/><circle class="svg-fill-grey" cx="34" cy="40" r="2"/>
-        <circle class="svg-fill-grey" cx="66" cy="40" r="2"/><circle class="svg-fill-grey" cx="34" cy="60" r="2"/>
-        <circle class="svg-fill-grey" cx="66" cy="60" r="2"/>
-      </g>`)
+    ]
   },
   // 13 — Price & drug resolvers
   {
@@ -351,8 +326,7 @@ const SCENES = [
       ['NIM', 'integrate.api.nvidia.com → llama-3.1-8b-instruct'],
       ['NADAC', 'data.medicaid.gov → LIKE match reference drug'],
       ['myUpchar', 'beta.myupchar.com → INR retail (MYUPCHAR_API_KEY)'],
-    ],
-    art: ()=>svg(apiArt)
+    ]
   },
   // 14 — Local quantum
   {
@@ -364,8 +338,7 @@ const SCENES = [
       ['SDK', 'Qiskit v1.x primitives'],
       ['Estimator', 'qiskit.primitives.StatevectorEstimator'],
       ['Ansatz', 'TwoLocal · RY + CZ · depth 2 · CNOT 1'],
-    ],
-    art: ()=>svg(chipArt)
+    ]
   },
   // 15 — IBM hardware
   {
@@ -378,15 +351,7 @@ const SCENES = [
       ['Library', 'qiskit_ibm_runtime'],
       ['Backends', 'ibm_brisbane · ibm_kyoto · least-busy default'],
       ['Session', 'Dedicated Session → no inter-step queue waits'],
-    ],
-    art: ()=>svg(`
-      <g stroke-width="1.2">
-        <rect class="svg-teal" x="24" y="24" width="52" height="52" fill="rgba(19,138,165,.05)"/>
-        <path class="svg-grey" d="M24 50 H76 M50 24 V76" opacity=".5"/>
-        <circle class="svg-fill-teal" cx="50" cy="50" r="6"/>
-        <circle class="svg-fill-grey" cx="36" cy="36" r="2.4"/><circle class="svg-fill-grey" cx="64" cy="36" r="2.4"/>
-        <circle class="svg-fill-grey" cx="36" cy="64" r="2.4"/><circle class="svg-fill-grey" cx="64" cy="64" r="2.4"/>
-      </g>`)
+    ]
   },
   // 16 — Tech stack
   {
