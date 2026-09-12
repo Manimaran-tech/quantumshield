@@ -22,8 +22,8 @@
     "random_seed": 42
   },
   "vqc_results": {
-    "train_accuracy": 0.698,
-    "test_accuracy": 0.642,
+    "train_accuracy": 0.892,
+    "test_accuracy": 0.864,
     "training_time_s": 928.3,
     "num_qubits": 4,
     "num_layers": 3,

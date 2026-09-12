@@ -409,6 +409,7 @@ def generate_molecules():
         return jsonify({"error": f"Evolution failed: {str(e)}"}), 500
 
 @app.route('/dna-interaction', methods=['POST'])
+@app.route('/api/dna-interaction', methods=['POST'])
 def dna_interaction():
     """Returns DNA-drug interaction analysis for the selected molecule."""
     data = request.json or {}
@@ -830,9 +831,9 @@ def hardware_codesign():
 def pathogen_lookup():
     if request.method == 'POST':
         data = request.json or {}
-        pathogen_name = data.get('pathogen_name', '').strip()
+        pathogen_name = (data.get('pathogen_name') or data.get('target') or data.get('pathogen') or '').strip()
     else:
-        pathogen_name = request.args.get('pathogen_name', '').strip()
+        pathogen_name = (request.args.get('pathogen_name') or request.args.get('target') or request.args.get('pathogen') or '').strip()
         
     if not pathogen_name:
         return jsonify({"error": "Missing pathogen_name"}), 400
