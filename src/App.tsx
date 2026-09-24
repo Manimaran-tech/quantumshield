@@ -976,8 +976,11 @@ interface DNAInteractionResult {
   verdict: string;
 }
 
-// Check port for API proxying during local development
-const API_BASE = window.location.port && window.location.port !== '5000' ? 'http://127.0.0.1:5000' : '';
+// Check port and environment for API base URL (supports Cloudflare Tunnel & custom backend)
+const API_BASE = 
+  (typeof window !== 'undefined' && localStorage.getItem('QUANTUM_API_BASE')) ||
+  (import.meta.env.VITE_API_BASE_URL as string) ||
+  (window.location.port && window.location.port !== '5000' ? 'http://127.0.0.1:5000' : '');
 
 const getReferenceDrugInfo = (targetName: string, fdaSimilarityStr: string) => {
   const norm = targetName.toLowerCase();
@@ -2271,7 +2274,7 @@ export default function App() {
     setQrlHistory([]);
     setQrlRecommendedCandidate(null);
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 120000);
+    const timeout = window.setTimeout(() => controller.abort(), 300000);
     try {
       const smiles = qrlSeedSmiles.trim() || 'c1cc(ccn1)C(=O)NN';
       const targetName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption;
@@ -2308,7 +2311,7 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setQrlError(err instanceof DOMException && err.name === 'AbortError'
-        ? 'Optimization exceeded two minutes and was stopped. Please try again; repeated inputs are cached once completed.'
+        ? 'Optimization timed out. Please try again; repeated inputs are cached once completed.'
         : 'QRL optimization could not be completed. Please check that the backend is running and try again.');
     } finally {
       window.clearTimeout(timeout);
@@ -3272,7 +3275,7 @@ export default function App() {
       const targetName = customPathogen.trim() || 'Custom Target';
       const targetNameLower = targetName.lowerCase ? targetName.toLowerCase() : String(targetName).toLowerCase();
       const smilesNorm = (valCandidateSmiles || '').trim().toUpperCase();
-      const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+      const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm === 'CN=C=O' || smilesNorm === 'C#N' || smilesNorm === '[C-]#N' || smilesNorm === '[H]C#N';
 
       if (isIsocyanateOrCyanide) {
         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3299,7 +3302,7 @@ export default function App() {
     } else {
       const id = selectedMolecule.id.toLowerCase();
       const smilesNorm = (selectedMolecule.smiles || '').trim().toUpperCase();
-      const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+      const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm === 'CN=C=O' || smilesNorm === 'C#N' || smilesNorm === '[C-]#N' || smilesNorm === '[H]C#N';
 
       if (isIsocyanateOrCyanide) {
         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3469,7 +3472,7 @@ export default function App() {
           lastSyncedMoleculeIdRef.current = selectedMolecule.id;
           const id = selectedMolecule.id.toLowerCase();
           const smilesNorm = (selectedMolecule.smiles || '').trim().toUpperCase();
-          const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+          const isIsocyanateOrCyanide = id.includes('isocyan') || id.includes('cyan') || id.includes('cynad') || id.includes('cynac') || id === 'mic' || smilesNorm === 'CN=C=O' || smilesNorm === 'C#N' || smilesNorm === '[C-]#N' || smilesNorm === '[H]C#N';
 
           if (isIsocyanateOrCyanide) {
             setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -3514,7 +3517,7 @@ export default function App() {
         const targetName = customPathogen.trim() || 'Custom Target';
         const targetNameLower = targetName.toLowerCase();
         const smilesNorm = (valCandidateSmiles || '').trim().toUpperCase();
-        const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+        const isIsocyanateOrCyanide = targetNameLower.includes('isocyan') || targetNameLower.includes('cyan') || targetNameLower.includes('cynad') || targetNameLower.includes('cynac') || targetNameLower === 'mic' || smilesNorm === 'CN=C=O' || smilesNorm === 'C#N' || smilesNorm === '[C-]#N' || smilesNorm === '[H]C#N';
 
         if (isIsocyanateOrCyanide) {
           setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -5787,7 +5790,7 @@ export default function App() {
                               <BarChart3 className="h-3 w-3 text-[#2B4C63]" /> Disease Probability Scores
                             </span>
                             <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
-                              {(diseaseResult.quantum_classification?.predictions || []).slice(0, 8).map((pred: any, i: number) => {
+                              {(diseaseResult.predictions || diseaseResult.quantum_classification?.predictions || []).slice(0, 8).map((pred: any, i: number) => {
                                 const pct = (pred.probability * 100);
                                 const color = pct >= 70 ? 'bg-red-500' : pct >= 30 ? 'bg-amber-500' : 'bg-emerald-500';
                                 return (
@@ -7529,10 +7532,10 @@ export default function App() {
                                   <button
                                     onClick={() => {
                                       setValidationDisease('custom');
-                                      const pathName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption.toUpperCase();
+                                      const pathName = selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption === 'sars-cov-2' ? 'COVID-19' : selectedTargetOption === 'tuberculosis' ? 'Tuberculosis' : selectedTargetOption === 'salmonella' ? 'Salmonella' : selectedTargetOption.toUpperCase();
                                       const norm = pathName.toLowerCase();
                                       const smilesNorm = (selected.smiles || '').trim().toUpperCase();
-                                      const isIsocyanateOrCyanide = norm.includes('isocyan') || norm.includes('cyan') || norm.includes('cynad') || norm.includes('cynac') || norm === 'mic' || smilesNorm.includes('N=C=O') || smilesNorm.includes('N=C=0') || smilesNorm.includes('O=C=N') || smilesNorm === 'CN=C=O' || smilesNorm.includes('C#N');
+                                      const isIsocyanateOrCyanide = norm.includes('isocyan') || norm.includes('cyan') || norm.includes('cynad') || norm.includes('cynac') || norm === 'mic' || smilesNorm === 'CN=C=O' || smilesNorm === 'C#N' || smilesNorm === '[C-]#N' || smilesNorm === '[H]C#N';
 
                                       if (isIsocyanateOrCyanide) {
                                         setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
@@ -7545,7 +7548,7 @@ export default function App() {
                                         setValCustomTarget(selectedTargetOption === 'sars-cov-2' ? 'Main Protease (Mpro)' : selectedTargetOption === 'tuberculosis' ? 'Enoyl-ACP Reductase (InhA)' : selectedTargetOption === 'salmonella' ? 'GyrB ATP Pocket' : 'Target Protein');
                                         setValCustomUniprot(selectedTargetOption === 'sars-cov-2' ? 'P0C6U8' : selectedTargetOption === 'tuberculosis' ? 'Q4TUY1' : 'P12345');
                                         setValCustomDrugName(selectedTargetOption === 'sars-cov-2' ? 'Nirmatrelvir' : selectedTargetOption === 'tuberculosis' ? 'Isoniazid' : 'Standard Reference');
-                                        setValCustomDrugSmiles(selectedTargetOption === 'sars-cov-2' ? 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C' : selectedTargetOption === 'tuberculosis' ? 'c1cc(ccn1)C(=O)NN' : 'CC1=CC=C(C=C1)C(=O)NN');
+                                        setValCustomDrugSmiles(selectedTargetOption === 'sars-cov-2' ? 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C' : selectedTargetOption === 'tuberculosis' ? 'c1cc(ccn1)C(=O)NN' : 'CC1=C(C2=C(C=C1)OC(=O)C(=C2NC(=O)C(C)(C)C=C)O)C3C(C(C(O3)(C)O)OC(=O)N)O');
                                       }
                                       setValCandidateSmiles(selected.smiles);
                                       setActiveTab('validation');
@@ -7645,24 +7648,6 @@ export default function App() {
                                   onChange={(e) => {
                                     const val = e.target.value;
                                     setValCandidateSmiles(val || null);
-                                    if (val) {
-                                      const norm = val.trim().toUpperCase();
-                                      const isIsocyanateOrCyanide = norm.includes('N=C=O') || norm.includes('N=C=0') || norm.includes('O=C=N') || norm === 'CN=C=O' || norm.includes('C#N');
-                                      if (isIsocyanateOrCyanide) {
-                                        setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
-                                        setValCustomTarget('Acetylcholinesterase');
-                                        setValCustomUniprot('P22340');
-                                        setValCustomDrugName('None (Reactive Toxicant)');
-                                        setValCustomDrugSmiles('CC(=O)Nc1ccc(cc1)S(=O)(=O)N');
-                                      } else {
-                                        if (valCustomPathogen === 'COVID-19' || valCustomPathogen.includes('Isocyanate') || valCustomPathogen.includes('Cyanide')) {
-                                          setValCustomPathogen('Custom Pathogen');
-                                          setValCustomTarget('Custom Target');
-                                          setValCustomDrugName('Custom Reference');
-                                          setValCustomDrugSmiles('CC1=CC=C(C=C1)C(=O)NN');
-                                        }
-                                      }
-                                    }
                                   }}
                                   placeholder="Evolve dynamically (leave blank) or paste SMILES (e.g. c1ccccc1)"
                                   className="flex-1 p-1.5 text-xs rounded-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[#152D42] dark:text-slate-200 font-mono focus:outline-none focus:ring-1 focus:ring-[#2B4C63]"
@@ -8779,69 +8764,73 @@ export default function App() {
                                 setValidationResult(null);
                                 setComparisonResult(null);
 
-                                // Map target option to validation disease parameters (always custom)
-                                let valDisease: 'covid-19' | 'tuberculosis' | 'hiv' | 'malaria' | 'custom' = 'custom';
-                                const normSmiles = (qrlOptimizedSmiles || '').trim().toUpperCase();
-                                const isIsocyanateOrCyanide = normSmiles.includes('N=C=O') || normSmiles.includes('N=C=0') || normSmiles.includes('O=C=N') || normSmiles === 'CN=C=O' || normSmiles.includes('C#N');
+                                const targetKey = selectedTargetOption === 'custom'
+                                  ? (customPathogen.trim() || 'custom')
+                                  : selectedTargetOption;
+                                const targetKeyLower = targetKey.toLowerCase();
 
-                                const currentPathogen = isCustomMode
-                                  ? (customPathogen || 'Custom Target')
-                                  : getPathogenNameForTemplate(selectedMolecule.id);
-                                const pathogenLower = currentPathogen.toLowerCase();
+                                let finalPathogen = 'COVID-19';
+                                let finalTarget = 'Main Protease (Mpro)';
+                                let finalUniprot = 'P0C6U8';
+                                let finalDrugName = 'Nirmatrelvir';
+                                let finalDrugSmiles = 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C';
 
-                                if (isIsocyanateOrCyanide || pathogenLower.includes('isocyan') || pathogenLower.includes('cyan') || pathogenLower.includes('cynad') || pathogenLower.includes('cynac') || pathogenLower === 'mic') {
-                                  setValCustomPathogen('Methyl Isocyanate / Cyanide Test');
-                                  setValCustomTarget('Acetylcholinesterase');
-                                  setValCustomUniprot('P22340');
-                                  setValCustomDrugName('None (Reactive Toxicant)');
-                                  setValCustomDrugSmiles('CC(=O)Nc1ccc(cc1)S(=O)(=O)N');
-                                } else if (pathogenLower.includes('covid') || pathogenLower.includes('sars') || pathogenLower.includes('corona')) {
-                                  setValCustomPathogen('COVID-19');
-                                  setValCustomTarget('Main Protease (Mpro)');
-                                  setValCustomUniprot('P0C6U8');
-                                  setValCustomDrugName('Nirmatrelvir');
-                                  setValCustomDrugSmiles('CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C');
-                                } else if (pathogenLower.includes('tuberculosis') || pathogenLower.includes('tb') || pathogenLower.includes('inha') || pathogenLower.includes('hydrazine') || pathogenLower.includes('pyridine') || pathogenLower.includes('inh')) {
-                                  setValCustomPathogen('Tuberculosis');
-                                  setValCustomTarget('Enoyl-ACP Reductase (InhA)');
-                                  setValCustomUniprot('Q4TUY1');
-                                  setValCustomDrugName('Isoniazid');
-                                  setValCustomDrugSmiles('c1cc(ccn1)C(=O)NN');
-                                } else if (pathogenLower.includes('hiv') || pathogenLower.includes('aids')) {
-                                  setValCustomPathogen('HIV');
-                                  setValCustomTarget('HIV Integrase');
-                                  setValCustomUniprot('Q76353');
-                                  setValCustomDrugName('Dolutegravir');
-                                  setValCustomDrugSmiles('CC1COC2=C(C(=O)C3=C(N2C1)C=C(C(=O)N3CC4=C(C=C(C=C4)F)F)O)O');
-                                } else if (pathogenLower.includes('malaria')) {
-                                  setValCustomPathogen('Malaria');
-                                  setValCustomTarget('Dihydrofolate Reductase (DHFR)');
-                                  setValCustomUniprot('P13922');
-                                  setValCustomDrugName('Pyrimethamine');
-                                  setValCustomDrugSmiles('CCC1=C(C(=NC(=N1)N)N)C2=CC=C(C=C2)Cl');
-                                } else if (pathogenLower.includes('salmonella')) {
-                                  setValCustomPathogen('Salmonella');
-                                  setValCustomTarget('GyrB ATP Pocket');
-                                  setValCustomUniprot('P12345');
-                                  setValCustomDrugName('Novobiocin');
-                                  setValCustomDrugSmiles('CC1=CC=C(C=C1)C(=O)NN');
-                                } else if (pathogenLower.includes('water')) {
-                                  setValCustomPathogen('Water Control');
-                                  setValCustomTarget('Active Site Pocket');
-                                  setValCustomUniprot('P12345');
-                                  setValCustomDrugName('Water Molecule');
-                                  setValCustomDrugSmiles('O');
+                                if (targetKeyLower.includes('isocyan') || targetKeyLower.includes('cyan') || targetKeyLower.includes('cynad') || targetKeyLower.includes('cynac') || targetKeyLower === 'mic') {
+                                  finalPathogen = 'Methyl Isocyanate / Cyanide Test';
+                                  finalTarget = 'Acetylcholinesterase';
+                                  finalUniprot = 'P22340';
+                                  finalDrugName = 'None (Reactive Toxicant)';
+                                  finalDrugSmiles = 'CC(=O)Nc1ccc(cc1)S(=O)(=O)N';
+                                } else if (targetKeyLower.includes('covid') || targetKeyLower.includes('sars') || targetKeyLower.includes('corona')) {
+                                  finalPathogen = 'COVID-19';
+                                  finalTarget = 'Main Protease (Mpro)';
+                                  finalUniprot = 'P0C6U8';
+                                  finalDrugName = 'Nirmatrelvir';
+                                  finalDrugSmiles = 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(C#N)CC3CCNC3=O)C';
+                                } else if (targetKeyLower.includes('tuberculosis') || targetKeyLower.includes('tb') || targetKeyLower.includes('inha')) {
+                                  finalPathogen = 'Tuberculosis';
+                                  finalTarget = 'Enoyl-ACP Reductase (InhA)';
+                                  finalUniprot = 'Q4TUY1';
+                                  finalDrugName = 'Isoniazid';
+                                  finalDrugSmiles = 'c1cc(ccn1)C(=O)NN';
+                                } else if (targetKeyLower.includes('salmonella') || targetKeyLower.includes('gyrb')) {
+                                  finalPathogen = 'Salmonella';
+                                  finalTarget = 'GyrB ATP Pocket';
+                                  finalUniprot = 'P12345';
+                                  finalDrugName = 'Novobiocin';
+                                  finalDrugSmiles = 'CC1=C(C2=C(C=C1)OC(=O)C(=C2NC(=O)C(C)(C)C=C)O)C3C(C(C(O3)(C)O)OC(=O)N)O';
+                                } else if (targetKeyLower.includes('hiv') || targetKeyLower.includes('aids')) {
+                                  finalPathogen = 'HIV';
+                                  finalTarget = 'HIV Integrase';
+                                  finalUniprot = 'Q76353';
+                                  finalDrugName = 'Dolutegravir';
+                                  finalDrugSmiles = 'CC1COC2=C(C(=O)C3=C(N2C1)C=C(C(=O)N3CC4=C(C=C(C=C4)F)F)O)O';
+                                } else if (targetKeyLower.includes('malaria')) {
+                                  finalPathogen = 'Malaria';
+                                  finalTarget = 'Dihydrofolate Reductase (DHFR)';
+                                  finalUniprot = 'P13922';
+                                  finalDrugName = 'Pyrimethamine';
+                                  finalDrugSmiles = 'CCC1=C(C(=NC(=N1)N)N)C2=CC=C(C=C2)Cl';
                                 } else {
-                                  setValCustomPathogen(currentPathogen);
-                                  setValCustomTarget('Target Protein');
-                                  setValCustomUniprot('P12345');
-                                  setValCustomDrugName('FDA Reference');
-                                  setValCustomDrugSmiles('CC1=CC=C(C=C1)C(=O)NN');
+                                  finalPathogen = valCustomPathogen || (selectedTargetOption === 'custom' ? customPathogen : selectedTargetOption);
+                                  finalTarget = valCustomTarget && valCustomTarget !== 'Target Protein' ? valCustomTarget : 'Target Protein';
+                                  finalUniprot = valCustomUniprot && valCustomUniprot !== 'P12345' ? valCustomUniprot : 'P12345';
+                                  finalDrugName = valCustomDrugName && valCustomDrugName !== 'FDA Reference' ? valCustomDrugName : 'Standard Reference';
+                                  finalDrugSmiles = valCustomDrugSmiles || 'CC1=CC=C(C=C1)C(=O)NN';
+                                  if (selectedTargetOption === 'custom' && customPathogen) {
+                                    fetchAndApplyPathogenMetadata(customPathogen);
+                                  }
                                 }
+
+                                setValCustomPathogen(finalPathogen);
+                                setValCustomTarget(finalTarget);
+                                setValCustomUniprot(finalUniprot);
+                                setValCustomDrugName(finalDrugName);
+                                setValCustomDrugSmiles(finalDrugSmiles);
                                 setValidationDisease('custom');
 
                                 // Submit calculations and transition tab
-                                handleRunWetLab(qrlOptimizedSmiles, currentPathogen);
+                                handleRunWetLab(qrlOptimizedSmiles, finalPathogen);
                                 setActiveTab('validation');
                               }}
                               className="mt-2 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase rounded-sm flex items-center justify-center gap-2 cursor-pointer shadow hover:shadow-emerald-500/20"

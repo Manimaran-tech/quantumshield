@@ -154,120 +154,179 @@ const modMotifs = {
 
 // ---------- Scene definitions ----------
 const SCENES = [
-  // 00 — Hero
+  // 00 — Hero (Older style & color with updated detection & discovery information)
   {
     id: 'hero', stacked: true,
-    eyebrow: ['Quantum-Powered Bio-Simulation'],
+    eyebrow: ['Quantum Clinical AI', 'Preclinical Bio-Simulation', ''],
     title: 'QUANTUMSHIELD',
-    lede: `We map the active electronic space of mutated pathogen targets — <strong>TB's InhA, COVID-19's M<sub>pro</sub></strong> — directly onto quantum processors, computing exact interatomic binding energies to compress early-stage drug discovery from <strong>5–7 years to 12–24 hours</strong>.`,
+    lede: `We pair multi-modality diagnostic vision (Chest X-Ray, Retinal OCT, Dermatoscopy, Histopathology) with <strong>Parameterized Quantum Circuits (VQC)</strong> to detect sub-visual pathology at Stage 0 — and solve the active electronic space of mutated pathogen targets to compress novel drug discovery from <strong>5–7 years to 12–24 hours</strong>.`,
     scrollHint: 'SCROLL FOR MORE INFORMATION ↓'
   },
-  // 01 — Who We Are
+  // 01 — Who We Are (Restored with updated clinical + quantum vision)
   {
     id: 'who', num: '01', img: 'who-we-are.png',
-    eyebrow: ['Who We Are', 'A research platform', ''],
-    title: 'We render molecules <em>in qubits</em>',
-    lede: `QuantumShield is a hybrid <strong>QM/MM</strong> drug-discovery platform that pairs a Variational Quantum Eigensolver with reinforcement-learning generative chemistry. We are not replacing chemists — we are removing the classical computational ceiling that makes novel antibiotic design take a decade. <span class="muted">From pathogen name to verified candidate to comparative-cost report, in one supervised pipeline.</span>`,
+    eyebrow: ['Who We Are', 'Unified Clinical & Quantum Platform', ''],
+    title: 'We render diagnostic vision & molecules <span class="accent">in qubits</span>',
+    lede: `QuantumShield is a unified clinical AI and hybrid <strong>QM/MM</strong> bio-simulation platform. We pair multi-modality diagnostic vision (Chest Radiography, Retinal OCT, Dermatoscopy, Histopathology) with <strong>Variational Quantum Classifiers (VQC)</strong> and VQE chemistry — detecting sub-visual pathology at Stage 0 and synthesizing targeted atomic countermeasures in 12–24 hours instead of a decade.`,
     facts: [
-      ['Founded on', `<b>QM/MM hybrid modeling</b> + Quantum Reinforcement Learning`],
-      ['Built against', `Drug-resistant <b>M. tuberculosis</b>, <b>SARS-CoV-2</b>, <b>Salmonella</b>`],
-      ['Deployed on', `Local CPU statevector <i>and</i> physical IBM QPUs`],
+      ['Early Detection', '<b>Chest X-Ray</b> (98.8%), <b>Retinal OCT</b>, <b>Dermatoscopy</b>, <b>Histopathology</b>'],
+      ['Quantum Core', '<b>VQC Anomaly Vision</b> + <b>Variational Quantum Eigensolver (VQE)</b>'],
+      ['Deployed on', 'Local edge neural runtime <i>and</i> physical IBM Quantum QPUs'],
     ]
   },
   // 02 — What We're Doing
   {
-    id: 'what', num: '02', img: 'what-we-do.png', dual:'left',
-    eyebrow: ['What We\'re Doing', 'The central thesis', ''],
+    id: 'what', num: '02', img: 'what-we-do.png', dual: 'left',
+    eyebrow: ['What We\'re Doing', 'The Central Thesis', ''],
     title: 'Years → Hours. Millions → <span class="accent">Cost of a run</span>',
-    lede: `Traditional preclinical R&D spends <strong>$800M–$2.6B and 5–7 years</strong> per drug. Our QRL-guided pipeline resolves candidates in <strong>12–24 hours at ~$5M–$10M</strong> by computing the thermodynamic truth (ΔG, K<sub>d</sub>) instead of approximating it.`,
+    lede: `Traditional preclinical R&D spends <strong>$800M–$2.6B and 5–7 years</strong> per drug. Our unified diagnostic-to-countermeasure pipeline resolves verified therapeutic candidates in <strong>12–24 hours at ~$5M–$10M</strong> by computing thermodynamic ground-truth (ΔG, K<sub>d</sub>) directly from diagnostic findings.`,
     facts: [
       ['10⁶⁰', 'Drug-like molecules in chemical space — classically intractable to enumerate'],
-      ['5–7 yr', 'Classical timeline, replaced by a single optimized pipeline pass'],
+      ['12–24h', 'From clinical detection to verified atomic countermeasure candidate'],
       ['$800M↑', 'Vs. our run-cost reduction of roughly two orders of magnitude'],
     ]
   },
-  // 03 — Theory
+  // 03 — Early Detection Paradigm
   {
-    id: 'theory', num: '03', img: 'theory.png',
-    eyebrow: ['Project Overview', 'Theory & physics', ''],
-    title: 'The physics behind <span class="accent">every score</span>',
-    lede: `Four parameters decide whether a generated molecule becomes a drug.`,
-    formula: { cap:'Binding energy → affinity', body:'ΔG = RT ln(Kd)  ⟹  Kd ≈ 10^(ΔG/1.36) M  (room temp)' },
+    id: 'detect-overview', num: '03', img: 'detection-hero.png',
+    eyebrow: ['Clinical AI', 'Multi-Modality Diagnostics', ''],
+    title: 'Catching Pathology <span class="accent">Before Symptoms Emerge</span>',
+    lede: `Traditional medicine detects disease only after macro-scale tissue destruction triggers clinical symptoms. QuantumShield combines deep convolutional vision with parameterized quantum circuits to detect sub-visual cellular, retinal, and pulmonary anomalies at Stage 0 — long before irreversible clinical progression.`,
     facts: [
-      ['ΔG', `<b>Thermodynamic binding energy</b>. More negative = tighter, more stable blockade of the target pocket.`],
-      ['Kd', `<b>Dissociation constant</b> — concentration inhibiting 50% of receptors. Derived from ΔG.`],
-      ['HOMO–LUMO', `<b>Frontier-orbital gap</b>. Wide = stable & shelf-safe. Narrow (<8 eV) = toxicity flag (covalent latch).`],
-      ['Fsp³', `<b>Carbon saturation index</b>. Fsp³=0.0 = flat aromatic = <b>Extreme Risk</b> DNA intercalation.`],
+      ['Four Modalities', '<b>Chest X-Ray</b>, <b>Retinal OCT</b>, <b>Dermatoscopy</b>, <b>Histopathology</b>'],
+      ['Operating Point', 'Calibrated Platt scaling for zero-miss clinical sensitivity'],
+      ['Explainability', 'Grad-CAM saliency heatmaps highlighting exact anatomical lesion margins'],
     ]
   },
-  // 04 — Pipeline overview
+  // 04 — Pulmonary Radiography / CXR
   {
-    id: 'pipeline', num: '04', stacked:true,
-    eyebrow: ['Architecture', 'The 6-layer pipeline', ''],
-    title: 'Input → Verified candidate & report',
-    lede: `Every run flows sequentially across six logical layers.`,
-    layers: [
-      ['L1','Input & Pathogen Resolution','NVIDIA NIM + AlphaFold','Resolves target / UniProt / seed SMILES'],
-      ['L2','Generative Chemistry & QRL','SMILES LSTM + PyTorch RL','Samples & optimizes candidate structures'],
-      ['L3','Conformation & 3D Docking','RDKit · MMFF94','Relaxes & aligns molecule to pocket'],
-      ['L4','Quantum Mechanics & VQE','Qiskit / IBM QPU','Maps orbitals → qubits, solves ground state'],
-      ['L5','ADMET & DNA Validation','RDKit + Fsp³','Drug-likeness & mutagenicity gates'],
-      ['L6','Reporting & Cost','MD sim + live price APIs','Assay, NADAC/INR pricing, PDF docs'],
-    ],
-    art: ()=>svg(flowArt)
+    id: 'detect-cxr', num: '04', img: 'detection-histo.png', dual: 'left',
+    eyebrow: ['Modality I', 'Pulmonary Radiography (CXR)', ''],
+    title: 'TorchXRayVision + DenseNet-121 <span class="accent">at 98.8% Sensitivity</span>',
+    lede: `Pretrained on over 828,000 hospital radiographs via <strong>TorchXRayVision DenseNet-121</strong>, our pulmonary engine resolves pediatric and adult pneumonia, pleural effusion, and lung consolidation in 1.2 seconds, outputting anatomical risk logits calibrated via Platt temperature scaling.`,
+    facts: [
+      ['Backbone', 'DenseNet-121 · 828K+ hospital X-rays (TorchXRayVision)'],
+      ['Calibration', 'logit_calibrated = (raw_logit + 6.54) / 0.552'],
+      ['Performance', '98.78% sensitivity on acute pediatric & viral pneumonia'],
+    ]
   },
-  // 05 — Layer 1
+  // 05 — Retinal OCT Cross-Sections
   {
-    id: 'l1', num: '05', img: 'layer-1.png', dual:'left',
+    id: 'detect-oct', num: '05', img: 'detection-oct.png',
+    eyebrow: ['Modality II', 'Optical Coherence Tomography', ''],
+    title: 'Retinal OCT: <span class="accent">Sub-Micron Tissue Cross-Sections</span>',
+    lede: `Non-invasive optical coherence tomography captures the 10 micro-layers of the neurosensory retina at 3–5 µm axial optical resolution. Our model segments the fovea, detecting <strong>Diabetic Macular Edema (DME)</strong>, <strong>Choroidal Neovascularization (CNV)</strong>, and <strong>Drusen</strong> before irreversible vision impairment.`,
+    facts: [
+      ['Resolution', '3–5 µm axial optical resolution across retinal layers'],
+      ['Target Pathology', 'Diabetic Macular Edema (DME), Sub-retinal fluid, Drusen'],
+      ['Feature Engine', '3-channel aligned DenseNet feature embeddings'],
+    ]
+  },
+  // 06 — Dermatoscopy & Cellular Histopathology
+  {
+    id: 'detect-derm', num: '06', img: 'detection-derm.png', dual: 'left',
+    eyebrow: ['Modality III & IV', 'Surface Lesions & Tissue Biopsy', ''],
+    title: 'From Epiluminescent Lesions <span class="accent">to Biopsy Margins</span>',
+    lede: `From macroscopic epiluminescence dermoscopy (evaluating ABCD pigment networks for early Melanoma discrimination) to microscopic histopathology biopsy tiles (segmenting adenocarcinoma gland margins across the NCT-CRC-100K cohort), cellular abnormalities are identified at single-cell resolution.`,
+    facts: [
+      ['Dermatoscopy', 'HAM10000 cohort · Epiluminescence ABCD lesion scoring'],
+      ['Histopathology', 'NCT-CRC-100K colorectal adenocarcinoma gland margins'],
+      ['Cellular Gating', 'Automated nuclear contouring and dysplasia grading'],
+    ]
+  },
+  // 07 — Quantum Vision & VQC
+  {
+    id: 'detect-vqc', num: '07', img: 'detection-vqc.png',
+    eyebrow: ['Quantum Machine Learning', 'Parameterized Quantum Circuits', ''],
+    title: 'Quantum Vision (QCAD): <span class="accent">Hilbert Space Anomaly Mapping</span>',
+    lede: `When classical deep learning encounters subtle, atypical tissue presentations, QuantumShield projects deep feature vectors into an $N$-qubit Hilbert space via <strong>Angle Embedding</strong> ($R_y$ rotations + $CZ$ entanglement). The <strong>Variational Quantum Classifier (VQC)</strong> discovers complex non-linear decision boundaries that classical linear SVMs cannot resolve.`,
+    formula: { cap: 'Quantum statevector angle embedding', body: '|ψ(x)⟩ = ⨂_{j=1}^N [cos(x_j/2)|0⟩ + sin(x_j/2)|1⟩]  →  U(θ)|ψ(x)⟩' },
+    facts: [
+      ['Embedding', 'Multi-qubit Angle & Amplitude embedding into 2ᴺ space'],
+      ['Ansatz', 'Hardware-efficient TwoLocal (RY + CZ entanglement layers)'],
+      ['Measurement', 'Pauli-Z expectation values ⟨Z₀⟩ → diagnostic probability'],
+    ]
+  },
+  // 08 — Unified Loop: From Detection to Countermeasure
+  {
+    id: 'bridge', num: '08', img: 'theory.png', dual: 'left',
+    eyebrow: ['The Paradigm Shift', 'Diagnosis → Countermeasure', ''],
+    title: 'From Diagnostic Scan <span class="accent">to Atomic Countermeasure</span>',
+    lede: `Early detection flags the biological threat; quantum simulation solves it. When a pathogen (*M. tuberculosis*, *SARS-CoV-2*) or mutated oncogenic receptor is detected, its UniProt sequence and AlphaFold 3D pocket are resolved immediately, initiating automated ligand generation and VQE binding energy optimization.`,
+    facts: [
+      ['Turnaround', '< 24 hours from diagnostic scan to verified candidate'],
+      ['Pathogen Presets', 'TB InhA, COVID-19 M_pro, Salmonella FabH, EGFR mutations'],
+      ['Thermodynamics', 'Exact interatomic binding energy (ΔG) and inhibition (Kd)'],
+    ]
+  },
+  // 09 — 6-Layer Pipeline overview
+  {
+    id: 'pipeline', num: '09', stacked: true,
+    eyebrow: ['Architecture', 'The 6-layer pipeline', ''],
+    title: 'Input → Verified Candidate & Report',
+    lede: `Every countermeasure flows sequentially across six logical layers.`,
+    layers: [
+      ['L1', 'Input & Pathogen Resolution', 'NVIDIA NIM + AlphaFold', 'Resolves target / UniProt / seed SMILES'],
+      ['L2', 'Generative Chemistry & QRL', 'SMILES LSTM + PyTorch RL', 'Samples & optimizes candidate structures'],
+      ['L3', 'Conformation & 3D Docking', 'RDKit · MMFF94', 'Relaxes & aligns molecule to pocket'],
+      ['L4', 'Quantum Mechanics & VQE', 'Qiskit / IBM QPU', 'Maps orbitals → qubits, solves ground state'],
+      ['L5', 'ADMET & DNA Validation', 'RDKit + Fsp³', 'Drug-likeness & mutagenicity gates'],
+      ['L6', 'Reporting & Cost', 'MD sim + live price APIs', 'Assay, NADAC/INR pricing, PDF docs'],
+    ],
+    art: () => svg(flowArt)
+  },
+  // 10 — Layer 1
+  {
+    id: 'l1', num: '10', img: 'layer-1.png', dual: 'left',
     eyebrow: ['Layer 1', 'Input & Pathogen Resolution', ''],
-    title: 'Name a pathogen. <span class="accent">Resolve the target.</span>',
-    lede: `The user names a pathogen (or picks a preset — TB / COVID-19). We query the <strong>NVIDIA NIM</strong> <code>meta/llama-3.1-8b-instruct</code> model to extract the target receptor, its <strong>UniProt ID</strong>, and a seed SMILES, then pull the predicted <strong>3D AlphaFold</strong> structure and parse the 10 closest active-site residues for docking.`,
+    title: 'Resolve the target receptor. <span class="accent">Parse the pocket.</span>',
+    lede: `We query the <strong>NVIDIA NIM</strong> <code>meta/llama-3.1-8b-instruct</code> model to extract the target receptor, its <strong>UniProt ID</strong>, and a seed SMILES, then pull the predicted <strong>3D AlphaFold</strong> structure and parse the 10 closest active-site residues for docking.`,
     facts: [
       ['LLM', 'NVIDIA NIM · llama-3.1-8b-instruct (NVIDIA_API_KEY)'],
       ['Structures', 'EBI AlphaFold API · PDB parse → pocket residues'],
       ['Failover', 'UniProt KB primary-accession + search API'],
     ]
   },
-  // 06 — Layer 2
+  // 11 — Layer 2
   {
-    id: 'l2', num: '06', img: 'layer-2.png',
+    id: 'l2', num: '11', img: 'layer-2.png',
     eyebrow: ['Layer 2', 'Generative Chemistry & QRL', ''],
     title: 'Generate, <span class="accent">score</span>, reinforce.',
-    lede: `A character-level <strong>SMILES LSTM</strong> (AstraZeneca REINVENT lineage) samples raw candidate strings token-by-token. A <strong>PyTorch QRL agent</strong> computes policy-gradient updates against a reward blending drug-likeness (QED), synthetic accessibility (SA), and VQE binding affinity — reinforcing molecules that are strong <i>and</i> synthesizable.`,
+    lede: `A character-level <strong>SMILES LSTM</strong> (AstraZeneca REINVENT lineage) samples raw candidate strings token-by-token. A <strong>PyTorch QRL agent</strong> computes policy-gradient updates against a reward blending drug-likeness (QED), synthetic accessibility (SA), and VQE binding affinity.`,
     facts: [
       ['Model', '3-layer LSTM · embedding 256 · hidden 512'],
       ['Policy', 'PyTorch QRL · policy-gradient optimization'],
       ['Reward', 'QED + SA Score + VQE binding energy'],
     ]
   },
-  // 07 — Layer 3
+  // 12 — Layer 3
   {
-    id: 'l3', num: '07', img: 'layer-3.png', dual:'left',
+    id: 'l3', num: '12', img: 'layer-3.png', dual: 'left',
     eyebrow: ['Layer 3', 'Conformation & 3D Docking', ''],
     title: 'Relax to lowest energy. <span class="accent">Align to pocket.</span>',
-    lede: `RDKit builds <strong>3D conformers</strong> of each generated molecule and relaxes bond lengths, angles, and torsions with the <strong>MMFF94</strong> force field. The relaxed molecule is translated and rotated so its center of mass lands at the spatial center of the AlphaFold pocket — ready for electronic Hamiltonian construction.`,
+    lede: `RDKit builds <strong>3D conformers</strong> of each generated molecule and relaxes bond lengths, angles, and torsions with the <strong>MMFF94</strong> force field. The relaxed molecule is translated and rotated so its center of mass lands at the spatial center of the AlphaFold pocket.`,
     facts: [
       ['Conformer', 'RDKit 3D embedding'],
       ['Force field', 'MMFF94 relaxation'],
       ['Alignment', 'Center-of-mass → pocket centroid'],
     ]
   },
-  // 08 — Layer 4 — VQE
+  // 13 — Layer 4 — VQE
   {
-    id: 'l4', num: '08', img: 'layer-4.png',
+    id: 'l4', num: '13', img: 'layer-4.png',
     eyebrow: ['Layer 4', 'Quantum Mechanics & VQE', ''],
     title: 'The exact ground state, <span class="accent">not an approximation.</span>',
-    lede: `Valence orbitals map from fermionic to qubit operators via <strong>Jordan–Wigner / Parity (Z₂-symmetry) / Bravyi–Kitaev</strong>. A <strong>TwoLocal</strong> ansatz (RY + CZ) is classically optimized by <strong>COBYLA/SPSA</strong> to minimize ⟨H⟩ — locally on Qiskit's <code>StatevectorEstimator</code> or on a physical IBM QPU. The converged eigenvalue → ΔG → K<sub>d</sub>.`,
-    formula: { cap:'Variational eigensolver', body:'E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩  →  minimize over θ to reach ground-state E₀' },
+    lede: `Valence orbitals map from fermionic to qubit operators via <strong>Jordan–Wigner / Parity (Z₂-symmetry) / Bravyi–Kitaev</strong>. A <strong>TwoLocal</strong> ansatz (RY + CZ) is classically optimized by <strong>COBYLA/SPSA</strong> to minimize ⟨H⟩ — on CPU statevector or on a physical IBM QPU.`,
+    formula: { cap: 'Variational eigensolver', body: 'E(θ) = ⟨ψ(θ)|H|ψ(θ)⟩  →  minimize over θ to reach ground-state E₀' },
     facts: [
       ['Mapping', 'Jordan–Wigner · Parity + Z₂ · Bravyi-Kitaev'],
       ['Ansatz', 'TwoLocal (RY rotations, CZ entanglers)'],
-      ['Optimizer', 'COBYLA · SSPA'],
+      ['Optimizer', 'COBYLA · SPSA'],
     ]
   },
-  // 09 — Layer 5
+  // 14 — Layer 5
   {
-    id: 'l5', num: '09', img: 'layer-5.png', dual:'left',
+    id: 'l5', num: '14', img: 'layer-5.png', dual: 'left',
     eyebrow: ['Layer 5', 'ADMET & DNA Validation', ''],
     title: 'Will it survive the body? <span class="accent">Will it reach DNA?</span>',
     lede: `RDKit computes molecular weight, LogP, H-bond donors/acceptors, TPSA, and <strong>Lipinski violations</strong>. The coordinate engine independently calculates the <strong>Fsp³</strong> saturation index — a perfectly flat aromatic scaffold (Fsp³=0) is flagged <b>Extreme Risk · Flat Aromatic Toxicophore</b> for DNA intercalation.`,
@@ -277,75 +336,42 @@ const SCENES = [
       ['Alert', 'Flat aromatic (Fsp³=0) → DNA intercalation risk'],
     ]
   },
-  // 10 — Layer 6
+  // 15 — Layer 6
   {
-    id: 'l6', num: '10', img: 'layer-6.png',
+    id: 'l6', num: '15', img: 'layer-6.png',
     eyebrow: ['Layer 6', 'Reporting & Cost', ''],
     title: 'From binding curve to <span class="accent">price tag</span>',
-    lede: `We simulate a molecular-dynamics stability trajectory and a <strong>5-point log-dilution wet-lab assay</strong> centered on K<sub>d</sub>, then resolve <strong>live market prices</strong>: <strong>US Medicaid NADAC</strong> wholesale and <strong>myUpchar</strong> Indian retail (INR), against our generated candidate — outputting comparison charts, validation metrics, and PDF-style documentation.`,
+    lede: `We simulate a molecular-dynamics stability trajectory and a <strong>5-point log-dilution wet-lab assay</strong> centered on K<sub>d</sub>, then resolve <strong>live market prices</strong>: US Medicaid NADAC wholesale and Indian retail (INR), outputting comparative validation reports.`,
     facts: [
       ['Assay', '5-point log-dilution centered on Kd'],
       ['MD', 'Stability trajectory simulation'],
       ['Pricing', 'CMS NADAC (wholesale) + myUpchar (INR retail)'],
     ]
   },
-  // 11 — SMILES LSTM
+  // 16 — Modules gallery (two parallel marquee ticker lanes: RTL & LTR)
   {
-    id: 'lstm', num: '11', img: 'smiles-lstm.png', dual:'left',
-    eyebrow: ['Generative ML', 'SMILES LSTM', ''],
-    title: 'A character-level chemist <span class="accent">that learns</span>',
-    lede: `Our generator is a recurrent language model over the <strong>SMILES</strong> alphabet. Token <code>^</code> starts a sequence, <code>$</code> completes it; the network learns the grammar of valid chemistry and samples new scaffolds as medicine.`,
-    facts: [
-      ['Embedding', '256 dims'],
-      ['Recurrent', '3× LSTM / GRU · hidden 512'],
-      ['Output', 'Linear → vocabulary logits'],
-      ['Weights', 'pretrained.rnn.pth (PyTorch)'],
-      ['Lineage', 'AstraZeneca REINVENT (MolecularAI/Reinvent)'],
+    id: 'mods', num: '16', stacked: true,
+    eyebrow: ['Core Engines', 'Multi-Engine Architecture', ''],
+    title: 'Engines operating <span class="accent">in concert</span>',
+    lede: `Every figure and prediction on this platform is produced by specialized algorithmic engines running in real time. Hover any card to inspect its live computational role, or scroll smoothly to launch the full workspace.`,
+    mods: [
+      { tag: 'VQC', t: 'Quantum Vision', d: 'Hilbert-space anomaly detection', m: modMotifs.vqe, img: 'detection-vqc.png' },
+      { tag: 'CXR', t: 'TorchXRayVision', d: '98.8% pediatric pneumonia sensitivity', m: modMotifs.fold, img: 'detection-hero.png' },
+      { tag: 'OCT', t: 'Retinal Layer Engine', d: 'Sub-micron macular edema mapping', m: modMotifs.dock, img: 'detection-oct.png' },
+      { tag: 'VQE', t: 'Variational Eigensolver', d: 'Ground-state energy → ΔG → Kd', m: modMotifs.vqe, img: 'mod-vqe.png' },
+      { tag: 'LSTM', t: 'SMILES Generative Chem', d: 'Token-by-token scaffold sampling', m: modMotifs.lstm, img: 'mod-lstm.png' },
+      { tag: 'AlphaFold', t: '3D Structure', d: 'EBI predicted pocket resolution', m: modMotifs.fold, img: 'mod-alphafold.png' },
+      { tag: 'RDKit', t: 'Conformer & Docking', d: 'MMFF94 relax + pocket align', m: modMotifs.dock, img: 'mod-docking.png' },
+      { tag: 'ADMET', t: 'DNA Mutagenicity Gating', d: 'Fsp³ carbon saturation & Lipinski', m: modMotifs.admet, img: 'mod-admet.png' },
+      { tag: 'Price', t: 'Market Cost Benchmark', d: 'NADAC USD · myUpchar INR', m: modMotifs.price, img: 'mod-price.png' }
     ]
   },
-  // 12 — AlphaFold
+  // 17 — IBM Hardware
   {
-    id: 'alphafold', num: '12', img: 'alphafold.png',
-    eyebrow: ['3D Structure', 'AlphaFold resolution', ''],
-    title: 'No manual coordinates. <span class="accent">Predicted pockets.</span>',
-    lede: `For a custom pathogen we query <code>alphafold.ebi.ac.uk/api/prediction/{uniprot}</code> for predicted structure metadata, failover through UniProt KB for secondary accessions and keyword search (non-human organisms prioritized), then download the PDB and run <strong>parse_pdb_to_pocket</strong> to extract the 3D coordinates (X,Y,Z, element, charge) of the 10 nearest active-site residues.`,
-    facts: [
-      ['Primary', 'AlphaFold EBI prediction API → pdbUrl'],
-      ['Failover', 'UniProt KB JSON · search API by pathogen keyword'],
-      ['Parser', 'parse_pdb_to_pocket → 10 closest residues'],
-    ]
-  },
-  // 13 — Price & drug resolvers
-  {
-    id: 'price', num: '13', img: 'price-resolvers.png', dual:'left',
-    eyebrow: ['Live APIs', 'Price & drug-name resolvers', ''],
-    title: 'Wholesale dollar. <span class="accent">Retail rupee.</span>',
-    dataApi: true,
-    lede: `To benchmark R&D cost against the real market, the backend coordinates three live streams: NVIDIA NIM for pathogen→reference-drug translation, <strong>US CMS Medicaid NADAC</strong> for wholesale unit prices, and <strong>myUpchar</strong> for Indian retail MRP in INR.`,
-    facts: [
-      ['NIM', 'integrate.api.nvidia.com → llama-3.1-8b-instruct'],
-      ['NADAC', 'data.medicaid.gov → LIKE match reference drug'],
-      ['myUpchar', 'beta.myupchar.com → INR retail (MYUPCHAR_API_KEY)'],
-    ]
-  },
-  // 14 — Local quantum
-  {
-    id: 'local', num: '14', img: 'local-sim.png',
-    eyebrow: ['Local mode', 'Classical quantum simulation', ''],
-    title: 'Offline VQE <span class="accent">on the CPU</span>',
-    lede: `In offline mode we simulate the QPU classically on <strong>Qiskit v1.x primitives</strong>. We map the active-space Hamiltonian to qubit operators, prepare a <strong>TwoLocal</strong> trial state (RY + CZ, depth 2, CNOT 1), and iterate with <strong>COBYLA/SPSA</strong> to converge the ground state via <code>StatevectorEstimator</code>.`,
-    facts: [
-      ['SDK', 'Qiskit v1.x primitives'],
-      ['Estimator', 'qiskit.primitives.StatevectorEstimator'],
-      ['Ansatz', 'TwoLocal · RY + CZ · depth 2 · CNOT 1'],
-    ]
-  },
-  // 15 — IBM hardware
-  {
-    id: 'ibm', num: '15', img: 'ibm-hardware.png', dual:'left', code:true,
+    id: 'ibm', num: '17', img: 'ibm-hardware.png', dual: 'left', code: true,
     eyebrow: ['Physical hardware', 'IBM Quantum integration', ''],
     title: 'From laptop to a <span class="accent">real quantum chip</span>',
-    lede: `Provide an IBM API token and the pipeline switches to a physical QPU. <strong>qiskit_ibm_runtime</strong> selects the backend (e.g. <code>ibm_brisbane</code>, <code>ibm_kyoto</code>) and opens a dedicated <strong>Session</strong> to bundle iterative VQE submissions — bypassing inter-step queue waits and returning error-mitigated counts.`,
+    lede: `Provide an IBM API token and the pipeline switches to a physical QPU. <strong>qiskit_ibm_runtime</strong> selects the backend (e.g. <code>ibm_brisbane</code>, <code>ibm_kyoto</code>) and opens a dedicated <strong>Session</strong> to bundle iterative VQE submissions without queue delays.`,
     code: `from qiskit_ibm_runtime import QiskitRuntimeService, Estimator, Session\nservice = QiskitRuntimeService(channel="ibm_quantum", token=api_token)\nbackend = service.least_busy(operational=True)\nsession = Session(service=service, backend=backend)\nestimator = Estimator(session=session)`,
     facts: [
       ['Library', 'qiskit_ibm_runtime'],
@@ -353,43 +379,28 @@ const SCENES = [
       ['Session', 'Dedicated Session → no inter-step queue waits'],
     ]
   },
-  // 16 — Tech stack
+  // 18 — Tech Stack
   {
-    id: 'stack', num: '16', stacked:true,
+    id: 'stack', num: '18', stacked: true,
     eyebrow: ['Engineering', 'Technology stack', ''],
     title: 'What it\'s <span class="accent">built on</span>',
-    lede: `A modern quantum-classical full stack, end to end.`,
+    lede: `A unified clinical-quantum full stack, end to end.`,
     layers: [
-      ['FE','Frontend','React 19 · Vite · Tailwind v4','Framer Motion · Lucide'],
-      ['BE','Backend','Python 3.10+ · Flask · Flask-CORS','PyTorch · RDKit · Qiskit · Requests'],
-      ['QM','Quantum','Qiskit v1.x · StatevectorEstimator','qiskit_ibm_runtime (physical QPU)'],
-      ['ML','Generative','SMILES LSTM (REINVENT)','PyTorch QRL policy gradients'],
-      ['EX','External APIs','Gemini · AlphaFold · UniProt','Medicaid NADAC · myUpchar · NVIDIA NIM'],
+      ['CV', 'Vision & Detection', 'TorchXRayVision · DenseNet-121', 'Kermany OCT · HAM10000 · NCT-CRC-100K'],
+      ['QM', 'Quantum Vision & VQE', 'Qiskit v1.x · StatevectorEstimator', 'Parameterized Quantum Circuits (VQC) · IBM QPU'],
+      ['ML', 'Generative Chemistry', 'SMILES LSTM (REINVENT)', 'PyTorch QRL Policy Gradients'],
+      ['FE', 'Frontend', 'React 19 · Vite · Tailwind v4', 'Framer Motion · Lucide · Lenis Smooth Scroll'],
+      ['BE', 'Backend', 'Python 3.10+ · Flask · Flask-CORS', 'PyTorch · RDKit · Qiskit · Requests'],
     ],
-    art: ()=>svg(latticeArt)
+    art: () => svg(latticeArt)
   },
-  // 17 — Modules gallery (image-rich hover reveal grid)
+  // 19 — CTA
   {
-    id: 'mods', num: '17', stacked:true,
-    eyebrow: ['Methods', 'Module gallery', ''],
-    title: 'Six engines <span class="accent">at the core</span>',
-    lede: `Every figure on this page is produced by one of six engines. Hover a cell to load its rendered view — or keep scrolling to see the full pipeline. <span class="muted">Module renders are optional; the schematic stays if an image is missing.</span>`,
-    mods: [
-      { tag:'VQE',       t:'Variational eigensolver',  d:'Ground-state energy → ΔG → Kd',        m:modMotifs.vqe,    img:'mod-vqe.png' },
-      { tag:'LSTM',      t:'SMILES generative chem',   d:'Token-by-token scaffold sampling',     m:modMotifs.lstm,   img:'mod-lstm.png' },
-      { tag:'AlphaFold', t:'3D structure',            d:'Pocket residue resolution',            m:modMotifs.fold,   img:'mod-alphafold.png' },
-      { tag:'RDKit',     t:'Conformer & docking',      d:'MMFF94 relax + pocket align',          m:modMotifs.dock,   img:'mod-docking.png' },
-      { tag:'ADMET',     t:'Toxicity gating',         d:'Lipinski + Fsp³ DNA-intercalation',    m:modMotifs.admet,  img:'mod-admet.png' },
-      { tag:'Price',     t:'Cost benchmark',           d:'NADAC USD · myUpchar INR',             m:modMotifs.price,  img:'mod-price.png' }
-    ]
-  },
-  // 18 — CTA
-  {
-    id: 'cta', num: '18', stacked:true, cta:true,
-    eyebrow: ['Enter the platform', 'Begin a discovery run', ''],
-    title: 'Spin up the <span class="accent">pipeline</span>',
-    lede: `Open the live workspace: name a pathogen, set the optimization flags, and watch the six layers resolve a quantum-verified candidate with full comparative reporting.`,
-    art: ()=>svg(chipArt)
+    id: 'cta', num: '19', stacked: true, cta: true,
+    eyebrow: ['Enter the platform', 'Begin a diagnostic & discovery run', ''],
+    title: 'Spin up the <span class="accent">unified platform</span>',
+    lede: `Launch the live clinical workspace: upload medical imagery for sub-visual early detection, identify mutated pathogen targets, and synthesize quantum-verified countermeasure candidates in real time.`,
+    art: () => svg(chipArt)
   }
 ];
 

@@ -20,6 +20,7 @@ from simulation import (
     solve_huckel_gap,
     get_dynamic_molecular_properties
 )
+from utils import calculate_sascore, check_pains
 
 # Global in-memory caches to eliminate redundant external API queries
 _PATHOGEN_METADATA_CACHE = {
@@ -98,11 +99,18 @@ def init_reactions():
 init_reactions()
 
 
+_VQE_CACHE = {}
+
 def run_actual_vqe(qubit_op, active_orbitals=4):
     """
     Runs a real Variational Quantum Eigensolver (VQE) using Qiskit.
     Constructs a parameterized ansatz, sets up an Estimator, and runs a classical COBYLA optimizer.
+    Caches results by qubit operator string representation to eliminate redundant solves.
     """
+    op_key = str(qubit_op)
+    if op_key in _VQE_CACHE:
+        return _VQE_CACHE[op_key]
+
     num_qubits = qubit_op.num_qubits
     # Hardware-efficient ansatz for variational state preparation
     ansatz = TwoLocal(num_qubits, ['ry'], ['cz'], 'linear', reps=1)
@@ -112,16 +120,19 @@ def run_actual_vqe(qubit_op, active_orbitals=4):
     try:
         vqe = VQE(estimator, ansatz, optimizer)
         result = vqe.compute_minimum_eigenvalue(qubit_op)
-        return float(result.eigenvalue)
+        val = float(result.eigenvalue)
+        _VQE_CACHE[op_key] = val
+        return val
     except Exception as e:
         print(f"Qiskit VQE execution failed: {e}. Falling back to NumPyMinimumEigensolver (FCI).")
         try:
             numpy_solver = NumPyMinimumEigensolver()
             numpy_result = numpy_solver.compute_minimum_eigenvalue(qubit_op)
-            return float(numpy_result.eigenvalue)
+            val = float(numpy_result.eigenvalue)
+            _VQE_CACHE[op_key] = val
+            return val
         except Exception as ex:
             print(f"Classical NumPy solver fallback failed: {ex}.")
-            # Standard molecule core baseline fallback energy
             return -75.0
 
 
@@ -315,7 +326,7 @@ class QuantumRLAgent:
     def compute_parameter_shift_gradients(self, state, action, action_mask):
         """
         Computes the analytical policy log-gradient with respect to theta 
-        using the Parameter-Shift Rule and Action Masking.
+        using the Parameter-Shift Rule and Action Masking with vectorized Estimator batching.
         """
         temperature = 2.0
         grads = np.zeros_like(self.theta)
@@ -324,24 +335,33 @@ class QuantumRLAgent:
         # Get baseline probabilities and expectations
         probs, expectations = self.get_action_probabilities(state, action_mask)
         
-        # Shift each parameter theta_j
+        # Batch all 2 * len(theta) shifted circuits into ONE Estimator call for high speed
+        pubs = []
         for j in range(len(self.theta)):
-            # Theta + pi/2
             theta_plus = np.copy(self.theta)
             theta_plus[j] += shift
-            _, expectations_plus = self.get_action_probabilities(state, action_mask, theta_plus)
+            pubs.append((self.build_pqc_circuit(state, theta_plus), self.observables))
             
-            # Theta - pi/2
             theta_minus = np.copy(self.theta)
             theta_minus[j] -= shift
-            _, expectations_minus = self.get_action_probabilities(state, action_mask, theta_minus)
+            pubs.append((self.build_pqc_circuit(state, theta_minus), self.observables))
             
-            # Exact gradient: d<O_k>/dtheta_j = 0.5 * (<O_k>_+ - <O_k>_-)
-            d_expectations = 0.5 * (expectations_plus - expectations_minus)
+        try:
+            job = self.estimator.run(pubs)
+            results = job.result()
             
-            # Softmax log-gradient with action mask: d(ln P(a))/dtheta_j = temperature * [ d<O_a>/dtheta_j - sum_i P(i)*d<O_i>/dtheta_j ]
-            sum_prob_d_expectations = np.sum(probs * d_expectations)
-            grads[j] = temperature * (d_expectations[action] - sum_prob_d_expectations)
+            for j in range(len(self.theta)):
+                expectations_plus = results[2 * j].data.evs
+                expectations_minus = results[2 * j + 1].data.evs
+                
+                # Exact gradient: d<O_k>/dtheta_j = 0.5 * (<O_k>_+ - <O_k>_-)
+                d_expectations = 0.5 * (expectations_plus - expectations_minus)
+                
+                # Softmax log-gradient with action mask: d(ln P(a))/dtheta_j = temperature * [ d<O_a>/dtheta_j - sum_i P(i)*d<O_i>/dtheta_j ]
+                sum_prob_d_expectations = np.sum(probs * d_expectations)
+                grads[j] = temperature * (d_expectations[action] - sum_prob_d_expectations)
+        except Exception as e:
+            print(f"Vectorized gradient calculation failed: {e}")
             
         return grads
 
@@ -733,8 +753,8 @@ def calculate_chemical_reward(smiles, pocket_residues, reference_smiles, pathoge
     n_chiral = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
     n_rings = Lipinski.RingCount(mol)
     
-    sa_score = 1.5 + (0.005 * mw) + (0.3 * rotb) + (0.5 * n_chiral) + (0.4 * n_rings)
-    sa_score = max(1.0, min(10.0, sa_score))
+    # Peer-reviewed Synthetic Accessibility (Ertl & Schuffenhauer 2009)
+    sa_score = calculate_sascore(mol)
     
     # Lipinski rules
     violations = 0
@@ -743,11 +763,9 @@ def calculate_chemical_reward(smiles, pocket_residues, reference_smiles, pathoge
     if hbd > 5: violations += 1
     if hba > 10: violations += 1
     
-    pains_alerts = 0
-    for smarts in PAINS_SMARTS:
-        pat = Chem.MolFromSmarts(smarts)
-        if pat and mol.HasSubstructMatch(pat):
-            pains_alerts += 1
+    # Official RDKit PAINS FilterCatalog check
+    has_pains, pains_matches = check_pains(mol)
+    pains_alerts = len(pains_matches) if has_pains else 0
             
     # Tanimoto Fingerprint Novelty
     ref_mol = Chem.MolFromSmiles(reference_smiles)
@@ -777,13 +795,13 @@ def calculate_chemical_reward(smiles, pocket_residues, reference_smiles, pathoge
     
     # 1. Docking score: Co-optimize against Wild Type and Mutant pockets to build mutation resistance
     docking_energy_wt = gen.calculate_docking_energy(coords, pocket_residues)
-    docking_score_wt = -14.0 + 0.8 * (docking_energy_wt - 2.0)
-    docking_score_wt = max(-22.0, min(-6.0, docking_score_wt))
+    docking_score_wt = -9.5 + 0.6 * (docking_energy_wt - 2.0)
+    docking_score_wt = max(-13.0, min(-5.0, docking_score_wt))
     
     mutant_pocket = simulate_mutant_pocket(pocket_residues)
-    docking_energy_mut = gen.calculate_docking_energy(coords, mutant_pocket)
-    docking_score_mut = -14.0 + 0.8 * (docking_energy_mut - 2.0)
-    docking_score_mut = max(-22.0, min(-6.0, docking_score_mut))
+    docking_energy_mut = gen.calculate_docking_energy(coords, mutant_pocket, optimize_pose=False)
+    docking_score_mut = -9.5 + 0.6 * (docking_energy_mut - 2.0)
+    docking_score_mut = max(-13.0, min(-5.0, docking_score_mut))
     
     # Weighted combined mutation-resistant docking score
     docking_score = 0.6 * docking_score_wt + 0.4 * docking_score_mut
@@ -1029,6 +1047,9 @@ DISEASE_ALIASES = {
     "chikungunya": "chikungunya",
     "mrsa": "Staphylococcus aureus infection",
     "staph": "Staphylococcus aureus infection",
+    "pneumonia": "Streptococcus pneumoniae",
+    "bacterial pneumonia": "Streptococcus pneumoniae",
+    "pneumococcal pneumonia": "Streptococcus pneumoniae",
 }
 
 
@@ -1603,6 +1624,8 @@ def resolve_pathogen_metadata(pathogen_name):
         keywords.extend(['vibrio', 'cholerae', 'cholera'])
     if 'influenza' in p_name_lower or 'flu' in p_name_lower:
         keywords.extend(['influenza', 'flu', 'orthomyxoviridae'])
+    if 'pneumonia' in p_name_lower or 'pneumococc' in p_name_lower or 'streptococcus' in p_name_lower:
+        keywords.extend(['streptococcus', 'pneumoniae', 'pneumococcus', 'klebsiella', 'mycoplasma'])
 
     # ========================================================================
     # Step 1: Query Open Targets Platform for disease -> drug candidates list
@@ -1654,7 +1677,8 @@ def resolve_pathogen_metadata(pathogen_name):
                 rows = r2.json().get("data", {}).get("disease", {}).get("drugAndClinicalCandidates", {}).get("rows", [])
                 biological_keywords = ["antibody", "vaccine", "immunoglobulin", "serum", "antiserum",
                                        "interferon", "interleukin", "monoclonal", "recombinant",
-                                       "plasma", "globulin", "toxoid"]
+                                       "plasma", "globulin", "toxoid", "polysaccharide", "conjugate",
+                                       "conjugated", "crm197", "extract"]
                 
                 for row in rows:
                     drug_info = row.get("drug") or {}
@@ -1879,13 +1903,21 @@ def resolve_pathogen_metadata(pathogen_name):
     # Filter out biologicals, vaccines, antibodies
     biological_keywords = ["antibody", "vaccine", "immunoglobulin", "serum", "antiserum",
                            "interferon", "interleukin", "monoclonal", "recombinant",
-                           "plasma", "globulin", "toxoid"]
+                           "plasma", "globulin", "toxoid", "polysaccharide", "conjugate",
+                           "conjugated", "crm197", "extract"]
     if is_valid_drug and any(kw in fda_drug_name.lower() for kw in biological_keywords):
-        print(f"Pathogen Metadata: '{fda_drug_name}' is a biological/vaccine, not a small molecule. Marking as no drug.")
-        fda_drug_name = "None"
-        fda_drug_smiles = ""
-        is_fda_approved = False
+        print(f"Pathogen Metadata: '{fda_drug_name}' is a biological/vaccine, not a small molecule.")
+        fda_drug_name = None
         is_valid_drug = False
+
+    # Try fallback to Open Targets top drug candidate if primary candidate failed
+    if not is_valid_drug and ot_result and ot_result.get("drug_name"):
+        cand_name = ot_result.get("drug_name")
+        if not any(kw in cand_name.lower() for kw in biological_keywords):
+            fda_drug_name = cand_name
+            is_fda_approved = ot_result.get("drug_is_approved", False)
+            is_valid_drug = True
+            print(f"Pathogen Metadata: Falling back to Open Targets drug candidate: '{fda_drug_name}'")
 
     if is_valid_drug:
         print(f"PubChem: Fetching official structure for reference drug: '{fda_drug_name}'...")
@@ -1903,8 +1935,66 @@ def resolve_pathogen_metadata(pathogen_name):
         fda_drug_smiles = ""
 
     # ========================================================================
-    # Construct final result
+    # Construct final result (with offline fallback for canonical pathogens)
     # ========================================================================
+    OFFLINE_FALLBACKS = {
+        'pneumonia': {
+            'target_protein': 'Penicillin-binding protein 2X (PBP2x)',
+            'uniprot_id': 'P02919',
+            'fda_drug_name': 'Amoxicillin',
+            'fda_drug_smiles': 'CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=C(C=C3)O)N)C(=O)O)C',
+            'is_fda_approved': True,
+            'is_ema_approved': True,
+        },
+        'streptococcus pneumoniae': {
+            'target_protein': 'Penicillin-binding protein 2X (PBP2x)',
+            'uniprot_id': 'P02919',
+            'fda_drug_name': 'Amoxicillin',
+            'fda_drug_smiles': 'CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=C(C=C3)O)N)C(=O)O)C',
+            'is_fda_approved': True,
+            'is_ema_approved': True,
+        },
+        'tuberculosis': {
+            'target_protein': 'Enoyl-[acyl-carrier-protein] reductase (InhA)',
+            'uniprot_id': 'P9WGR1',
+            'fda_drug_name': 'Isoniazid',
+            'fda_drug_smiles': 'c1cc(ccn1)C(=O)NN',
+            'is_fda_approved': True,
+            'is_ema_approved': True,
+        },
+        'covid-19': {
+            'target_protein': '3C-like proteinase (Mpro)',
+            'uniprot_id': 'P0DTD1',
+            'fda_drug_name': 'Nirmatrelvir',
+            'fda_drug_smiles': 'CC1(C2C1C(N(C2)C(=O)C(C(C)(C)C)NC(=O)C(F)(F)F)C(=O)NC(CC3CCNC3=O)C#N)C',
+            'is_fda_approved': True,
+            'is_ema_approved': True,
+        },
+        'mrsa': {
+            'target_protein': 'Penicillin-binding protein 2a (PBP2a)',
+            'uniprot_id': 'P0A0J5',
+            'fda_drug_name': 'Vancomycin',
+            'fda_drug_smiles': 'CC1C(C(CC(O1)OC2C(C(C(OC2OC3=C4C=C5C=C3OC6=C(C=C(C=C6)C(C(C(=O)NC(C(=O)NC5C(=O)NC7C8=CC(=C(C(=C8)C9=C(C=C(C=C9O)C(NC(=O)C(NC4=O)CC(=O)N)C(=O)O)O)O)O)NC(=O)C(CC(C)C)NC)O)Cl)CO)O)O)(C)N)O',
+            'is_fda_approved': True,
+            'is_ema_approved': True,
+        }
+    }
+
+    norm_key = search_term.lower().strip()
+    if (not target_protein or target_protein == "Target Protein" or not uniprot_id or uniprot_id == "P12345" or fda_drug_name == "None") and norm_key in OFFLINE_FALLBACKS:
+        fb = OFFLINE_FALLBACKS[norm_key]
+        if not target_protein or target_protein == "Target Protein":
+            target_protein = fb['target_protein']
+        if not uniprot_id or uniprot_id == "P12345":
+            uniprot_id = fb['uniprot_id']
+        if fda_drug_name == "None" or not fda_drug_name:
+            fda_drug_name = fb['fda_drug_name']
+            fda_drug_smiles = fb['fda_drug_smiles']
+            is_fda_approved = fb['is_fda_approved']
+            is_ema_approved = fb['is_ema_approved']
+        data_sources.append("Canonical Pathogen Knowledgebase")
+        print(f"Pathogen Metadata: Applied canonical fallback for '{pathogen_name}' -> Target: {target_protein}, Drug: {fda_drug_name}")
+
     if not target_protein:
         target_protein = "Target Protein"
     if not uniprot_id:
@@ -2038,7 +2128,7 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
             md_res = run_molecular_dynamics_simulation(coords, temp=310.15, steps=15)
             docking_frames = []
             for frame in md_res.get("trajectory", []):
-                f_dock = gen.calculate_docking_energy(frame, pocket_residues)
+                f_dock = gen.calculate_docking_energy(frame, pocket_residues, optimize_pose=False)
                 f_dock_score = -6.0 - abs(f_dock % 8.0)
                 docking_frames.append(f_dock_score)
             
@@ -2146,6 +2236,7 @@ def run_qrl_optimization(seed_smiles, pathogen_name, epochs=10):
         "optimized_smiles": current_smiles,
         "history": history,
         "circuit_svg": circuit_svg,
+        "circuit_ascii": str(final_qc) if 'final_qc' in locals() else "",
         "target_protein": pathogen_meta.get("target_protein", "Target Protein"),
         "uniprot_id": pathogen_meta.get("uniprot_id", "P12345"),
         "fda_drug_name": pathogen_meta.get("fda_drug_name", "FDA Reference"),

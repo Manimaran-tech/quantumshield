@@ -26,7 +26,7 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {
-        ignored: ['**/custom_targets.json', '**/*.log', '**/*.npy', '**/*.pth', '**/*.pkl', '**/*.h5', '**/*.csv', '**/data/**', '**/models/**', '**/venv/**', '**/__pycache__/**']
+        ignored: ['**/.agents/**', '**/scratch/**', '**/*.log', '**/*.npy', '**/*.pth', '**/*.pkl', '**/*.h5', '**/*.csv', '**/data/**', '**/models/**', '**/venv/**', '**/__pycache__/**', '**/custom_targets.json']
       },
     },
   };

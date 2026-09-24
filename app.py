@@ -912,6 +912,7 @@ def qrl_circuit():
             "status": "success",
             # SVG comes directly from Qiskit's matplotlib circuit drawer.
             "circuit_svg": circuit_svg,
+            "circuit_ascii": str(qc),
             "qubits": qc.num_qubits,
             "depth": qc.depth(),
             "gate_count": len(qc.data)

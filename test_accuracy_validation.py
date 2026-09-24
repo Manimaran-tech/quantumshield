@@ -100,16 +100,16 @@ def run_accuracy_proof():
     vqe_energy = vqe_result["final_energy"]
     fci_energy = vqe_result["fci_energy"]
     
-    # Calculate relative accuracy (deviation from exact classical configuration interaction ground state energy)
-    relative_error = abs(vqe_energy - fci_energy) / abs(fci_energy)
-    quantum_accuracy = (1.0 - relative_error) * 100.0
+    # Calculate absolute electronic error in millihartrees (standard quantum chemistry benchmark)
+    energy_error_hartree = abs(vqe_energy - fci_energy)
+    energy_error_mha = energy_error_hartree * 1000.0
+    chemical_accuracy_mha = 1.6  # 1.6 mHa ~ 1.0 kcal/mol chemical accuracy threshold
 
     print(f"  Simulation completed in {vqe_duration:.2f} seconds.")
     print(f"  Qubits Used: {vqe_result['qubits']}")
     print(f"  Calculated VQE Ground State Energy: {vqe_energy:.6f} Hartree")
-    print(f"  Exact FCI Ground State Energy:       {fci_energy:.6f} Hartree")
-    print(f"  Energy Difference (Hartree-Fock error): {abs(vqe_energy - fci_energy):.6f} Hartree")
-    print(f"  Quantum Solver Accuracy: {quantum_accuracy:.4f}%")
+    print(f"  Exact FCI Diagonalized Energy:      {fci_energy:.6f} Hartree")
+    print(f"  VQE Discrepancy:                    {energy_error_mha:.2f} mHa (Chemical Accuracy Benchmark: {chemical_accuracy_mha:.1f} mHa)")
 
     # 3. Calculate Classical Computational Scaling Bottleneck
     print("\n[STEP 3] Evaluating computational complexity scaling (Quantum vs Classical)...")
@@ -141,11 +141,11 @@ def run_accuracy_proof():
     print("=" * 80)
     print(f"  Pathogen: Tuberculosis (InhA Target Protein)")
     print(f"  Reference Drug scaffold overlap matching: {best_overlap * 100:.1f}%")
-    print(f"  Quantum Chemistry Solver Accuracy (vs FCI): {quantum_accuracy:.4f}% (PASSED >95% goal)")
-    print(f"  Classical simulation complexity scaling: Exponential O(2^N) -> Impossible at >50 qubits")
-    print(f"  Quantum VQE complexity scaling: Polynomial O(N^4) -> Scales to thousands of qubits")
+    print(f"  VQE Active-Space Error: {energy_error_mha:.2f} mHa (Standard Chemical Accuracy: 1.6 mHa)")
+    print(f"  Classical simulation complexity scaling: Exponential O(2^N) -> Intractable for large active spaces")
+    print(f"  Quantum VQE complexity scaling: Polynomial O(N^4) -> Feasible on near-term hardware")
     print("=" * 80)
-    print("[SUCCESS] Platform successfully validated as genuine, accurate, and scalable.")
+    print("[COMPLETED] Verified reproducible quantum active space calculation.")
     print("=" * 80)
 
 if __name__ == '__main__':
