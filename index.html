@@ -409,12 +409,9 @@
       justify-content: flex-start;
       padding: 112px 6vw 48px;
       opacity: 0;
-      will-change: opacity, transform, filter;
-      transform: translateY(22px) scale(.99);
-      filter: blur(7px);
-      /* opacity + transform are SCRUBBED directly to scroll position (no
-         transition) for a premium 1:1 tracking feel; only focus softens. */
-      transition: filter .5s cubic-bezier(.16, 1, .3, 1);
+      will-change: opacity, transform;
+      transform: translateY(22px);
+      filter: none;
       pointer-events: none;
       overflow-y: hidden;
       box-sizing: border-box;
@@ -445,7 +442,7 @@
     }
 
     .scene.is-active {
-      filter: blur(0);
+      filter: none;
       pointer-events: auto;
       overflow-y: auto;
     }
@@ -469,41 +466,198 @@
       max-width: 900px;
     }
 
-    /* Centered Hero Scene details */
+    /* ============================================================
+       HERO 2.5D LAYERED CUTOUT ARCHITECTURE
+       ============================================================ */
+    #scene-hero {
+      padding: 90px 0 20px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    /* Full-width Hero container so flank cards stay pinned to viewport edges at any zoom level */
+    #scene-hero .scene-inner {
+      position: relative;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 !important;
+    }
+
     #scene-hero .col-text {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
+      max-width: 820px;
+      padding: 0 16px;
+      z-index: 2;
     }
 
     #scene-hero .eyebrow {
       justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    #scene-hero h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 5.5vw, 4.4rem) !important;
+      letter-spacing: -1.5px !important;
+      color: var(--charcoal) !important;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+      line-height: 1.05;
     }
 
     #scene-hero .lede {
       margin-left: auto;
       margin-right: auto;
+      max-width: 760px;
+      color: var(--slate);
+      font-size: clamp(14px, 1.2vw, 17.5px);
+      line-height: 1.6;
     }
 
     .hero-scroll-hint {
-      margin-top: 40px;
+      margin-top: 36px;
       font-family: var(--mono);
       font-size: 11px;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--teal);
       animation: heroPulse 2s infinite ease-in-out;
+      cursor: pointer;
+      z-index: 10;
     }
 
     @keyframes heroPulse {
-
-      0%,
-      100% {
+      0%, 100% {
         opacity: 0.5;
         transform: translateY(0);
       }
+      50% {
+        opacity: 1;
+        transform: translateY(6px);
+      }
+    }
 
+    /* Left-Most & Right-Most Flanks pinned to screen edges */
+    .hero-flank {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: clamp(220px, 16vw, 280px);
+      z-index: 4;
+      pointer-events: auto;
+      transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+    }
+
+    .hero-flank-left {
+      left: clamp(16px, 2.5vw, 48px);
+    }
+
+    .hero-flank-right {
+      right: clamp(16px, 2.5vw, 48px);
+    }
+
+    .hero-flank-card {
+      border: 1px solid rgba(62, 65, 69, .15);
+      background: rgba(244, 244, 246, .72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 20px rgba(62, 65, 69, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      transition: all .3s ease;
+    }
+
+    .hero-flank-card:hover {
+      border-color: var(--teal);
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 8px 24px rgba(19, 138, 165, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .hero-flank-badge {
+      font-family: var(--mono);
+      font-size: 7.5px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--teal);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hero-flank-title {
+      font-family: var(--display);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--charcoal);
+      margin: 0;
+      letter-spacing: -0.2px;
+    }
+
+    .hero-flank-list {
+      list-style: none;
+      padding: 0;
+      margin: 2px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .hero-flank-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-family: var(--sans);
+      font-size: 10px;
+      line-height: 1.35;
+      color: var(--slate);
+    }
+
+    .hero-flank-list li strong {
+      color: var(--charcoal);
+    }
+
+    .hero-flank-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 960px) {
+      .hero-flank {
+        display: none;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .hero-cutout-layer {
+        margin-top: 16px;
+      }
+      .hero-badge {
+        display: none;
+      }
+    }
+
+    @keyframes heroPulse {
+      0%, 100% {
+        opacity: 0.5;
+        transform: translateY(0);
+      }
       50% {
         opacity: 1;
         transform: translateY(6px);
@@ -513,6 +667,12 @@
     /* Text column */
     .col-text {
       pointer-events: none;
+      will-change: transform;
+      transform-style: preserve-3d;
+    }
+
+    .scene.is-active .col-text {
+      pointer-events: auto;
     }
 
     .eyebrow {
@@ -762,6 +922,13 @@
       align-items: center;
       justify-content: center;
       min-height: 320px;
+      perspective: 1200px;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .scene.is-active .col-art {
+      pointer-events: auto;
     }
 
     .art-frame {
@@ -772,12 +939,40 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      transform-style: preserve-3d;
+      will-change: transform;
+      border-radius: 8px;
+    }
+
+    /* Specular sheen glare overlay */
+    .art-frame::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(
+        540px circle at var(--glare-x, 50%) var(--glare-y, 50%),
+        rgba(20, 184, 166, 0.22),
+        rgba(19, 138, 165, 0.04) 42%,
+        transparent 70%
+      );
+      pointer-events: none;
+      opacity: 0;
+      z-index: 6;
+      transition: opacity .35s ease;
+      mix-blend-mode: screen;
+    }
+
+    .col-art:hover .art-frame::before {
+      opacity: 1;
     }
 
     .art-frame svg {
       width: 100%;
       height: 100%;
       display: block;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
 
     .art-frame .opt-img {
@@ -788,8 +983,10 @@
       object-fit: contain;
       opacity: 0;
       clip-path: inset(0 100% 0 0);
-      transition: opacity .4s ease, clip-path .95s cubic-bezier(.16, 1, .3, 1), transform .55s cubic-bezier(.16, 1, .3, 1);
+      transition: opacity .4s ease, clip-path .95s cubic-bezier(.16, 1, .3, 1);
       z-index: 3;
+      transform-style: preserve-3d;
+      will-change: transform;
     }
 
     .art-frame .opt-img.on {
@@ -1947,28 +2144,39 @@
 
     .mod-card {
       position: relative;
-      width: 230px;
+      width: 240px;
       flex-shrink: 0;
-      border: 1px solid rgba(62, 65, 69, .16);
-      background: rgba(244, 244, 246, .5);
-      backdrop-filter: blur(2px);
-      padding: 10px;
+      border: 1px solid rgba(19, 138, 165, .2);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       transition: all .4s cubic-bezier(.16, 1, .3, 1);
-      cursor: default;
+      cursor: pointer;
       overflow: hidden;
+      box-shadow: 0 4px 18px rgba(62, 65, 69, 0.05);
+    }
+
+    .mod-card:hover {
+      border-color: var(--teal);
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 30px rgba(19, 138, 165, 0.16), 0 0 0 3px rgba(19, 138, 165, 0.1);
+      transform: translateY(-4px) scale(1.02);
     }
 
     .mod-frame {
       position: relative;
-      aspect-ratio: 4/3;
+      aspect-ratio: 16/10;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(62, 65, 69, .1);
-      background: rgba(255, 255, 255, .3);
+      border: 1px solid rgba(19, 138, 165, .15);
+      border-radius: 8px;
+      background: rgba(244, 244, 246, .45);
       overflow: hidden;
       transition: all .4s ease;
     }
@@ -1983,8 +2191,8 @@
     }
 
     .mod-art svg {
-      width: 80%;
-      height: 80%;
+      width: 75%;
+      height: 75%;
       display: block;
       transition: transform .5s cubic-bezier(.16, 1, .3, 1), opacity 0.4s ease;
     }
@@ -1994,23 +2202,25 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
       opacity: 0;
       transition: opacity .4s ease, transform .5s cubic-bezier(.16, 1, .3, 1);
       z-index: 2;
+      filter: drop-shadow(0 4px 12px rgba(19, 138, 165, 0.18));
     }
 
     .mod-img.on {
-      opacity: 1;
+      opacity: 0.95;
     }
 
     .mod-card:hover .mod-img.on {
-      transform: scale(1.05);
+      transform: scale(1.08);
+      opacity: 1;
     }
 
     .mod-card:hover .mod-frame {
-      border-color: #000000;
-      background: rgba(255, 255, 255, 0.9);
+      border-color: var(--teal);
+      background: rgba(255, 255, 255, 0.95);
     }
 
     /* Hide the underlying SVG schematic permanently once the image is loaded */
@@ -2288,9 +2498,9 @@
   </div>
 
   <!-- scene data + engine injected -->
+  <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js"></script>
   <script src="scenes.js?v=171"></script>
   <script src="engine.js?v=171"></script>
-  <script src="https://unpkg.com/lenis@1.1.14/dist/lenis.min.js"></script>
   <script src="enhance.js?v=171"></script>
 
   <!-- Diagnostic & Fallback script for hover interactions -->

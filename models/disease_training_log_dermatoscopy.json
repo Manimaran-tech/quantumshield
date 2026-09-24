@@ -1,0 +1,52 @@
+{
+  "modality": "dermatoscopy",
+  "dataset": "dermamnist",
+  "dataset_info": {
+    "task": "multi-class",
+    "n_classes": 7,
+    "n_channels": 3,
+    "train_samples": 7007,
+    "test_samples": 2005
+  },
+  "config": {
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "pca_components": 4,
+    "vqc_layers": 3,
+    "vqc_shots": 4096,
+    "vqc_optimizer": "COBYLA",
+    "vqc_max_iter": 1000,
+    "classical_svm_kernel": "rbf",
+    "classical_rf_estimators": 200,
+    "test_split": 0.2,
+    "random_seed": 42
+  },
+  "vqc_results": {
+    "train_accuracy": 0.052,
+    "test_accuracy": 0.042,
+    "training_time_s": 829.9,
+    "num_qubits": 4,
+    "num_layers": 3,
+    "num_params": 16,
+    "optimizer": "COBYLA",
+    "shots": 4096
+  },
+  "classical_results": {
+    "svm": {
+      "accuracy": 0.679,
+      "f1_score": 0.5777102817869525,
+      "training_time_s": 2.8,
+      "kernel": "rbf"
+    },
+    "random_forest": {
+      "accuracy": 0.669,
+      "f1_score": 0.6060658397576827,
+      "training_time_s": 0.4,
+      "n_estimators": 200
+    },
+    "best_model": "SVM"
+  },
+  "total_training_time_s": 862.6,
+  "timestamp": "2026-09-09T15:24:14.104107",
+  "gpu": "NVIDIA RTX 3050 (8GB VRAM)"
+}

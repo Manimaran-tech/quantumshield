@@ -8,7 +8,7 @@
   var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // 2. Initialize Lenis Smooth Scroll
-  if (!prefersReduced && typeof Lenis !== 'undefined') {
+  if (!window.lenis && !prefersReduced && typeof Lenis !== 'undefined') {
     var lenis = new Lenis({
       lerp: 0.1,
       smoothWheel: true,

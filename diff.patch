@@ -1,0 +1,384 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 9355807..b7764e3 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -37,7 +37,12 @@ import {
+   Copy,
+   Check,
+   X,
+-  Download
++  Download,
++  Upload,
++  ArrowRight,
++  BarChart3,
++  Microscope,
++  ScanEye
+ } from 'lucide-react';
+ import { motion, AnimatePresence } from 'motion/react';
+ import { LOGO2_BASE64 } from './logo2_base64';
+@@ -1010,7 +1015,15 @@ export default function App() {
+   const [noiseLevel, setNoiseLevel] = useState<number>(15); // Percentage 0% to 100%
+   const [errorMitigation, setErrorMitigation] = useState<boolean>(true);
+   const [quantumTaskStatus, setQuantumTaskStatus] = useState<'idle' | 'running' | 'completed'>('idle');
+-  const [activeTab, setActiveTab] = useState<'viewport' | 'docking' | 'predict' | 'generative' | 'codesign' | 'validation' | 'qrl'>('viewport');
++  const [activeTab, setActiveTab] = useState<'viewport' | 'docking' | 'predict' | 'generative' | 'codesign' | 'validation' | 'qrl' | 'disease'>('disease');
++
++  // QML Disease Detection States
++  const [diseaseUploadedImage, setDiseaseUploadedImage] = useState<string | null>(null);
++  const [diseaseImageFile, setDiseaseImageFile] = useState<File | null>(null);
++  const [diseaseModality, setDiseaseModality] = useState<string>('chest_xray');
++  const [diseaseResult, setDiseaseResult] = useState<any>(null);
++  const [isDiseaseAnalyzing, setIsDiseaseAnalyzing] = useState<boolean>(false);
++  const [diseaseError, setDiseaseError] = useState<string | null>(null);
+   const [rotationSpeed, setRotationSpeed] = useState<number>(1.2);
+   const [selectedQuantumMapper, setSelectedQuantumMapper] = useState<'jw' | 'parity' | 'bk'>('parity');
+   const [optimizationHistory, setOptimizationHistory] = useState<any[]>([]);
+@@ -2353,6 +2366,58 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
+     fetchQrlCircuit();
+   }, [qrlSeedSmiles, selectedTargetOption, customPathogen]);
+ 
++  // ==========================================
++  // QML DISEASE DETECTION HANDLER
++  // ==========================================
++  const handleDiseaseDetect = async () => {
++    if (!diseaseImageFile) {
++      setDiseaseError('Please upload a medical image first.');
++      return;
++    }
++    setIsDiseaseAnalyzing(true);
++    setDiseaseError(null);
++    setDiseaseResult(null);
++    try {
++      const formData = new FormData();
++      formData.append('image', diseaseImageFile);
++      formData.append('modality', diseaseModality);
++      const response = await fetch(`${API_BASE}/api/disease/detect`, {
++        method: 'POST',
++        body: formData
++      });
++      if (!response.ok) throw new Error(`Server error: ${response.status}`);
++      const data = await response.json();
++      if (data.status === 'error') throw new Error(data.error);
++      setDiseaseResult(data);
++    } catch (err: any) {
++      setDiseaseError(err.message || 'Disease detection failed.');
++    } finally {
++      setIsDiseaseAnalyzing(false);
++    }
++  };
++
++  const handleDiseaseImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
++    const file = e.target.files?.[0];
++    if (file) {
++      setDiseaseImageFile(file);
++      setDiseaseResult(null);
++      setDiseaseError(null);
++      const reader = new FileReader();
++      reader.onload = (ev) => setDiseaseUploadedImage(ev.target?.result as string);
++      reader.readAsDataURL(file);
++    }
++  };
++
++  const handleBridgeToDrugDiscovery = () => {
++    if (!diseaseResult?.drug_target) return;
++    const target = diseaseResult.drug_target;
++    setCustomPathogen(target.pathogen || target.disease);
++    setCustomPathogenInput(target.pathogen || target.disease);
++    setGenerativeTarget('custom');
++    setIsCustomMode(true);
++    setActiveTab('generative');
++  };
++
+   // Run simulated Wet-Lab Virtual Twin Validation
+   const handleRunWetLab = async (smilesString: string, pathogenName: string) => {
+     setIsWetLabRunning(true);
+@@ -5344,6 +5409,17 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
+           {/* VISUAL VIEWPORTS TABS */}
+           <div className="glass-panel ibm-card rounded-sm flex-1 flex flex-col overflow-hidden relative min-h-[640px]">
+             <div className="flex border-b border-[#2B4C63]/10 bg-[#EDEEEB]/80 flex-wrap">
++              <button
++                id="tab-btn-disease"
++                onClick={() => setActiveTab('disease')}
++                className={`flex-1 py-3 px-2 text-[10px] font-semibold uppercase font-display border-b-2 tracking-wider transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer min-w-[140px] ${activeTab === 'disease'
++                  ? 'border-[#2B4C63] text-[#2B4C63] bg-[#2B4C63]/5 font-bold'
++                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-[#EDEEEB]'
++                  }`}
++              >
++                <ScanEye className="h-3.5 w-3.5 text-[#2B4C63]" />
++                QML Disease Detection
++              </button>
+               <button
+                 id="tab-btn-generative"
+                 onClick={() => setActiveTab('generative')}
+@@ -5413,6 +5489,271 @@ q_7: ┤ Ry(π/10) ├─────────────░──┤ Ry(0.9
+ 
+             <div className="flex-1 p-4 flex flex-col relative">
+ 
++              {/* TAB 0: QML DISEASE DETECTION */}
++              {activeTab === 'disease' && (
++                <div id="tab-disease-content" className="flex-1 flex flex-col gap-4 overflow-y-auto">
++                  <div className="flex justify-between items-center border-b border-[#2B4C63]/10 pb-3">
++                    <div className="flex items-center gap-2">
++                      <ScanEye className="h-5 w-5 text-[#2B4C63]" />
++                      <h2 className="text-sm font-bold text-[#152D42] dark:text-slate-200 font-display uppercase tracking-widest">
++                        Hybrid Quantum ML Disease Detection
++                      </h2>
++                    </div>
++                    <span className="text-[9px] font-mono px-2 py-0.5 rounded border bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 border-[#2B4C63]/30 text-[#2B4C63] dark:text-slate-300">
++                      DenseNet-121 + Qiskit VQC (ZZFeatureMap + RealAmplitudes)
++                    </span>
++                  </div>
++
++                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 text-xs">
++                    {/* LEFT COLUMN: Input Panel */}
++                    <div className="flex flex-col gap-4">
++                      {/* Image Upload Zone */}
++                      <div className="glass-panel p-4 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col gap-3 bg-white/50 dark:bg-slate-900/50">
++                        <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
++                          <Upload className="h-3 w-3" />
++                          Upload Medical Image
++                        </span>
++                        <label className={`relative flex flex-col items-center justify-center min-h-[180px] border-2 border-dashed rounded-lg cursor-pointer transition-all duration-300 ${diseaseUploadedImage
++                          ? 'border-[#2B4C63] bg-[#2B4C63]/5 dark:bg-[#2B4C63]/10'
++                          : 'border-slate-300 dark:border-slate-700 hover:border-[#2B4C63] hover:bg-[#2B4C63]/5 bg-slate-50/50 dark:bg-slate-900/30'
++                        }`}>
++                          <input
++                            type="file"
++                            accept="image/jpeg,image/png,image/webp,image/bmp"
++                            onChange={handleDiseaseImageUpload}
++                            className="absolute inset-0 opacity-0 cursor-pointer"
++                          />
++                          {diseaseUploadedImage ? (
++                            <div className="flex flex-col items-center gap-2 p-2">
++                              <img src={diseaseUploadedImage} alt="Uploaded" className="max-h-[140px] rounded shadow-sm" />
++                              <span className="text-[9px] text-[#2B4C63] font-mono">{diseaseImageFile?.name} ({(diseaseImageFile?.size || 0 / 1024).toFixed(0)} KB)</span>
++                            </div>
++                          ) : (
++                            <div className="flex flex-col items-center gap-2 text-slate-400">
++                              <Upload className="h-8 w-8" />
++                              <span className="text-[10px] font-semibold text-[#152D42] dark:text-slate-300">Drop X-Ray, MRI, CT Scan, or Pathology Image</span>
++                              <span className="text-[9px]">JPEG, PNG — Click or drag to upload</span>
++                            </div>
++                          )}
++                        </label>
++                      </div>
++
++                      {/* Modality Selector */}
++                      <div className="glass-panel p-3 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col gap-2 bg-white/50 dark:bg-slate-900/50">
++                        <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
++                          <Microscope className="h-3 w-3" />
++                          Select Imaging Modality
++                        </span>
++                        <div className="grid grid-cols-2 gap-2">
++                          {[
++                            { id: 'chest_xray', label: '🫁 Chest X-Ray', desc: '14 Pathologies' },
++                            { id: 'pathology', label: '🔬 Pathology Slide', desc: '9 Tissue Types' },
++                            { id: 'dermatoscopy', label: '🩺 Dermatoscopy', desc: '7 Skin Conditions' },
++                            { id: 'retinal_oct', label: '👁️ Retinal OCT', desc: '4 Conditions' },
++                          ].map(mod => (
++                            <button
++                              key={mod.id}
++                              type="button"
++                              onClick={() => setDiseaseModality(mod.id)}
++                              className={`p-2 rounded-lg border text-left transition-all duration-200 cursor-pointer ${diseaseModality === mod.id
++                                ? 'border-[#2B4C63] bg-[#2B4C63]/5 dark:bg-[#2B4C63]/20 text-[#152D42] dark:text-slate-200 shadow-sm'
++                                : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-[#2B4C63]/30 hover:bg-slate-50'
++                              }`}
++                            >
++                              <div className="text-[10px] font-bold">{mod.label}</div>
++                              <div className="text-[8px] text-slate-400 mt-0.5">{mod.desc}</div>
++                            </button>
++                          ))}
++                        </div>
++                      </div>
++
++                      {/* Analyze Button */}
++                      <button
++                        onClick={handleDiseaseDetect}
++                        disabled={!diseaseImageFile || isDiseaseAnalyzing || isBackendOffline}
++                        className={`w-full py-3.5 font-display font-bold uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${
++                          !diseaseImageFile || isDiseaseAnalyzing || isBackendOffline
++                            ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed border border-transparent'
++                            : 'bg-[#2B4C63] hover:bg-[#152D42] border border-[#2B4C63] text-white cursor-pointer hover:shadow-[#2B4C63]/25'
++                        }`}
++                      >
++                        {isDiseaseAnalyzing ? (
++                          <><RotateCw className="h-4 w-4 animate-spin" /> Analyzing with VQC + DenseNet...</>
++                        ) : isBackendOffline ? (
++                          'Detection Disabled (Offline)'
++                        ) : (
++                          <><ScanEye className="h-4 w-4" /> Run Hybrid QML Detection</>
++                        )}
++                      </button>
++
++                      {diseaseError && (
++                        <div className="p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-sm text-red-700 dark:text-red-400 text-[10px] flex items-center gap-1.5">
++                          <AlertCircle className="h-3 w-3 shrink-0" /> {diseaseError}
++                        </div>
++                      )}
++
++                      {/* Quantum Circuit Info Card */}
++                      {diseaseResult?.quantum_classification?.circuit_metrics && (
++                        <div className="glass-panel p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50">
++                          <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
++                            <Cpu className="h-3 w-3" /> VQC Circuit Metrics
++                          </span>
++                          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
++                            <div><span className="text-slate-500">Qubits:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.qubits}</strong></div>
++                            <div><span className="text-slate-500">Depth:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.depth}</strong></div>
++                            <div><span className="text-slate-500">Gates:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.gates}</strong></div>
++                            <div><span className="text-slate-500">Params:</span> <strong>{diseaseResult.quantum_classification.circuit_metrics.parameters}</strong></div>
++                          </div>
++                          <div className="mt-2 p-2 bg-slate-950 rounded border border-slate-800 text-[8px] font-mono text-slate-300 overflow-x-auto max-h-[120px] overflow-y-auto">
++                            <pre className="whitespace-pre">{diseaseResult.quantum_classification.circuit_metrics.ascii_circuit}</pre>
++                          </div>
++                        </div>
++                      )}
++                    </div>
++
++                    {/* RIGHT COLUMN: Results Panel */}
++                    <div className="flex flex-col gap-4">
++                      {!diseaseResult && !isDiseaseAnalyzing && (
++                        <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-400 dark:text-slate-600 gap-3 min-h-[300px]">
++                          <ScanEye className="h-12 w-12 opacity-30" />
++                          <div className="text-sm font-bold text-[#152D42] dark:text-slate-400">Upload a Medical Image to Begin</div>
++                          <div className="text-[10px] max-w-[280px] leading-relaxed">
++                            The hybrid quantum-classical pipeline will run DenseNet-121 feature extraction → PCA dimensionality reduction → Qiskit VQC classification on your image.
++                          </div>
++                        </div>
++                      )}
++
++                      {isDiseaseAnalyzing && (
++                        <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 min-h-[300px]">
++                          <div className="relative">
++                            <div className="h-16 w-16 rounded-full border-4 border-slate-200 border-t-[#2B4C63] animate-spin" />
++                            <ScanEye className="h-6 w-6 text-[#2B4C63] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
++                          </div>
++                          <div className="text-xs font-bold text-[#152D42] dark:text-slate-300">Running Hybrid QML Pipeline...</div>
++                          <div className="text-[9px] text-slate-500 max-w-[250px]">
++                            DenseNet-121 → PCA(1024→4) → VQC (4-qubit, 4096 shots) → Classification
++                          </div>
++                        </div>
++                      )}
++
++                      {diseaseResult && diseaseResult.status === 'success' && (
++                        <>
++                          {/* Risk Assessment Header */}
++                          <div className={`p-3 rounded-lg border-2 flex items-center justify-between shadow-sm ${diseaseResult.risk_level === 'HIGH'
++                            ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
++                            : diseaseResult.risk_level === 'MODERATE'
++                              ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20'
++                              : 'border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
++                          }`}>
++                            <div>
++                              <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Primary Diagnosis</div>
++                              <div className="text-sm font-black text-[#152D42] dark:text-slate-100">{diseaseResult.top_diagnosis}</div>
++                              <div className="text-[9px] text-slate-500 font-mono mt-0.5">{diseaseResult.selection_reason}</div>
++                            </div>
++                            <div className="text-right">
++                              <div className={`text-2xl font-black ${diseaseResult.risk_level === 'HIGH' ? 'text-red-600' : diseaseResult.risk_level === 'MODERATE' ? 'text-amber-600' : 'text-emerald-600'}`}>
++                                {(diseaseResult.confidence * 100).toFixed(1)}%
++                              </div>
++                              <div className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded inline-block ${diseaseResult.risk_level === 'HIGH'
++                                ? 'bg-red-600 text-white'
++                                : diseaseResult.risk_level === 'MODERATE'
++                                  ? 'bg-amber-500 text-white'
++                                  : 'bg-emerald-500 text-white'
++                              }`}>
++                                {diseaseResult.risk_level} RISK
++                              </div>
++                            </div>
++                          </div>
++
++                          {/* Disease Risk Scores (Bar Chart) */}
++                          <div className="glass-panel p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50">
++                            <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
++                              <BarChart3 className="h-3 w-3 text-[#2B4C63]" /> Disease Probability Scores
++                            </span>
++                            <div className="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1">
++                              {(diseaseResult.quantum_classification?.predictions || []).slice(0, 8).map((pred: any, i: number) => {
++                                const pct = (pred.probability * 100);
++                                const color = pct >= 70 ? 'bg-red-500' : pct >= 30 ? 'bg-amber-500' : 'bg-emerald-500';
++                                return (
++                                  <div key={i} className="flex items-center gap-2">
++                                    <span className="text-[9px] font-mono w-[140px] truncate text-slate-600 dark:text-slate-400">{pred.class}</span>
++                                    <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
++                                      <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${Math.max(2, pct)}%` }} />
++                                    </div>
++                                    <span className="text-[9px] font-mono font-bold w-[40px] text-right text-slate-600">{pct.toFixed(1)}%</span>
++                                  </div>
++                                );
++                              })}
++                            </div>
++                          </div>
++
++                          {/* Quantum vs Classical Benchmark */}
++                          <div className="glass-panel p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/50">
++                            <span className="text-[10px] font-mono font-bold text-[#152D42] dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
++                              <Atom className="h-3 w-3 text-[#2B4C63]" /> Quantum vs Classical Benchmark
++                            </span>
++                            <div className="overflow-x-auto">
++                              <table className="w-full text-[9px] font-mono">
++                                <thead>
++                                  <tr className="border-b border-slate-200 dark:border-slate-700">
++                                    <th className="text-left py-1 px-1 text-slate-500">Metric</th>
++                                    <th className="text-center py-1 px-1 text-[#2B4C63] font-bold">Quantum (VQC)</th>
++                                    <th className="text-center py-1 px-1 text-slate-600">Classical</th>
++                                    <th className="text-center py-1 px-1 text-emerald-600">Δ Advantage</th>
++                                  </tr>
++                                </thead>
++                                <tbody>
++                                  {['accuracy', 'f1_score', 'sensitivity', 'specificity', 'auroc'].map(metric => {
++                                    const q = diseaseResult.benchmark?.quantum?.[metric] || 0;
++                                    const c = diseaseResult.benchmark?.classical?.[metric] || 0;
++                                    const diff = ((q - c) * 100).toFixed(2);
++                                    return (
++                                      <tr key={metric} className="border-b border-slate-100 dark:border-slate-800">
++                                        <td className="py-1 px-1 uppercase text-slate-500">{metric.replace('_', ' ')}</td>
++                                        <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{(q * 100).toFixed(2)}%</td>
++                                        <td className="py-1 px-1 text-center text-slate-500">{(c * 100).toFixed(2)}%</td>
++                                        <td className={`py-1 px-1 text-center font-bold ${parseFloat(diff) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>+{diff}%</td>
++                                      </tr>
++                                    );
++                                  })}
++                                  <tr>
++                                    <td className="py-1 px-1 uppercase text-slate-500">Inference</td>
++                                    <td className="py-1 px-1 text-center font-bold text-[#152D42] dark:text-slate-200">{diseaseResult.benchmark?.quantum?.inference_time_ms?.toFixed(0)}ms</td>
++                                    <td className="py-1 px-1 text-center text-slate-500">{diseaseResult.benchmark?.classical?.inference_time_ms?.toFixed(0)}ms</td>
++                                    <td className="py-1 px-1 text-center font-bold text-emerald-600">+{diseaseResult.benchmark?.quantum_advantage_pct?.toFixed(1)}%</td>
++                                  </tr>
++                                </tbody>
++                              </table>
++                            </div>
++                          </div>
++
++                          {/* Bridge to Drug Discovery */}
++                          {diseaseResult.drug_target && (
++                            <button
++                              onClick={handleBridgeToDrugDiscovery}
++                              className="w-full py-3.5 bg-[#2B4C63] hover:bg-[#152D42] text-white font-display font-bold uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-[#2B4C63]/30 group"
++                            >
++                              <Dna className="h-4 w-4" />
++                              Discover Drugs for {diseaseResult.drug_target.disease}
++                              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
++                            </button>
++                          )}
++
++                          {/* Report Summary */}
++                          <div className="glass-panel p-3 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed bg-white/50 dark:bg-slate-900/50">
++                            <span className="font-bold text-[#152D42] dark:text-slate-300 block mb-1">📋 Report Summary</span>
++                            {diseaseResult.report_summary}
++                            <div className="mt-2 text-[8px] italic text-slate-400 border-t border-slate-200 dark:border-slate-700 pt-1">
++                              {diseaseResult.disclaimer}
++                            </div>
++                          </div>
++                        </>
++                      )}
++                    </div>
++                  </div>
++                </div>
++              )}
++
+               {/* TAB 1: 3D MOLECULE */}
+               {activeTab === 'viewport' && (() => {
+                 const energy = bindingEnergyResult;

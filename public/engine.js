@@ -37,31 +37,36 @@
 
   // ---------- CSS per-scene needs (loaded images optional) ----------
   // seg = scrollProgress * (N-1)  → ranges 0 .. N-1
-  // Scene i is centered at integer i. Around each center there is a 0.8-unit
-  // HOLD (opacity 1) and a crisp 0.2-unit crossfade at each boundary (i±0.5),
-  // so adjacent scenes overlap with sum ≈ 1 (no fade-to-black dip).
+  // Scene i is centered at integer i. Around each center there is a 0.44-unit
+  // HOLD (opacity 1) [-0.22, +0.22], a 0.20-unit fade-out [+0.22, +0.42],
+  // a clean 0.16-unit delay dead-band [+0.42, +0.58] where both adjacent scenes
+  // are at 0 (preventing any text or art overlap), and a smooth 0.20-unit
+  // fade-in [-0.42, -0.22] for the next scene.
   function smoothstep(a, b, x) {
     if (x <= a) return 0; if (x >= b) return 1;
     var t = (x - a) / (b - a);
     return t * t * (3 - 2 * t);
   }
   function sceneOpacity(i, seg) {
-    var fadeIn, fadeOut;
-    // Wider 0.4-unit crossfade ramp (previously 0.2) → a slower, more
-    // luxurious dissolve. The math still guarantees adjacent scenes sum to
-    // exactly 1.000 across the whole scroll (no fade-to-black dip), because
-    // fadeOut_i spans the same band [i+0.3, i+0.7] as fadeIn_{i+1}.
-    if (i === 0) {
-      fadeIn = 1; // hero full at the very top
-    } else {
-      fadeIn = smoothstep(i - 0.7, i - 0.3, seg);
+    if (i === 0 && seg <= 0.22) {
+      return 1;
     }
-    if (i === N - 1) {
-      fadeOut = 1; // CTA scene holds through the final scroll
-    } else {
-      fadeOut = 1 - smoothstep(i + 0.3, i + 0.7, seg);
+    if (i === N - 1 && seg >= (N - 1) - 0.22) {
+      return 1;
     }
-    return fadeIn * fadeOut;
+    var d = seg - i;
+    if (Math.abs(d) <= 0.22) {
+      return 1;
+    }
+    if (d < 0) {
+      // Approaching scene i from previous scroll
+      if (d <= -0.42) return 0;
+      return smoothstep(-0.42, -0.22, d);
+    } else {
+      // Leaving scene i toward next scene
+      if (d >= 0.42) return 0;
+      return 1 - smoothstep(0.22, 0.42, d);
+    }
   }
 
   // ---------- Render scenes ----------
@@ -78,6 +83,66 @@
       var blurBand = document.createElement('div');
       blurBand.className = 'scene-blur-band';
       inner.appendChild(blurBand);
+
+      // Left-Most Flank: Early Detection (Small text)
+      var flankLeft = document.createElement('aside');
+      flankLeft.className = 'hero-flank hero-flank-left';
+      flankLeft.innerHTML =
+        '<div class="hero-flank-card">' +
+          '<div class="hero-flank-badge"><span class="hero-flank-dot"></span>STAGE 0 DETECTION</div>' +
+          '<h3 class="hero-flank-title">Early Disease Detection</h3>' +
+          '<ul class="hero-flank-list">' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Chest X-Ray</strong> · 98.8% sensitivity</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Retinal OCT</strong> · Sub-micron mapping</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Dermatoscopy</strong> · ABCD melanoma</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Biopsy</strong> · Adenocarcinoma margin</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Quantum Vision</strong> · VQC anomaly gate</span></li>' +
+          '</ul>' +
+        '</div>';
+      inner.appendChild(flankLeft);
+
+      // Center Column: Older style & color (h2 QUANTUMSHIELD, lede, scrollHint)
+      var textCol = document.createElement('div');
+      textCol.className = 'col-text';
+      textCol.appendChild(buildEyebrow(s));
+      var h2 = document.createElement('h2');
+      h2.innerHTML = s.title;
+      textCol.appendChild(h2);
+      if (s.lede) {
+        var lede = document.createElement('p');
+        lede.className = 'lede';
+        lede.innerHTML = s.lede;
+        textCol.appendChild(lede);
+      }
+      if (s.scrollHint) {
+        var hint = document.createElement('div');
+        hint.className = 'hero-scroll-hint js-hero-scroll';
+        hint.innerHTML = '<span>' + s.scrollHint + '</span>';
+        hint.style.cursor = 'pointer';
+        hint.addEventListener('click', function () { scrollToScene(1); });
+        textCol.appendChild(hint);
+      }
+      inner.appendChild(textCol);
+
+      // Right-Most Flank: Discovery (Small text)
+      var flankRight = document.createElement('aside');
+      flankRight.className = 'hero-flank hero-flank-right';
+      flankRight.innerHTML =
+        '<div class="hero-flank-card">' +
+          '<div class="hero-flank-badge"><span class="hero-flank-dot"></span>6-LAYER QM/MM</div>' +
+          '<h3 class="hero-flank-title">Quantum Bio-Simulation</h3>' +
+          '<ul class="hero-flank-list">' +
+            '<li><span class="hero-flank-dot"></span><span><strong>AlphaFold PDB</strong> · 10 pocket residues</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>SMILES LSTM</strong> · QRL policy sampling</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>MMFF94 3D</strong> · Conformer pocket relax</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>Qiskit VQE</strong> · Exact ground state (ΔG, Kd)</span></li>' +
+            '<li><span class="hero-flank-dot"></span><span><strong>ADMET & DNA</strong> · Fsp³ saturation safety</span></li>' +
+          '</ul>' +
+        '</div>';
+      inner.appendChild(flankRight);
+
+      el.appendChild(inner);
+      return el;
     }
 
     var textCol = document.createElement('div');
@@ -121,6 +186,8 @@
       var hint = document.createElement('div');
       hint.className = 'hero-scroll-hint';
       hint.innerHTML = '<span>' + s.scrollHint + '</span>';
+      hint.style.cursor = 'pointer';
+      hint.addEventListener('click', function () { scrollToScene(1); });
       textCol.appendChild(hint);
     }
     if (s.layers && s.layers.length) {
@@ -200,9 +267,10 @@
         return card;
       }
 
-      // Group modules: first 3 for Lane 1, next 3 for Lane 2
-      var group1 = s.mods.slice(0, 3);
-      var group2 = s.mods.slice(3, 6);
+      // Group modules dynamically: first half for Lane 1 (RTL), second half for Lane 2 (LTR)
+      var half = Math.ceil(s.mods.length / 2);
+      var group1 = s.mods.slice(0, half);
+      var group2 = s.mods.slice(half);
 
       // Populate Lane 1 (RTL) - 10 times to prevent loop interval breaks on wide screens
       for (var r1 = 0; r1 < 10; r1++) {
@@ -241,7 +309,7 @@
     artCol.className = 'col-art';
     var frame = document.createElement('div');
     frame.className = 'art-frame';
-    if (typeof s.art === 'function') {
+    if (typeof s.art === 'function' && !s.img) {
       frame.innerHTML = s.art();
     }
     // blueprint viewfinder corners — drawn in on art-column hover
@@ -252,7 +320,7 @@
     if (s.img) {
       var img = document.createElement('img');
       img.className = 'opt-img';
-      img.loading = 'lazy';
+      img.loading = 'eager';
       img.decoding = 'async';
       img.alt = s.id;
       img.addEventListener('error', function () { img.remove(); }); // keep SVG art
@@ -261,6 +329,10 @@
         frame.classList.add('has-img');
       });
       img.src = '/images/' + s.img;
+      if (img.complete) {
+        img.classList.add('on');
+        frame.classList.add('has-img');
+      }
       frame.appendChild(img);
       var cap = document.createElement('span');
       cap.className = 'art-caption';
@@ -297,17 +369,51 @@
     return d;
   }
 
+  // Initialize Lenis early if available
+  if (!window.lenis && typeof Lenis !== 'undefined') {
+    var lenis = new Lenis({
+      lerp: 0.1,
+      smoothWheel: true,
+      syncTouch: false
+    });
+    window.lenis = lenis;
+    function lenisRaf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(lenisRaf);
+    }
+    requestAnimationFrame(lenisRaf);
+  }
+
   SCENES.forEach(function (s, i) { DECK.appendChild(renderScene(s, i)); });
   var sceneEls = Array.prototype.slice.call(DECK.querySelectorAll('.scene'));
 
+  // Cache sub-elements per scene for 120fps hardware-accelerated parallax updates
+  var sceneCache = sceneEls.map(function (el) {
+    return {
+      el: el,
+      heroFlankLeft: el.querySelector('.hero-flank-left'),
+      heroFlankRight: el.querySelector('.hero-flank-right'),
+      textCol: el.querySelector('.col-text'),
+      artCol: el.querySelector('.col-art'),
+      artFrame: el.querySelector('.art-frame'),
+      optImg: el.querySelector('.opt-img'),
+      svgArt: el.querySelector('.art-frame > svg'),
+      formula: el.querySelector('.formula'),
+      layerRows: Array.prototype.slice.call(el.querySelectorAll('.layer-row')),
+      caption: el.querySelector('.art-caption')
+    };
+  });
+
   // ---------- Top Navigator Pill Bar ----------
   var SECTIONS = [
-    { name: 'Welcome', start: 0, end: 0, tag: 'welcome' },
-    { name: 'Science', start: 1, end: 4, tag: 'science' },
-    { name: 'Pipeline', start: 5, end: 10, tag: 'pipeline' },
-    { name: 'Engines', start: 11, end: 15, tag: 'engines' },
-    { name: 'Stack', start: 16, end: 16, tag: 'stack' },
-    { name: 'Modules', start: 17, end: 18, tag: 'modules' }
+    { name: 'Vision', start: 0, end: 0, tag: 'vision' },
+    { name: 'Overview', start: 1, end: 2, tag: 'who' },
+    { name: 'Early Detection', start: 3, end: 7, tag: 'detection' },
+    { name: 'Unified Loop', start: 8, end: 8, tag: 'bridge' },
+    { name: 'Simulation', start: 9, end: 15, tag: 'simulation' },
+    { name: 'Engines', start: 16, end: 16, tag: 'engines' },
+    { name: 'Quantum Core', start: 17, end: 18, tag: 'quantum' },
+    { name: 'Platform', start: 19, end: 19, tag: 'platform' }
   ];
   var PILL_BAR = document.getElementById('nav-pill-bar');
   var pillItems = [];
@@ -328,20 +434,133 @@
     });
   }
 
-  function scrollToScene(i) {
+  // ---------- Interactive 3D Cursor Tilt & Specular Sheen ----------
+  var currentTiltX = 0, currentTiltY = 0;
+  var targetTiltX = 0, targetTiltY = 0;
+  var isMouseOverArt = false;
+
+  window.addEventListener('mousemove', function (e) {
+    var c = sceneCache[currentScene];
+    if (!c) return;
+
+    if (currentScene === 0) {
+      targetTiltX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetTiltY = (e.clientY / window.innerHeight - 0.5) * 2;
+      return;
+    }
+
+    if (!c.artFrame) return;
+
+    var rect = c.artFrame.getBoundingClientRect();
+    var inX = e.clientX - rect.left;
+    var inY = e.clientY - rect.top;
+
+    if (inX >= -50 && inX <= rect.width + 50 && inY >= -50 && inY <= rect.height + 50) {
+      isMouseOverArt = true;
+      targetTiltX = ((inX / rect.width) - 0.5) * 2; // -1 to +1
+      targetTiltY = ((inY / rect.height) - 0.5) * 2; // -1 to +1
+
+      // Track dynamic specular highlight coordinates across glossy card surface
+      var gx = Math.max(0, Math.min(100, (inX / rect.width) * 100));
+      var gy = Math.max(0, Math.min(100, (inY / rect.height) * 100));
+      c.artFrame.style.setProperty('--glare-x', gx.toFixed(1) + '%');
+      c.artFrame.style.setProperty('--glare-y', gy.toFixed(1) + '%');
+    } else {
+      isMouseOverArt = false;
+      targetTiltX = 0;
+      targetTiltY = 0;
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', function () {
+    isMouseOverArt = false;
+    targetTiltX = 0;
+    targetTiltY = 0;
+  });
+
+  // Tilt spring physics tick
+  function tiltRaf() {
+    if (isMouseOverArt || Math.abs(currentTiltX - targetTiltX) > 0.002 || Math.abs(currentTiltY - targetTiltY) > 0.002) {
+      currentTiltX += (targetTiltX - currentTiltX) * 0.09;
+      currentTiltY += (targetTiltY - currentTiltY) * 0.09;
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    }
+    requestAnimationFrame(tiltRaf);
+  }
+  requestAnimationFrame(tiltRaf);
+
+  // ---------- Exact Magnetic Scene Snapping Controller ----------
+  var lastScrollY = window.scrollY || 0;
+  var lastScrollDelta = 0;
+  var lastScrollTime = performance.now();
+  var snapTimer = null;
+  var isSnappingProgrammatically = false;
+
+  function scrollToScene(i, customDuration) {
+    i = Math.max(0, Math.min(N - 1, i));
     var p = i / (N - 1);
     var max = totalScrollPx() - window.innerHeight;
     var targetScroll = Math.round(p * max);
+
+    isSnappingProgrammatically = true;
+    clearTimeout(snapTimer);
+
     if (window.lenis) {
-      window.lenis.scrollTo(targetScroll);
+      window.lenis.scrollTo(targetScroll, {
+        duration: customDuration || 0.65,
+        easing: function (t) {
+          return 1 - Math.pow(1 - t, 3); // Buttery cubic-out ease
+        },
+        onComplete: function () {
+          setTimeout(function () {
+            isSnappingProgrammatically = false;
+          }, 60);
+        }
+      });
     } else {
       window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+      setTimeout(function () {
+        isSnappingProgrammatically = false;
+      }, 650);
     }
   }
 
-  // ---------- Scroll handler (rAF-throttled) ----------
+  function scheduleMagneticSnap() {
+    if (isSnappingProgrammatically) return;
+
+    var y = window.scrollY || document.documentElement.scrollTop;
+    var maxScroll = Math.max(1, totalScrollPx() - window.innerHeight);
+    var p = Math.min(1, Math.max(0, y / maxScroll));
+    var seg = p * (N - 1);
+
+    var base = Math.floor(seg);
+    var frac = seg - base;
+    var targetScene = Math.round(seg);
+
+    // Momentum-aware snap settling:
+    // If user scrolled downward with momentum and passed 0.14 into next scene, snap forward.
+    // If user scrolled upward with momentum and passed 0.14 into previous scene, snap backward.
+    if (lastScrollDelta > 3 && frac > 0.14) {
+      targetScene = Math.min(N - 1, base + 1);
+    } else if (lastScrollDelta < -3 && frac < 0.86) {
+      targetScene = Math.max(0, base);
+    }
+
+    var targetP = targetScene / (N - 1);
+    var targetY = Math.round(targetP * maxScroll);
+
+    if (Math.abs(y - targetY) > 2) {
+      scrollToScene(targetScene);
+    }
+  }
+
+  // ---------- Scroll handler & Multi-Plane Parallax (rAF-throttled) ----------
   var ticking = false;
   var currentScene = 0;
+
   function update() {
     ticking = false;
     var y = window.scrollY || document.documentElement.scrollTop;
@@ -351,22 +570,110 @@
 
     PROGRESS.style.width = (p * 100) + '%';
 
-    // fade each scene; track whose band we're "in"
-    var maxOp = 0, winner = 0;
+    // Fade and parallax each scene; track whose band we're "in"
+    var maxOp = 0;
+    var closestScene = Math.min(N - 1, Math.max(0, Math.round(seg)));
+    var winner = closestScene;
+
     for (var i = 0; i < N; i++) {
       var op = sceneOpacity(i, seg);
-      sceneEls[i].style.opacity = op.toFixed(3);
-      if (op > maxOp) { maxOp = op; winner = i; }
+      var c = sceneCache[i];
+      c.el.style.opacity = op.toFixed(3);
+
+      if (op > 0.005) {
+        c.el.style.visibility = 'visible';
+        var d = seg - i;
+
+        // 0. Hero Left-Most & Right-Most Flanks Differential Parallax
+        if (i === 0) {
+          if (c.textCol) {
+            c.textCol.style.transform = 'translate3d(0, ' + (-d * 24).toFixed(1) + 'px, 0)';
+          }
+          if (c.heroFlankLeft) {
+            c.heroFlankLeft.style.transform = 'translate3d(' + (currentTiltX * -8).toFixed(1) + 'px, calc(-50% + ' + (-d * 18 + currentTiltY * 6).toFixed(1) + 'px), 12px)';
+          }
+          if (c.heroFlankRight) {
+            c.heroFlankRight.style.transform = 'translate3d(' + (currentTiltX * 8).toFixed(1) + 'px, calc(-50% + ' + (-d * 20 + currentTiltY * 6).toFixed(1) + 'px), 12px)';
+          }
+        }
+
+        // 1. Scene container base drift
+        c.el.style.transform = 'translate3d(0, ' + (-d * 18).toFixed(1) + 'px, 0)';
+
+        // 2. Text column differential parallax
+        if (c.textCol) {
+          c.textCol.style.transform = 'translate3d(0, ' + (-d * 24).toFixed(1) + 'px, 0)';
+        }
+
+        // 3. Formula / code block floating depth
+        if (c.formula) {
+          c.formula.style.transform = 'translate3d(0, ' + (-d * 34).toFixed(1) + 'px, 8px)';
+        }
+
+        // 4. Staggered layer chart accordion parallax
+        if (c.layerRows && c.layerRows.length) {
+          for (var r = 0; r < c.layerRows.length; r++) {
+            var rowOffset = -d * (14 + r * 5);
+            c.layerRows[r].style.transform = 'translate3d(0, ' + rowOffset.toFixed(1) + 'px, 0)';
+          }
+        }
+
+        // 5. Art column differential parallax
+        if (c.artCol) {
+          c.artCol.style.transform = 'translate3d(0, ' + (-d * 52).toFixed(1) + 'px, 0)';
+        }
+
+        // 6. Art frame and inner image / SVG parallax
+        var frameScrollZ = Math.max(0, (1 - Math.abs(d) * 2.2) * 26);
+        var frameRotY = -d * 7;
+        var imgScrollY = d * 32;
+        var imgScale = Math.max(0.96, 1.05 - Math.abs(d) * 0.08);
+
+        if (i === currentScene && isMouseOverArt) {
+          // Combined 3D cursor tilt + scroll depth
+          if (c.artFrame) {
+            c.artFrame.style.transform = 'perspective(1100px) rotateX(' + (-currentTiltY * 7).toFixed(2) + 'deg) rotateY(' + (frameRotY + currentTiltX * 8).toFixed(2) + 'deg) translateZ(' + frameScrollZ.toFixed(1) + 'px)';
+          }
+          if (c.optImg) {
+            c.optImg.style.transform = 'translate3d(' + (currentTiltX * 14).toFixed(1) + 'px, ' + (imgScrollY + currentTiltY * 14).toFixed(1) + 'px, 24px) scale(' + imgScale.toFixed(3) + ')';
+          }
+          if (c.svgArt) {
+            c.svgArt.style.transform = 'translate3d(' + (currentTiltX * 10).toFixed(1) + 'px, ' + (imgScrollY + currentTiltY * 10).toFixed(1) + 'px, 14px)';
+          }
+        } else {
+          // Pure scroll-driven parallax
+          if (c.artFrame) {
+            c.artFrame.style.transform = 'perspective(1100px) rotateY(' + frameRotY.toFixed(2) + 'deg) translateZ(' + frameScrollZ.toFixed(1) + 'px)';
+          }
+          if (c.optImg) {
+            c.optImg.style.transform = 'translate3d(0, ' + imgScrollY.toFixed(1) + 'px, 18px) scale(' + imgScale.toFixed(3) + ')';
+          }
+          if (c.svgArt) {
+            c.svgArt.style.transform = 'translate3d(0, ' + imgScrollY.toFixed(1) + 'px, 10px)';
+          }
+        }
+      } else {
+        c.el.style.visibility = 'hidden';
+        c.el.style.transform = 'translate3d(0, 24px, 0)';
+      }
+
+      if (op > maxOp) {
+        maxOp = op;
+        winner = i;
+      }
     }
 
     // Toggle active classes based on winner to prevent pointer-events dead zones
     for (var j = 0; j < N; j++) {
-      sceneEls[j].classList.toggle('is-active', j === winner);
+      var isAct = (j === winner && maxOp > 0.05);
+      sceneEls[j].classList.toggle('is-active', isAct);
+      sceneEls[j].style.pointerEvents = isAct ? 'auto' : 'none';
     }
+
     if (winner !== currentScene) {
       currentScene = winner;
       COUNTER_NOW.textContent = (winner < 10 ? '0' : '') + String(winner + 1);
-      
+
       // Update active nav pill based on winner index
       var activeTag = '';
       for (var k = 0; k < SECTIONS.length; k++) {
@@ -385,18 +692,119 @@
       });
     }
 
-    // subtle parallax: 0 px at the scene's exact center, drifts up as you
-    // approach the next scene (no rest-state offset).
-    var localSeg = seg - winner;
-    var wf = sceneEls[winner];
-    wf.style.transform = 'translateY(' + (-(localSeg) * 22).toFixed(1) + 'px) scale(1)';
+    // Background parallax
+    var dnaEl = document.getElementById('dna-viewport') || document.getElementById('css-dna');
+    if (dnaEl) {
+      dnaEl.style.transform = 'translate3d(0, ' + (p * -50).toFixed(1) + 'px, 0)';
+    }
+    var watermarksEl = document.getElementById('watermark-field');
+    if (watermarksEl) {
+      watermarksEl.style.transform = 'translate3d(0, ' + (p * -30).toFixed(1) + 'px, 0)';
+    }
 
-    // hint fades after first scroll
+    // Hint fades after first scroll
     HINT.style.opacity = (p < 0.02) ? '0.9' : '0';
   }
-  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+
+  function onScroll() {
+    var now = performance.now();
+    var y = window.scrollY || document.documentElement.scrollTop;
+    lastScrollDelta = y - lastScrollY;
+    lastScrollY = y;
+    lastScrollTime = now;
+
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+
+    // Debounce magnetic snap: settles exactly at nearest scene when scrolling stops
+    if (!isSnappingProgrammatically) {
+      clearTimeout(snapTimer);
+      snapTimer = setTimeout(scheduleMagneticSnap, 130);
+    }
+  }
+
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', function () { VPH = Math.max(window.innerHeight, 640); update(); });
+  window.addEventListener('resize', function () {
+    VPH = Math.max(window.innerHeight, 640);
+    setScrollerHeight();
+    update();
+  });
+
+  // User gesture interruption — allows instant takeover of scroll
+  window.addEventListener('wheel', function () {
+    if (isSnappingProgrammatically) {
+      isSnappingProgrammatically = false;
+    }
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(scheduleMagneticSnap, 130);
+  }, { passive: true });
+
+  var touchStartY = 0;
+  var touchStartTime = 0;
+  window.addEventListener('touchstart', function (e) {
+    if (isSnappingProgrammatically) {
+      isSnappingProgrammatically = false;
+    }
+    clearTimeout(snapTimer);
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = performance.now();
+  }, { passive: true });
+
+  window.addEventListener('touchend', function (e) {
+    var touchEndY = e.changedTouches[0].clientY;
+    var dy = touchStartY - touchEndY; // positive = swipe up (scroll down)
+    var dt = Math.max(1, performance.now() - touchStartTime);
+
+    if (Math.abs(dy) > 40 && dt < 450) {
+      if (dy > 0) {
+        scrollToScene(Math.min(N - 1, currentScene + 1));
+      } else {
+        scrollToScene(Math.max(0, currentScene - 1));
+      }
+    } else {
+      clearTimeout(snapTimer);
+      snapTimer = setTimeout(scheduleMagneticSnap, 110);
+    }
+  }, { passive: true });
+
+  // Keyboard navigation for scene snapping
+  window.addEventListener('keydown', function (e) {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+      e.preventDefault();
+      scrollToScene(Math.min(N - 1, currentScene + 1));
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+      e.preventDefault();
+      scrollToScene(Math.max(0, currentScene - 1));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      scrollToScene(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      scrollToScene(N - 1);
+    }
+  });
+
+  // Interactive controls
+  if (HINT) {
+    HINT.style.cursor = 'pointer';
+    HINT.addEventListener('click', function () {
+      scrollToScene(1);
+    });
+  }
+
+  var counterEl = document.getElementById('counter');
+  if (counterEl) {
+    counterEl.style.cursor = 'pointer';
+    counterEl.title = 'Click to advance scene';
+    counterEl.addEventListener('click', function () {
+      scrollToScene(Math.min(N - 1, currentScene + 1));
+    });
+  }
 
   // set scroller height to create the scrollable region
   function setScrollerHeight() {

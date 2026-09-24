@@ -10,3 +10,6 @@ venv/
 __pycache__/
 .aistudio/
 .gemini/
+.firebase/
+cloudflared.exe
+brag-output/
