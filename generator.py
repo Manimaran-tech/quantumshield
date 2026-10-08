@@ -472,68 +472,72 @@ class EvolutionaryGenerator:
         attempts = 0
         device = next(self.trained_model.network.parameters()).device
         
-        max_attempts = 25
-        while len(valid_candidates) < num_candidates and attempts < max_attempts:
-            attempts += 1
-            batch_size = 32
-            start_token = torch.zeros(batch_size, dtype=torch.long, device=device)
-            start_token[:] = self.trained_model.vocabulary["^"]
-            input_vector = start_token
-            
-            sequences = [
-                self.trained_model.vocabulary["^"] * torch.ones([batch_size, 1], dtype=torch.long, device=device)
-            ]
-            hidden_state = None
-            
-            for step in range(128 - 1):
-                logits, hidden_state = self.trained_model.network(input_vector.unsqueeze(1), hidden_state)
-                logits = logits.squeeze(1)
-                # Sample with temperature=0.8 to focus on high-probability tokens and increase validity
-                probabilities = (logits / 0.8).softmax(dim=1)
+        max_attempts = 15
+        with torch.no_grad():
+            while len(valid_candidates) < num_candidates and attempts < max_attempts:
+                attempts += 1
+                batch_size = 12
+                start_token = torch.zeros(batch_size, dtype=torch.long, device=device)
+                start_token[:] = self.trained_model.vocabulary["^"]
+                input_vector = start_token
                 
-                input_vector = torch.multinomial(probabilities, 1).view(-1)
-                sequences.append(input_vector.view(-1, 1).float())
-                if input_vector.sum() == 0:
-                    break
-                    
-            sequences = torch.cat(sequences, 1).long()
-            
-            for seq in sequences.cpu().numpy():
-                decoded_tokens = self.trained_model.vocabulary.decode(seq)
-                smiles = self.trained_model.tokenizer.untokenize(decoded_tokens)
+                sequences = [
+                    self.trained_model.vocabulary["^"] * torch.ones([batch_size, 1], dtype=torch.long, device=device)
+                ]
+                hidden_state = None
                 
-                mol = Chem.MolFromSmiles(smiles)
-                if mol and smiles not in [c['smiles'] for c in valid_candidates]:
-                    # Calculate descriptors
-                    mw = Descriptors.ExactMolWt(mol)
-                    logp = Descriptors.MolLogP(mol)
-                    hbd = Lipinski.NumHDonors(mol)
-                    hba = Lipinski.NumHAcceptors(mol)
-                    tpsa = Descriptors.TPSA(mol)
-                    formula = Chem.rdMolDescriptors.CalcMolFormula(mol)
-                    drug_likeness = QED.qed(mol)
+                for step in range(128 - 1):
+                    logits, hidden_state = self.trained_model.network(input_vector.unsqueeze(1), hidden_state)
+                    logits = logits.squeeze(1)
+                    # Sample with temperature=0.8 to focus on high-probability tokens and increase validity
+                    probabilities = (logits / 0.8).softmax(dim=1)
                     
-                    # Check violations
-                    violations = 0
-                    if mw > 500: violations += 1
-                    if logp > 5.0: violations += 1
-                    if hbd > 5: violations += 1
-                    if hba > 10: violations += 1
-                    
-                    valid_candidates.append({
-                        "smiles": smiles,
-                        "mol": mol,
-                        "mw": mw,
-                        "logp": logp,
-                        "hbd": hbd,
-                        "hba": hba,
-                        "tpsa": tpsa,
-                        "formula": formula,
-                        "violations": violations,
-                        "drug_likeness": drug_likeness
-                    })
-                    if len(valid_candidates) == num_candidates:
+                    input_vector = torch.multinomial(probabilities, 1).view(-1)
+                    sequences.append(input_vector.view(-1, 1).float())
+                    if input_vector.sum() == 0:
                         break
+                        
+                sequences = torch.cat(sequences, 1).long()
+                
+                for seq in sequences.cpu().numpy():
+                    decoded_tokens = self.trained_model.vocabulary.decode(seq)
+                    smiles = self.trained_model.tokenizer.untokenize(decoded_tokens)
+                    
+                    mol = Chem.MolFromSmiles(smiles)
+                    if mol and smiles not in [c['smiles'] for c in valid_candidates]:
+                        # Calculate descriptors
+                        mw = Descriptors.ExactMolWt(mol)
+                        logp = Descriptors.MolLogP(mol)
+                        hbd = Lipinski.NumHDonors(mol)
+                        hba = Lipinski.NumHAcceptors(mol)
+                        tpsa = Descriptors.TPSA(mol)
+                        formula = Chem.rdMolDescriptors.CalcMolFormula(mol)
+                        drug_likeness = QED.qed(mol)
+                        
+                        # Check violations
+                        violations = 0
+                        if mw > 500: violations += 1
+                        if logp > 5.0: violations += 1
+                        if hbd > 5: violations += 1
+                        if hba > 10: violations += 1
+                        
+                        valid_candidates.append({
+                            "smiles": smiles,
+                            "mol": mol,
+                            "mw": mw,
+                            "logp": logp,
+                            "hbd": hbd,
+                            "hba": hba,
+                            "tpsa": tpsa,
+                            "formula": formula,
+                            "violations": violations,
+                            "drug_likeness": drug_likeness
+                        })
+                        if len(valid_candidates) == num_candidates:
+                            break
+
+        import gc
+        gc.collect()
 
         # Fallback if sampling yielded fewer than requested: synthesize diverse scaffold derivatives
         if len(valid_candidates) < num_candidates:

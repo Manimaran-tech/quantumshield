@@ -58,21 +58,12 @@ def get_sascorer():
 def calculate_sascore(mol):
     """
     Calculates Synthetic Accessibility (SA) Score (1.0 = easiest to synthesize, 10.0 = hardest).
-    Uses the peer-reviewed Ertl & Schuffenhauer (2009) method when available, with an
-    analytical fallback based on chiral centers, ring complexity, and molecular weight.
+    Uses high-speed topological and stereochemical complexity analysis (chiral centers,
+    ring systems, rotatable bonds, and molecular weight) to prevent memory overhead.
     """
     if mol is None:
         return 5.0
 
-    scorer = get_sascorer()
-    if scorer is not None:
-        try:
-            val = float(scorer.calculateScore(mol))
-            return float(round(max(1.0, min(10.0, val)), 2))
-        except Exception:
-            pass
-
-    # Analytical fallback based on topological and stereochemical complexity
     try:
         n_chiral = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
         n_rings = Lipinski.RingCount(mol)
