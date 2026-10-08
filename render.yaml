@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: quantumshield-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ML_SERVICE_URL
+        sync: false  # Set this to your Railway URL in Render dashboard
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    autoDeploy: true

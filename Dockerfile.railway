@@ -1,0 +1,40 @@
+# Railway ML Service — Full scientific stack
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libffi-dev libssl-dev libxrender1 libxext6 libsm6 \
+    libgl1 libglib2.0-0 libexpat1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# CPU-only PyTorch (saves ~1.5 GB vs CUDA)
+RUN pip install --no-cache-dir \
+    torch==2.12.1+cpu \
+    torchvision \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining scientific dependencies (strip out torch/torchvision to avoid CUDA override)
+COPY requirements.txt .
+RUN sed -i '/torch==/d' requirements.txt && \
+    sed -i '/torchvision==/d' requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy all Python backend code + models
+COPY ml_service.py .
+COPY simulation.py .
+COPY generator.py .
+COPY disease_detector.py .
+COPY qrl_optimizer.py .
+COPY utils.py .
+COPY custom_targets.json .
+COPY pretrained.rnn.pth .
+COPY qrl_policy_checkpoint.npy .
+COPY smiles_lstm/ ./smiles_lstm/
+COPY models/ ./models/
+COPY data/ ./data/
+
+EXPOSE 8080
+
+# Single worker with 8 threads (no --preload to prevent C-extension deadlocks on timeout)
+CMD exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 8 --timeout 300 ml_service:app

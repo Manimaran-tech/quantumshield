@@ -56,10 +56,58 @@ _PATHOGEN_METADATA_CACHE = {
         'is_fda_approved': True,
         'is_ema_approved': False,
         'data_sources': ['ChEMBL', 'OpenFDA', 'UniProt']
+    },
+    'pneumonia': {
+        'status': 'success',
+        'pathogen': 'Streptococcus pneumoniae',
+        'target_protein': 'Immunoglobulin A1 protease (IgA1 protease)',
+        'uniprot_id': 'Q54875',
+        'fda_drug_name': 'AMOXICILLIN',
+        'fda_drug_smiles': 'CC1(C(N2C(S1)C(C2=O)NC(=O)C(C3=CC=C(C=C3)O)N)C(=O)O)C',
+        'is_fda_approved': True,
+        'is_ema_approved': True,
+        'data_sources': ['Open Targets', 'UniProt', 'OpenFDA', 'PubChem']
+    },
+    'malaria': {
+        'status': 'success',
+        'pathogen': 'Plasmodium falciparum',
+        'target_protein': 'Bifunctional dihydrofolate reductase-thymidylate synthase',
+        'uniprot_id': 'P00374',
+        'fda_drug_name': 'Pyrimethamine',
+        'fda_drug_smiles': 'CCc1c(nc(nc1N)N)c2ccc(cc2)Cl',
+        'is_fda_approved': True,
+        'is_ema_approved': True,
+        'data_sources': ['ChEMBL', 'OpenFDA', 'UniProt']
+    },
+    'hiv': {
+        'status': 'success',
+        'pathogen': 'HIV-1',
+        'target_protein': 'Human immunodeficiency virus type 1 protease',
+        'uniprot_id': 'P03366',
+        'fda_drug_name': 'Darunavir',
+        'fda_drug_smiles': 'CC(C)CN(CC(C(Cc1ccccc1)NC(=O)OC2COC3C2CCCO3)O)S(=O)(=O)c4ccc(cc4)N',
+        'is_fda_approved': True,
+        'is_ema_approved': True,
+        'data_sources': ['ChEMBL', 'OpenFDA', 'UniProt']
+    },
+    'influenza': {
+        'status': 'success',
+        'pathogen': 'Influenza A virus',
+        'target_protein': 'Neuraminidase',
+        'uniprot_id': 'P03468',
+        'fda_drug_name': 'Oseltamivir',
+        'fda_drug_smiles': 'CCOC(=O)C1=CC(C(C(C1)NC(=O)C)N)OC(CC)CC',
+        'is_fda_approved': True,
+        'is_ema_approved': True,
+        'data_sources': ['ChEMBL', 'OpenFDA', 'UniProt']
     }
 }
 _PATHOGEN_METADATA_CACHE['covid-19'] = _PATHOGEN_METADATA_CACHE['sars-cov-2']
 _PATHOGEN_METADATA_CACHE['tb'] = _PATHOGEN_METADATA_CACHE['tuberculosis']
+_PATHOGEN_METADATA_CACHE['streptococcus pneumoniae'] = _PATHOGEN_METADATA_CACHE['pneumonia']
+_PATHOGEN_METADATA_CACHE['plasmodium falciparum'] = _PATHOGEN_METADATA_CACHE['malaria']
+_PATHOGEN_METADATA_CACHE['hiv-1'] = _PATHOGEN_METADATA_CACHE['hiv']
+_PATHOGEN_METADATA_CACHE['influenza a'] = _PATHOGEN_METADATA_CACHE['influenza']
 _POCKET_CACHE = {}
 
 # PAINS and toxicological alert SMARTS patterns
