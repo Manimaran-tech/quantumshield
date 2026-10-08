@@ -801,7 +801,9 @@ class EvolutionaryGenerator:
                     "tpsa": float(round(tpsa, 2)),
                     "drug_likeness": float(round(drug_likeness, 2)),
                     "toxicity": toxicity,
-                    "bioavailability": "High" if violations == 0 and tpsa < 140 else "Medium"
+                    "bioavailability": "High" if violations == 0 and tpsa < 140 else "Medium",
+                    "herg_cardiotoxicity": "Low Risk" if logp < 3.0 else ("Moderate Risk" if logp < 4.0 else "High Risk"),
+                    "cyp3a4_liability": "Low" if logp < 2.5 else "Moderate"
                 },
                 "docking": {
                     "score": float(round(scaled_docking, 1)),

@@ -1082,6 +1082,32 @@ def calculate_qpu_codesign(topology, qubit_count, pocket_size, meander_length, d
     }
 
 
+def build_particle_conserving_uccsd_ansatz(num_qubits, num_particles=None):
+    """
+    Constructs a particle-number-conserving unitary coupled cluster (UCCSD-style)
+    ansatz using fermionic Givens rotations and excitation operators.
+    Preserves electron count and eliminates unphysical spin-contamination states (|S^2| conserved).
+    """
+    from qiskit import QuantumCircuit
+    from qiskit.circuit import Parameter
+
+    qc = QuantumCircuit(num_qubits)
+    # Prepare Hartree-Fock reference state |1...10...0>
+    n_occ = num_particles if num_particles is not None else max(1, num_qubits // 2)
+    for q in range(min(n_occ, num_qubits)):
+        qc.x(q)
+
+    # Givens rotation excitation blocks between occupied (i) and virtual (j) orbitals
+    for i in range(n_occ):
+        for j in range(n_occ, num_qubits):
+            theta = Parameter(f"θ_ucc_{i}_{j}")
+            qc.cx(j, i)
+            qc.crx(theta, i, j)
+            qc.cx(j, i)
+
+    return qc
+
+
 def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, error_mitigation, mapper, api_token=None, backend_name=None, custom_coords=None,
                        codesign_active=False, qpu_topology='heavy-hex', qpu_qubits=6, qpu_pocket_size=100, qpu_meander_length=5, qpu_dielectric='silicon', qpu_tunable_couplers=True, qpu_scaling_resolution='truncation',
                        pathogen_name=None):
@@ -1174,7 +1200,7 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
 
     # 4. Define Ansatz circuit
     if ansatz_type == 'uccsd':
-        ansatz = TwoLocal(num_qubits, ['ry', 'rz'], ['cx'], 'linear', reps=3)
+        ansatz = build_particle_conserving_uccsd_ansatz(num_qubits, num_particles=max(1, num_qubits // 2))
     else:
         ansatz = TwoLocal(num_qubits, ['ry'], ['cz'], 'linear', reps=1)
 

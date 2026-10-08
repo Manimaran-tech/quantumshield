@@ -1,6 +1,7 @@
 # QuantumShield: Full-Stack Hybrid Quantum-Classical & Machine Learning Drug Discovery Ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Tests](https://github.com/Manimaran-tech/quantumshield/actions/workflows/ci.yml/badge.svg)](https://github.com/Manimaran-tech/quantumshield/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Qiskit 1.x](https://img.shields.io/badge/Quantum-Qiskit%201.x-613394.svg)](https://qiskit.org/)
 [![React 19](https://img.shields.io/badge/Frontend-React%2019-61dafb.svg)](https://react.dev/)

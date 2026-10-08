@@ -100,6 +100,24 @@ class TestScientificIntegrity(unittest.TestCase):
         self.assertLess(action_idx, agent.num_actions)
         self.assertGreater(prob, 0.0)
 
+    def test_06_herg_and_cyp3a4_safety_profiling(self):
+        """Verify that hERG cardiotoxicity and CYP3A4 metabolism profiling discriminate drug safety."""
+        from utils import check_herg_cardiotoxicity, check_cyp3a4_liability
+        
+        # Aspirin: Clean safety profile (low LogP, no basic nitrogen)
+        aspirin = Chem.MolFromSmiles("CC(=O)Oc1ccccc1C(=O)O")
+        is_herg, herg_level, _ = check_herg_cardiotoxicity(aspirin)
+        self.assertFalse(is_herg)
+        self.assertEqual(herg_level, "Low Risk")
+        
+        cyp_level, _, _ = check_cyp3a4_liability(aspirin)
+        self.assertEqual(cyp_level, "Low")
+        
+        # Astemizole (withdrawn antihistamine with known severe hERG blockade)
+        astemizole = Chem.MolFromSmiles("COc1ccc(CCN2CCC(CC2)Nc3nc4ccccc4n3Cc5ccc(F)cc5)cc1")
+        is_herg_bad, bad_level, _ = check_herg_cardiotoxicity(astemizole)
+        self.assertEqual(bad_level, "High Risk")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
