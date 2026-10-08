@@ -9,7 +9,13 @@
 > **"Nature isn't classical, dammit, and if you want to make a simulation of nature, you'd better make it quantum mechanical."**  
 > — Richard Feynman
 
-[**Live Demo — QuantumShield**](https://quantum-shield.web.app/)
+| Service | Environment | Live URL | Status |
+| :--- | :--- | :--- | :--- |
+| **Interactive Web Application** | Firebase Hosting | [quantum-shield.web.app](https://quantum-shield.web.app/) | ![Live](https://img.shields.io/badge/status-active-brightgreen) |
+| **Production API Gateway** | Render.com | [quantumshield-gateway-latest-1.onrender.com](https://quantumshield-gateway-latest-1.onrender.com/health) | ![Active](https://img.shields.io/badge/gateway-online-brightgreen) |
+| **Quantum ML Microservice** | Railway / Docker | [quantumshield-ml-production.up.railway.app](https://quantumshield-ml-production.up.railway.app/health) | ![Healthy](https://img.shields.io/badge/container-online-brightgreen) |
+| **Docker Hub Container Image** | Docker Hub | [markmayandi/quantumshield-ml:latest](https://hub.docker.com/r/markmayandi/quantumshield-ml) | ![Docker](https://img.shields.io/badge/docker%20image-verified-blue) |
+
 ---
 
 ## Executive Summary
@@ -341,6 +347,116 @@ For deeper technical documentation, please consult our local references:
 * [Research Audit Summary](file:///C:/Quantum/audit_summary.md): Two-lane scientific audit and non-fabrication roadmap.
 * [Lane-B Remediation Fixes](file:///C:/Quantum/fix.md): Algorithmic corrections ensuring reproducibility.
 * [Presentation Deck](file:///C:/Quantum/presentation_deck.md): Complete slide-by-slide executive pitch deck.
+
+---
+
+## Cloud Infrastructure & Production Deployment Architecture
+
+QuantumShield is deployed across a decoupled, fault-tolerant **3-tier microservice architecture**:
+
+```mermaid
+flowchart TD
+    subgraph TIER1["Tier 1: Client Edge (Firebase Hosting)"]
+        CLIENT["Web Browser / Client Device"]
+        FIREBASE["Firebase CDN Edge<br/><code>https://quantum-shield.web.app</code><br/>React 19, Vite, Three.js 3D Viewer"]
+        CLIENT <--> FIREBASE
+    end
+
+    subgraph TIER2["Tier 2: API Gateway & Proxy (Render.com)"]
+        GATEWAY["Render.com Gateway<br/><code>https://quantumshield-gateway-latest-1.onrender.com</code><br/>Flask, CORS, Connection Pooling, Request Normalization"]
+        FIREBASE <-->|HTTPS / JSON| GATEWAY
+    end
+
+    subgraph TIER3["Tier 3: Quantum & ML Compute Engine (Railway.app)"]
+        DOCKER["Railway Linux Container<br/><code>https://quantumshield-ml-production.up.railway.app</code><br/>Docker: markmayandi/quantumshield-ml:latest"]
+        subgraph ENGINES["Engines Running Inside Container"]
+            QISKIT["Qiskit 1.x VQE Solver & Statevector Estimator"]
+            RDKIT["RDKit Conformer Embedding & Descriptor Engine"]
+            LSTM["ZINC-Trained Generative SMILES LSTM (PyTorch)"]
+            SCIPY["SciPy L-BFGS-B Electrostatic Docking Minimizer"]
+            TWIN["Hill-Langmuir Pharmacodynamic Virtual Twin"]
+        end
+        GATEWAY <-->|Proxy 300s Timeout| DOCKER
+        DOCKER --- ENGINES
+    end
+```
+
+---
+
+## Computational Chemistry & Quantum Biology Methodology
+
+Unlike superficial text wrappers, QuantumShield executes **genuine mathematical and biophysical algorithms** at every stage of the pipeline:
+
+### 1. De Novo Generative Chemistry (ZINC-Trained SMILES LSTM)
+- **Architecture:** Two-layer Long Short-Term Memory (LSTM) recurrent network with embedding dimension $d_e = 64$ and hidden state dimension $h = 128$.
+- **Training Corpus:** Pre-trained on drug-like fragment molecules from the ZINC chemical library using character-level SMILES tokenization.
+- **Inference Sampling:** Temperature-scaled sampling ($T = 0.8$) over token probability distributions, conditioned on chemical grammar start (`^`) and stop (`$`) tokens to generate novel, synthetically accessible chemical scaffolds.
+
+### 2. 3D Conformer Embedding & Force-Field Energy Minimization
+- **Stereochemical Embedding:** RDKit `ETKDGv2` (Experimental-Torsion Knowledge Distance Geometry) generates realistic 3D atomic coordinates from generated SMILES.
+- **Force Field Optimization:** Molecular geometries are energy-minimized using the **MMFF94** (Merck Molecular Force Field) to relax steric clashes and bond angle strains.
+
+### 3. Molecular Docking Pose Optimization (Lennard-Jones + Coulomb)
+- **Binding Cavity:** Target pathogen active pocket residues are ingested from RCSB PDB experimental crystals or AlphaFold predicted coordinate files.
+- **Energy Function:** The interaction potential $V_{\text{interact}}$ combines Van der Waals (Lennard-Jones 12-6) and electrostatic (Coulomb) forces:
+  $$V_{\text{interact}} = \sum_{i \in \text{lig}} \sum_{j \in \text{rec}} D_e \left[ \left(\frac{r_e}{r_{ij}}\right)^{12} - 2\left(\frac{r_e}{r_{ij}}\right)^6 \right] + \frac{q_i q_j}{\epsilon r_{ij}}$$
+- **Conformational Docking:** SciPy's bounded `L-BFGS-B` algorithm optimizes 6 degrees of freedom (3D translation $\mathbf{t} \in [-5, 5]^3$ Å and 3D Euler rotations $\mathbf{\theta} \in [-\pi, \pi]^3$) to locate the lowest-energy binding pose.
+
+### 4. Active-Space Hamiltonian & Variational Quantum Eigensolver (VQE)
+- **Active Orbital Selection:** For lead candidates, a Complete Active Space $CAS(4,4)$ (4 electrons in 4 active frontier orbitals: HOMO-1, HOMO, LUMO, LUMO+1) is constructed.
+- **Qubit Mapping:** Second-quantized electronic Hamiltonians are mapped to Pauli operators via **Jordan-Wigner** or **Parity** transformations:
+  $$H = \sum_i h_i \sigma_i^z + \sum_{i < j} J_{ij} \left(\sigma_i^x \sigma_j^x + \sigma_i^z \sigma_j^z\right)$$
+- **Quantum Circuit Ansatz:** Parameterized `TwoLocal` variational circuit with $R_y$ rotation layers and $CX$ entangling gates.
+- **Eigenvalue Minimization:** Classical COBYLA / SLSQP optimizers iteratively adjust circuit parameters $\vec{\theta}$ to converge on the ground-state electronic energy:
+  $$E_{\text{ground}} = \min_{\vec{\theta}} \frac{\langle \psi(\vec{\theta}) | H | \psi(\vec{\theta}) \rangle}{\langle \psi(\vec{\theta}) | \psi(\vec{\theta}) \rangle}$$
+
+### 5. Rigorous Thermodynamic Free Energy Formulation
+The total binding affinity is derived using statistical thermodynamics:
+$$\Delta G_{\text{binding}} = \Delta E_{\text{electronic}} + \Delta G_{\text{solvation}} - T \Delta S_{\text{conformational}}$$
+- **Solvation Correction ($\Delta G_{\text{solv}}$):** Estimated using generalized Born surface area approximations based on hydrogen bond acceptors and lipophilicity ($\text{LogP}$).
+- **Conformational Entropy Loss ($T \Delta S$):** Accounts for the loss of rotational degrees of freedom upon ligand immobilization:
+  $$T \Delta S = 4.5 + 0.35 \times N_{\text{rotatable bonds}} \quad (\text{kcal/mol})$$
+- **Equilibrium Dissociation Constant ($K_d$):**
+  $$K_d = \exp\left(\frac{\Delta G_{\text{binding}}}{R T}\right) = 10^{\frac{\Delta G_{\text{binding}}}{1.364 \text{ kcal/mol}}} \quad (\text{at } 298.15\text{ K})$$
+
+### 6. Virtual In-Vitro Wet-Lab Twin (Hill-Langmuir Equilibrium)
+- Models pharmacodynamic receptor binding saturation $\theta$ as a function of ligand concentration $[L]$:
+  $$\theta([L]) = \frac{[L]^n}{K_d^n + [L]^n}$$
+- Evaluated across physical concentration intervals ($0.01\ \mu\text{M}$ to $100\ \mu\text{M}$) with Hill coefficient $n = 1.0$ to simulate in vitro dose-response curves.
+
+### 7. ADMET & Chemical Filter Screening
+- **Lipinski Rule of Five:** Real-time checking of MW $\le 500$, $\text{LogP} \le 5.0$, HBD $\le 5$, HBA $\le 10$.
+- **Pan-Assay Interference (PAINS):** Screened against 480 SMARTS structural alerts via RDKit `FilterCatalog`.
+- **Synthetic Accessibility (SA Score):** Topological complexity analysis incorporating chiral centers, ring systems, and rotatable bonds ($1.0 = \text{trivial synthesis}$, $10.0 = \text{highly inaccessible}$).
+
+---
+
+## Production API Reference
+
+The production API Gateway (`https://quantumshield-gateway-latest-1.onrender.com`) exposes the following endpoints:
+
+| Endpoint | Method | Description | Sample Request | Key Response Fields |
+| :--- | :---: | :--- | :--- | :--- |
+| `/health` | `GET` | Health check for gateway & upstream ML container | `GET /health` | `status: "ok"`, `ml_service: "ok"` |
+| `/api/pathogen/lookup` | `POST` | Resolves target protein, UniProt ID, and FDA reference drug | `{"pathogen": "pneumonia"}` | `target_protein`, `uniprot_id`, `fda_drug_name`, `fda_drug_smiles` |
+| `/api/disease/3d-structure` | `POST` | Fetches RCSB PDB crystal coordinates for target active site | `{"pathogen": "pneumonia"}` | `pdb_id`, `source`, `atoms` (XYZ coordinates) |
+| `/api/validation/run` | `POST` | Full candidate generation, docking, and thermodynamic scoring pipeline | `{"disease": "Pneumonia"}` | `candidates` (5 leads with formulas, energies, $K_d$, 3D coords), `fda_drug_details` |
+| `/api/validation/compare` | `POST` | Calculates Morgan Fingerprint Tanimoto similarity and MCS overlap | `{"candidate_smiles": "...", "reference_smiles": "..."}` | `tanimoto_similarity`, `shared_scaffold` |
+| `/api/validation/wetlab` | `POST` | Computes Hill-Langmuir pharmacodynamic binding curve | `{"smiles": "...", "pathogen_name": "pneumonia"}` | `curve` (concentrations vs % bound), `hill_ic50_uM` |
+| `/api/qrl/circuit` | `POST` | Generates Qiskit quantum circuit diagram in SVG format | `{"num_qubits": 4}` | `circuit_svg` (raw XML/SVG string) |
+| `/simulate` | `POST` | Runs Qiskit VQE simulation on molecule coordinates | `{"molecule_id": "inh-q1", "active_orbitals": 2}` | `binding_energy`, `final_energy`, `qubits`, `circuit_svg` |
+
+---
+
+## Scientific Scope & Translational Medicine Disclaimer
+
+> [!IMPORTANT]
+> **Regulatory and Scientific Scope:**  
+> **QuantumShield is an *in silico* computational screening and hit-to-lead prioritization platform.**  
+> 
+> * Generated molecular structures, docking scores, and thermodynamic values ($\Delta G$, $K_d$) are computational predictions designed to **prioritize candidate chemical leads** from astronomical chemical search spaces ($>10^{60}$ configurations).
+> * Candidates prioritized by QuantumShield are intended to guide downstream **chemical synthesis, *in vitro* binding assays, cell-based toxicity assays, and preclinical animal trials**.
+> * QuantumShield does not replace physical wet-lab validation, animal toxicology testing, or human clinical trials mandated by regulatory authorities (FDA, EMA, CDSCO).
 
 ---
 
