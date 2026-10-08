@@ -452,17 +452,26 @@ def run_validation():
             custom_ref_drug = 'None (Reactive Toxicant)'
             custom_ref_smiles = 'CC(=O)Nc1ccc(cc1)S(=O)(=O)N'
 
-        # Fetch pocket residues from AlphaFold
+        # Check preset pockets first to avoid slow transatlantic network latency
+        if not pocket_residues:
+            from generator import PRESET_POCKETS
+            p_key = custom_name.lower().strip()
+            for k in PRESET_POCKETS:
+                if k in p_key or p_key in k:
+                    pocket_residues = PRESET_POCKETS[k]
+                    break
+
+        # Fetch pocket residues from AlphaFold only if not found in local presets
         if not pocket_residues and custom_uniprot and custom_uniprot != 'P12345':
             af_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{custom_uniprot}"
             try:
-                af_res = http_requests.get(af_url, timeout=10)
+                af_res = http_requests.get(af_url, timeout=5)
                 if af_res.status_code == 200:
                     af_data = af_res.json()
                     if af_data and len(af_data) > 0:
                         pdb_url = af_data[0].get("pdbUrl")
                         if pdb_url:
-                            pdb_res = http_requests.get(pdb_url, timeout=10)
+                            pdb_res = http_requests.get(pdb_url, timeout=5)
                             if pdb_res.status_code == 200:
                                 pocket_residues = molecular_generator.parse_pdb_to_pocket(pdb_res.text, num_residues=10)
             except Exception:

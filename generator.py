@@ -382,7 +382,7 @@ class EvolutionaryGenerator:
                       (-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)]
             
             res = minimize(objective, initial_guess, bounds=bounds, method='L-BFGS-B',
-                           options={'maxiter': 25, 'ftol': 1e-4})
+                           options={'maxiter': 10, 'ftol': 1e-3})
             min_energy = float(res.fun)
             
             # Apply optimal parameters back to update coordinates in place
