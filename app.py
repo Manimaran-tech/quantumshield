@@ -800,6 +800,11 @@ def clear_history():
     history_records = []
     return jsonify({"status": "success", "message": "History cleared"})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Lightweight health endpoint for production monitoring (Caddy, uptime checks)."""
+    return jsonify({"status": "ok", "service": "quantumshield-backend", "version": "1.0.0"})
+
 @app.route('/api/hardware/codesign', methods=['POST'])
 def hardware_codesign():
     """Calculates physical QPU parameters and layout details from Qiskit Metal specs."""
