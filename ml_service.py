@@ -144,6 +144,13 @@ def simulate():
     qpu_tunable_couplers = bool(data.get('qpu_tunable_couplers', True))
     qpu_scaling_resolution = data.get('qpu_scaling_resolution', 'truncation')
 
+    cache_key = ('simulate', molecule_id, active_orbitals, ansatz_type, noise_level, error_mitigation, mapper,
+                 codesign_active, qpu_topology, qpu_qubits, qpu_pocket_size, qpu_meander_length,
+                 qpu_dielectric, qpu_tunable_couplers, qpu_scaling_resolution, pathogen_name, len(data.get('custom_coords') or []))
+    cached = _cached(cache_key, 30 * 60)
+    if cached is not None:
+        return jsonify(cached)
+
     try:
         from simulation import run_vqe_simulation
         result = run_vqe_simulation(
@@ -159,6 +166,7 @@ def simulate():
             qpu_scaling_resolution=qpu_scaling_resolution,
             pathogen_name=pathogen_name
         )
+        _store_cached(cache_key, result)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -374,13 +382,20 @@ def qrl_optimize():
 
 # ─── QRL Circuit ─────────────────────────────────────────────────────────────
 
+_qrl_circuit_cached_payload = None
+
 @app.route('/api/qrl/circuit', methods=['POST'])
 def qrl_circuit():
+    global _qrl_circuit_cached_payload
+    if _qrl_circuit_cached_payload is not None:
+        return jsonify(_qrl_circuit_cached_payload)
+
     data = request.json or {}
     smiles = data.get('smiles', 'c1cc(ccn1)C(=O)NN')
     cache_key = ('qiskit-circuit', smiles.strip())
     cached = _cached(cache_key, 60 * 60)
     if cached is not None:
+        _qrl_circuit_cached_payload = cached
         return jsonify(cached)
     try:
         from qrl_optimizer import QuantumRLAgent
@@ -411,6 +426,7 @@ def qrl_circuit():
             "gate_count": len(qc.data)
         }
         _store_cached(cache_key, payload)
+        _qrl_circuit_cached_payload = payload
         return jsonify(payload)
     except Exception as e:
         import traceback
@@ -698,6 +714,11 @@ def md_trajectory():
     custom_coords = data.get('custom_coords', None)
     pathogen_name = data.get('pathogen_name', 'Tuberculosis')
 
+    cache_key = ('md_traj', molecule_id, pathogen_name, len(custom_coords or []))
+    cached = _cached(cache_key, 30 * 60)
+    if cached is not None:
+        return jsonify(cached)
+
     from simulation import get_preset_molecule_coords, run_molecular_dynamics_simulation
     coords = custom_coords if (custom_coords and len(custom_coords) > 0) else get_preset_molecule_coords(molecule_id)
     from generator import PRESET_POCKETS
@@ -718,6 +739,7 @@ def md_trajectory():
 
     try:
         result = run_molecular_dynamics_simulation(all_coords, temp=310.15, steps=30)
+        _store_cached(cache_key, result)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"MD simulation failed: {str(e)}"}), 500

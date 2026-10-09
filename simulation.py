@@ -1233,9 +1233,9 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
         })
 
     if run_on_qpu or noise_level > 20:
-        optimizer = SPSA(maxiter=40)
+        optimizer = SPSA(maxiter=15)
     else:
-        optimizer = COBYLA(maxiter=40)
+        optimizer = COBYLA(maxiter=15)
 
     # 7. Run VQE
     try:
@@ -1846,6 +1846,8 @@ def run_molecular_dynamics_simulation(coords, temp=310.15, steps=30):
         # 2. Non-bonded forces (Lennard-Jones repulsion)
         for i in range(n_atoms):
             for j in range(i + 1, n_atoms):
+                if not is_active[i] and not is_active[j]:
+                    continue
                 if (i, j) in bonded_pairs:
                     continue
                 diff = pos[i] - pos[j]

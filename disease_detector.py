@@ -398,15 +398,25 @@ def _get_general_model(num_classes: int = 9, channels: int = 3):
     
     import torch
     import torch.nn as nn
-    try:
-        model = models.densenet121(weights=models.DenseNet121_Weights.DEFAULT)
-    except Exception as e:
-        print(f"[DiseaseDetector] ImageNet weights download failed ({e}), loading local weights...")
-        local_weights_path = os.path.join(MODELS_DIR, "densenet121_real_weights.pt")
-        if os.path.exists(local_weights_path):
+    local_weights_path = os.path.join(MODELS_DIR, "densenet121_real_weights.pt")
+    model = None
+    if os.path.exists(local_weights_path):
+        try:
+            try:
+                import torchxrayvision as xrv
+                torch.serialization.add_safe_globals([xrv.models.DenseNet])
+            except Exception:
+                pass
             model = torch.load(local_weights_path, map_location="cpu", weights_only=False)
-        else:
+            print(f"[DiseaseDetector] Loaded local DenseNet weights from disk: {local_weights_path}")
+        except Exception as e:
+            print(f"[DiseaseDetector] Failed loading local weights: {e}")
+
+    if model is None:
+        try:
             model = models.densenet121(weights=None)
+        except Exception:
+            model = models.densenet121()
     
     # Adapt input channels if conv0 does not match requested channels
     original_conv = model.features.conv0
@@ -625,6 +635,8 @@ def classify_classical(image_tensor: 'torch.Tensor', modality: str, features: np
 # QUANTUM CLASSIFICATION — QISKIT VQC
 # ==========================================
 
+_vqc_circuit_cache = {}
+
 def _build_vqc_circuit(num_qubits: int = 4, num_layers: int = 3):
     """
     Build a Variational Quantum Classifier circuit using Qiskit.
@@ -637,6 +649,10 @@ def _build_vqc_circuit(num_qubits: int = 4, num_layers: int = 3):
     Returns:
         (feature_map, ansatz, circuit_info)
     """
+    cache_key = (num_qubits, num_layers)
+    if cache_key in _vqc_circuit_cache:
+        return _vqc_circuit_cache[cache_key]
+
     from qiskit.circuit.library import ZZFeatureMap, RealAmplitudes
     from qiskit.circuit import QuantumCircuit
     
@@ -667,7 +683,7 @@ def _build_vqc_circuit(num_qubits: int = 4, num_layers: int = 3):
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        circuit_figure = full_circuit.decompose().draw(output='mpl', fold=-1)
+        circuit_figure = full_circuit.decompose().draw(output='mpl', fold=20)
         circuit_buffer = io.BytesIO()
         circuit_figure.savefig(circuit_buffer, format='svg', bbox_inches='tight')
         plt.close(circuit_figure)
@@ -693,6 +709,7 @@ def _build_vqc_circuit(num_qubits: int = 4, num_layers: int = 3):
         "circuit_svg": circuit_svg
     }
     
+    _vqc_circuit_cache[cache_key] = (feature_map, ansatz, circuit_info)
     return feature_map, ansatz, circuit_info
 
 
