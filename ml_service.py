@@ -416,6 +416,12 @@ def run_validation():
     data = request.json or {}
     disease = data.get('disease', 'covid-19').strip().lower()
     is_qrl_optimized = bool(data.get('is_qrl_optimized', False))
+    cand_smiles_param = data.get('candidate_smiles', '').strip()
+    cache_key = ('validation_run', disease, is_qrl_optimized, cand_smiles_param)
+    cached = _cached(cache_key, 15 * 60)
+    if cached is not None:
+        return jsonify(cached)
+
     molecular_generator = get_generator()
 
     disease_info = None
@@ -584,12 +590,12 @@ def run_validation():
                     "atoms": cleaned_atoms
                 }
                 candidates = [full_cand]
-                other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4)
+                other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
                 candidates.extend(other_cands)
             else:
-                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5)
+                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5, pocket_residues=pocket_residues)
         else:
-            candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5)
+            candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5, pocket_residues=pocket_residues)
 
         fda = disease_info.get('fda_drug_details')
         if fda:
@@ -624,13 +630,15 @@ def run_validation():
             {"id": "admet", "name": "ADMET & Retrosynthesis Screening", "detail": f"Ranked candidates by multi-objective fitness. Lead candidate retrosynthesis pathway resolved in {candidates[0]['retrosynthesis']['steps']} steps.", "duration": 600}
         ]
 
-        return jsonify({
+        payload = {
             "status": "success", "disease": disease_info['name'], "target": disease_info['target'],
             "uniprot": disease_info['uniprot'], "fda_drug_name": disease_info['fda_drug_name'],
             "fda_drug_smiles": disease_info['fda_drug_smiles'], "fda_drug_details": disease_info['fda_drug_details'],
             "is_fda_approved": disease_info.get('is_fda_approved', False),
             "candidates": candidates, "steps": steps
-        })
+        }
+        _store_cached(cache_key, payload)
+        return jsonify(payload)
     except Exception as e:
         return jsonify({"error": f"Validation run failed: {str(e)}"}), 500
 

@@ -359,15 +359,23 @@ def _get_xray_model():
     local_weights_path = os.path.join(MODELS_DIR, "densenet121_real_weights.pt")
     if os.path.exists(local_weights_path):
         try:
+            try:
+                import torchxrayvision as xrv
+                try:
+                    torch.serialization.add_safe_globals([xrv.models.DenseNet])
+                except Exception:
+                    pass
+            except ImportError:
+                xrv = None
+
             model = torch.load(local_weights_path, map_location="cpu", weights_only=False)
             if not hasattr(model, "pathologies") and hasattr(model, "targets"):
                 model.pathologies = model.targets
             elif not hasattr(model, "pathologies"):
-                try:
-                    import torchxrayvision as xrv
+                if xrv is not None:
                     model.pathologies = list(getattr(xrv.datasets, "default_pathologies", []))
-                except Exception:
-                    pass
+                else:
+                    model.pathologies = ["Atelectasis", "Consolidation", "Infiltration", "Pneumothorax", "Edema", "Emphysema", "Fibrosis", "Effusion", "Pneumonia", "Pleural_Thickening", "Cardiomegaly", "Nodule", "Mass", "Hernia"]
             model.eval()
             _model_cache["xray_model"] = model
             print(f"[DiseaseDetector] Successfully loaded local TorchXRayVision DenseNet-121 from {local_weights_path}")
@@ -375,23 +383,11 @@ def _get_xray_model():
         except Exception as local_err:
             print(f"[DiseaseDetector] Failed loading local weights file: {local_err}")
     
-    # 2. Secondary fallback: torchxrayvision package weights
-    try:
-        import torchxrayvision as xrv
-        try:
-            torch.serialization.add_safe_globals([xrv.models.DenseNet])
-        except Exception:
-            pass
-        model = xrv.models.DenseNet(weights="densenet121-res224-all")
-        if not hasattr(model, "pathologies") and hasattr(model, "targets"):
-            model.pathologies = model.targets
-        model.eval()
-        _model_cache["xray_model"] = model
-        print("[DiseaseDetector] Loaded TorchXRayVision DenseNet-121 (NIH ChestX-ray14 pretrained)")
-        return model
-    except Exception as e:
-        print(f"[DiseaseDetector] TorchXRayVision load failed: {e}, falling back to torchvision DenseNet")
-        return _get_general_model(num_classes=14, channels=1)
+    # 2. Instant fallback: torchvision DenseNet (no slow 120MB download from internet)
+    print("[DiseaseDetector] Using lightweight DenseNet fallback for chest X-ray")
+    model = _get_general_model(num_classes=14, channels=1)
+    _model_cache["xray_model"] = model
+    return model
 
 
 def _get_general_model(num_classes: int = 9, channels: int = 3):

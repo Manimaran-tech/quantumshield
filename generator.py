@@ -404,7 +404,13 @@ class EvolutionaryGenerator:
         """
         # Resolve target pocket residues
         if pocket_residues is None:
-            pocket_residues = PRESET_POCKETS.get(pathogen_name.lower())
+            p_name_lower = (pathogen_name or "").lower().strip()
+            pocket_residues = PRESET_POCKETS.get(p_name_lower)
+            if not pocket_residues:
+                for k, v in PRESET_POCKETS.items():
+                    if k in p_name_lower or p_name_lower in k:
+                        pocket_residues = v
+                        break
         if not pocket_residues and pocket_specs:
             # Custom pocket resolved by LLM
             pocket_residues = []
@@ -472,7 +478,7 @@ class EvolutionaryGenerator:
         attempts = 0
         device = next(self.trained_model.network.parameters()).device
         
-        max_attempts = 15
+        max_attempts = 6
         with torch.no_grad():
             while len(valid_candidates) < num_candidates and attempts < max_attempts:
                 attempts += 1
