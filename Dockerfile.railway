@@ -8,6 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+ENV PYTHONUNBUFFERED=1 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    VECLIB_MAXIMUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
+
 # CPU-only PyTorch (saves ~1.5 GB vs CUDA)
 RUN pip install --no-cache-dir \
     torch==2.12.1+cpu \
@@ -37,4 +44,4 @@ COPY data/ ./data/
 EXPOSE 8080
 
 # Single worker with 8 threads (no --preload to prevent C-extension deadlocks on timeout)
-CMD exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 8 --timeout 300 ml_service:app
+CMD exec gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 4 --timeout 300 ml_service:app

@@ -1,0 +1,19 @@
+# Render.com Deployment — QuantumShield Backend
+# Use CPU-only PyTorch to dramatically reduce memory footprint
+# This file replaces requirements.txt ONLY for Render deployment
+
+Flask==3.1.3
+flask-cors==6.0.5
+numpy==2.2.6
+scipy==1.15.3
+rdkit==2026.3.3
+qiskit==2.4.2
+qiskit-algorithms==0.4.0
+qiskit-ibm-runtime==0.47.0
+python-dotenv==1.2.2
+requests==2.34.2
+matplotlib==3.10.9
+pydantic==2.13.4
+Pillow==11.2.1
+scikit-learn==1.6.1
+gunicorn==23.0.0

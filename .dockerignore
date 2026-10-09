@@ -1,0 +1,60 @@
+# Dependencies (rebuilt inside container)
+venv/
+node_modules/
+__pycache__/
+
+# Frontend source (hosted on Firebase, not needed in backend image)
+src/
+dist/
+public/
+*.html
+*.tsx
+*.ts
+*.css
+tsconfig.json
+vite.config.ts
+package.json
+package-lock.json
+
+# Firebase
+.firebase/
+.firebaserc
+firebase.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Dev/test files
+scratch/
+test_images/
+brag-output/
+.agents/
+.gemini/
+.vscode/
+.licenses/
+
+# Docs
+*.md
+*.patch
+*.bak.md
+LICENSE
+diff.patch
+
+# Large test scripts
+test_*.py
+real_benchmark.py
+recover_models.py
+train_disease_model.py
+scratch_huckel_test.py
+
+# Windows scripts
+*.bat
+*.exe
+cloudflared.exe
+
+# Env files (set via Render dashboard)
+.env
+.env.example
+.env.production
