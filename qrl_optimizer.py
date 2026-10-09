@@ -970,19 +970,27 @@ def resolve_pocket_and_reference(pathogen_name):
     if not ref_smiles:
         ref_smiles = ""
         
-    # 2. Dynamically fetch AlphaFold structure using UniProt ID to extract pocket residues in real time
+    # 2. Check PRESET_POCKETS first before querying AlphaFold
     pocket = None
-    if uniprot_id and uniprot_id != "P12345":
+    from generator import PRESET_POCKETS
+    p_key = cache_key
+    for k, v in PRESET_POCKETS.items():
+        if k in p_key or p_key in k:
+            pocket = v
+            break
+
+    # 3. Dynamically fetch AlphaFold structure only if not in presets
+    if not pocket and uniprot_id and uniprot_id != "P12345":
         print(f"QRL: Dynamically fetching AlphaFold structure for UniProt ID: {uniprot_id}")
         af_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
         try:
-            af_res = requests.get(af_url, timeout=10)
+            af_res = requests.get(af_url, timeout=3)
             if af_res.status_code == 200:
                 af_data = af_res.json()
                 if af_data and len(af_data) > 0:
                     pdb_url = af_data[0].get("pdbUrl")
                     if pdb_url:
-                        pdb_res = requests.get(pdb_url, timeout=10)
+                        pdb_res = requests.get(pdb_url, timeout=3)
                         if pdb_res.status_code == 200:
                             molecular_generator = EvolutionaryGenerator()
                             pocket = molecular_generator.parse_pdb_to_pocket(pdb_res.text, num_residues=10)

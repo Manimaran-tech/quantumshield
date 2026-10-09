@@ -169,7 +169,7 @@ def simulate():
 @app.route('/generate', methods=['POST'])
 def generate_molecules():
     data = request.json or {}
-    pathogen_name = data.get('pathogen_name', 'Tuberculosis').strip()
+    pathogen_name = (data.get('pathogen_name') or data.get('pathogen') or 'Tuberculosis').strip()
     cache_key = ('generation', pathogen_name.lower())
     cached = _cached(cache_key, 15 * 60)
     if cached is not None:
@@ -205,25 +205,34 @@ def generate_molecules():
             "is_fda_approved": res.get("is_fda_approved", True)
         }
 
-    # Fetch AlphaFold 3D structure
-    if uniprot_id:
+    # 1. First check local PRESET_POCKETS using fuzzy matching
+    from generator import PRESET_POCKETS
+    p_key = pathogen_norm.strip()
+    for k, v in PRESET_POCKETS.items():
+        k_norm = normalize_name(k)
+        if k_norm in p_key or p_key in k_norm:
+            pocket_residues = v
+            break
+
+    # 2. Only fetch AlphaFold 3D structure if not in preset pockets
+    if not pocket_residues and uniprot_id:
         print(f"Querying AlphaFold for UniProt ID: {uniprot_id}")
         af_api_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
         try:
-            af_response = http_requests.get(af_api_url, timeout=10)
+            af_response = http_requests.get(af_api_url, timeout=3)
             af_data = None
             if af_response.status_code == 200:
                 af_data = af_response.json()
             elif af_response.status_code == 404:
                 uniprot_url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
                 try:
-                    up_response = http_requests.get(uniprot_url, timeout=10)
+                    up_response = http_requests.get(uniprot_url, timeout=3)
                     if up_response.status_code == 200:
                         up_data = up_response.json()
                         primary_id = up_data.get("primaryAccession")
                         if primary_id and primary_id != uniprot_id:
                             uniprot_id = primary_id
-                            af_response = http_requests.get(f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}", timeout=10)
+                            af_response = http_requests.get(f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}", timeout=3)
                             if af_response.status_code == 200:
                                 af_data = af_response.json()
                 except Exception as ex:
@@ -233,13 +242,13 @@ def generate_molecules():
                 target_protein = pocket_specs.get("target_protein", "protein") if pocket_specs else "protein"
                 for sq in [f"{pathogen_name} {target_protein}", target_protein]:
                     try:
-                        search_res = http_requests.get(f"https://rest.uniprot.org/uniprotkb/search?query={sq}&size=5", timeout=10)
+                        search_res = http_requests.get(f"https://rest.uniprot.org/uniprotkb/search?query={sq}&size=3", timeout=3)
                         if search_res.status_code == 200:
                             results = search_res.json().get("results", [])
                             for item in results:
                                 acc = item.get("primaryAccession")
                                 try:
-                                    check = http_requests.get(f"https://www.alphafold.ebi.ac.uk/api/prediction/{acc}", timeout=3)
+                                    check = http_requests.get(f"https://www.alphafold.ebi.ac.uk/api/prediction/{acc}", timeout=2)
                                     if check.status_code == 200:
                                         af_data = check.json()
                                         uniprot_id = acc
@@ -254,16 +263,17 @@ def generate_molecules():
             if af_data and len(af_data) > 0:
                 pdb_url = af_data[0].get("pdbUrl")
                 if pdb_url:
-                    pdb_res = http_requests.get(pdb_url, timeout=10)
+                    pdb_res = http_requests.get(pdb_url, timeout=3)
                     if pdb_res.status_code == 200:
                         pocket_residues = molecular_generator.parse_pdb_to_pocket(pdb_res.text, num_residues=10)
         except Exception as e:
             print(f"AlphaFold API error: {e}")
 
     try:
+        num_candidates = min(int(data.get('num_candidates') or 5), 5)
         candidates = molecular_generator.evolve(
             pathogen_name=pathogen_name, pocket_specs=pocket_specs,
-            seed_smiles=seed_smiles, num_candidates=5, pocket_residues=pocket_residues
+            seed_smiles=seed_smiles, num_candidates=num_candidates, pocket_residues=pocket_residues
         )
         payload = {
             "status": "success",
