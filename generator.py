@@ -112,22 +112,23 @@ class EvolutionaryGenerator:
 
     @staticmethod
     def calculate_similarity(smiles1, smiles2):
-        """Calculates heavy atom overlap using Maximum Common Substructure."""
+        """Calculates molecular similarity using Morgan Fingerprint Tanimoto similarity."""
         try:
-            from rdkit.Chem import rdFMCS
+            if not smiles1 or not smiles2:
+                return 0.0
             mol1 = Chem.MolFromSmiles(smiles1)
             mol2 = Chem.MolFromSmiles(smiles2)
             if not mol1 or not mol2:
                 return 0.0
             
-            res = rdFMCS.FindMCS([mol1, mol2])
-            if res.numAtoms == 0:
-                return 0.0
-                
-            ref_atoms = mol2.GetNumHeavyAtoms()
-            return res.numAtoms / ref_atoms
+            from rdkit.Chem import rdFingerprintGenerator
+            from rdkit import DataStructs
+            generator = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
+            fp1 = generator.GetFingerprint(mol1)
+            fp2 = generator.GetFingerprint(mol2)
+            return float(DataStructs.TanimotoSimilarity(fp1, fp2))
         except Exception as e:
-            print(f"Error calculating MCS: {e}")
+            print(f"Error calculating similarity: {e}")
             return 0.0
 
     @staticmethod
@@ -857,6 +858,11 @@ class EvolutionaryGenerator:
 
             if pocket_residues is None:
                 pocket_residues = PRESET_POCKETS.get(pathogen_key)
+                if not pocket_residues:
+                    for k, v in PRESET_POCKETS.items():
+                        if k in pathogen_key or pathogen_key in k:
+                            pocket_residues = v
+                            break
                 
                 # Resolve pocket dynamically from AlphaFold in real time using pathogen name
                 if not pocket_residues:
@@ -868,13 +874,13 @@ class EvolutionaryGenerator:
                             print(f"Generator: Dynamically resolving pocket residues from AlphaFold for UniProt {uniprot_id}...")
                             af_url = f"https://www.alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
                             import requests
-                            af_res = requests.get(af_url, timeout=10)
+                            af_res = requests.get(af_url, timeout=3)
                             if af_res.status_code == 200:
                                 af_data = af_res.json()
                                 if af_data and len(af_data) > 0:
                                     pdb_url = af_data[0].get("pdbUrl")
                                     if pdb_url:
-                                        pdb_res = requests.get(pdb_url, timeout=10)
+                                        pdb_res = requests.get(pdb_url, timeout=3)
                                         if pdb_res.status_code == 200:
                                             pocket_residues = self.parse_pdb_to_pocket(pdb_res.text, num_residues=10)
                     except Exception as ex:

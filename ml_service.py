@@ -659,7 +659,7 @@ def run_validation():
 def compare_candidate():
     data = request.json or {}
     cand_smiles = data.get('candidate_smiles', '')
-    ref_smiles = data.get('reference_smiles', '')
+    ref_smiles = data.get('reference_smiles') or data.get('fda_smiles', '')
     similarity = 0.25
     shared_scaffold = "Organic Aromatic Fragment"
     try:
@@ -674,13 +674,16 @@ def compare_candidate():
             fp1 = generator.GetFingerprint(mol1)
             fp2 = generator.GetFingerprint(mol2)
             similarity = float(DataStructs.TanimotoSimilarity(fp1, fp2))
-            mcs_res = rdFMCS.FindMCS([mol1, mol2])
-            if mcs_res.numAtoms > 0:
-                scaffold_mol = Chem.MolFromSmarts(mcs_res.smartsString)
-                if scaffold_mol:
-                    shared_scaffold = Chem.MolToSmiles(Chem.RemoveHs(scaffold_mol))
-                    if not shared_scaffold:
-                        shared_scaffold = mcs_res.smartsString
+            try:
+                mcs_res = rdFMCS.FindMCS([mol1, mol2], timeout=1)
+                if mcs_res and mcs_res.numAtoms > 0:
+                    scaffold_mol = Chem.MolFromSmarts(mcs_res.smartsString)
+                    if scaffold_mol:
+                        shared_scaffold = Chem.MolToSmiles(Chem.RemoveHs(scaffold_mol))
+                        if not shared_scaffold:
+                            shared_scaffold = mcs_res.smartsString
+            except Exception:
+                pass
     except Exception as e:
         print(f"RDKit comparison failed: {e}")
     return jsonify({"status": "success", "tanimoto_similarity": round(similarity * 100, 1), "shared_scaffold": shared_scaffold})
