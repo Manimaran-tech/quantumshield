@@ -479,11 +479,11 @@ class EvolutionaryGenerator:
         attempts = 0
         device = next(self.trained_model.network.parameters()).device
         
-        max_attempts = 6
+        max_attempts = 2
         with torch.no_grad():
             while len(valid_candidates) < num_candidates and attempts < max_attempts:
                 attempts += 1
-                batch_size = 12
+                batch_size = 16
                 start_token = torch.zeros(batch_size, dtype=torch.long, device=device)
                 start_token[:] = self.trained_model.vocabulary["^"]
                 input_vector = start_token
@@ -493,7 +493,7 @@ class EvolutionaryGenerator:
                 ]
                 hidden_state = None
                 
-                for step in range(128 - 1):
+                for step in range(48 - 1):
                     logits, hidden_state = self.trained_model.network(input_vector.unsqueeze(1), hidden_state)
                     logits = logits.squeeze(1)
                     # Sample with temperature=0.8 to focus on high-probability tokens and increase validity
