@@ -382,7 +382,7 @@ class EvolutionaryGenerator:
                       (-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)]
             
             res = minimize(objective, initial_guess, bounds=bounds, method='L-BFGS-B',
-                           options={'maxiter': 10, 'ftol': 1e-3})
+                           options={'maxiter': 6, 'ftol': 1e-2})
             min_energy = float(res.fun)
             
             # Apply optimal parameters back to update coordinates in place
@@ -943,7 +943,7 @@ class EvolutionaryGenerator:
                     orig_res_num = original_res.get("res_num", idx + 108)
                     mutant_residue_label = f"{orig_res_name}{orig_res_num} to {mutated_res.get('res_name')} mutant"
                     
-                    mutant_docking_raw = self.calculate_docking_energy(coords, mutant_pocket)
+                    mutant_docking_raw = self.calculate_docking_energy(coords, mutant_pocket, optimize_pose=False)
                     mutant_scaled = -14.0 + 0.8 * (mutant_docking_raw - 2.0)
                     mutant_scaled = max(-22.0, min(-6.0, mutant_scaled))
                     mutant_free_energy = float(round(mutant_scaled + solvation_energy + entropy_penalty, 2))

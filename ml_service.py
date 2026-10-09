@@ -590,12 +590,12 @@ def run_validation():
                     "atoms": cleaned_atoms
                 }
                 candidates = [full_cand]
-                other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
+                other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=3, pocket_residues=pocket_residues)
                 candidates.extend(other_cands)
             else:
-                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5, pocket_residues=pocket_residues)
+                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
         else:
-            candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=5, pocket_residues=pocket_residues)
+            candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
 
         fda = disease_info.get('fda_drug_details')
         if fda:
