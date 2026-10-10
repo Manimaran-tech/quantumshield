@@ -976,11 +976,14 @@ interface DNAInteractionResult {
   verdict: string;
 }
 
-// Check port and environment for API base URL (supports Cloudflare Tunnel & custom backend)
+const PRIMARY_API_BASE = 'https://quantumshield-ml-production.up.railway.app';
+const FALLBACK_API_BASE = 'https://quantumshield-gateway-latest-1.onrender.com';
+
+// Direct production backend with automatic fallback (no cold starts)
 const API_BASE = 
   (typeof window !== 'undefined' && localStorage.getItem('QUANTUM_API_BASE')) ||
   (import.meta.env.VITE_API_BASE_URL as string) ||
-  (window.location.port && window.location.port !== '5000' ? 'http://127.0.0.1:5000' : '');
+  PRIMARY_API_BASE;
 
 const getReferenceDrugInfo = (targetName: string, fdaSimilarityStr: string) => {
   const norm = targetName.toLowerCase();
@@ -3048,13 +3051,29 @@ export default function App() {
         pathogen_name: isCustomMode ? (customPathogen.trim() || 'Custom Target') : getPathogenNameForTemplate(selectedMolecule.id)
       };
 
-      const response = await fetch(`${API_BASE}/simulate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${API_BASE}/simulate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok && response.status >= 500) {
+          throw new Error(`Primary backend status ${response.status}`);
+        }
+      } catch (primaryErr) {
+        console.warn("Primary simulation endpoint failed, trying backup gateway...", primaryErr);
+        const altBase = API_BASE.includes('railway') ? FALLBACK_API_BASE : PRIMARY_API_BASE;
+        response = await fetch(`${altBase}/simulate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
 
       if (!response.ok) {
         throw new Error("Simulation endpoint returned error code");
@@ -3468,9 +3487,7 @@ export default function App() {
     if (isCustomMode && autoSelectActiveSpace) {
       const count = customAtoms.length;
       if (count <= 2) setActiveOrbitals(2);
-      else if (count <= 4) setActiveOrbitals(4);
-      else if (count <= 6) setActiveOrbitals(6);
-      else setActiveOrbitals(8);
+      else setActiveOrbitals(4);
     }
   }, [customAtoms, isCustomMode, autoSelectActiveSpace]);
 

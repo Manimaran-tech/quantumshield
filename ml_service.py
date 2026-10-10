@@ -192,9 +192,34 @@ def simulate():
         )
         _store_cached(cache_key, result)
         _free_memory()
+
+        # Record simulation history
+        history_records.append({
+            "timestamp": data.get('timestamp', ''),
+            "molecule_id": molecule_id,
+            "binding_energy": result.get("binding_energy"),
+            "final_energy": result.get("final_energy"),
+            "elapsed_time": result.get("elapsed_time"),
+            "qubits": result.get("qubits"),
+            "run_on_qpu": result.get("run_on_qpu")
+        })
+
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+history_records = []
+
+@app.route('/history', methods=['GET'])
+def get_history():
+    return jsonify(history_records)
+
+@app.route('/history/clear', methods=['POST'])
+def clear_history():
+    global history_records
+    history_records = []
+    return jsonify({"status": "success", "message": "History cleared"})
 
 
 # ─── Molecule Generation ────────────────────────────────────────────────────

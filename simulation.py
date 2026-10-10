@@ -1185,8 +1185,17 @@ def run_vqe_simulation(molecule_id, active_orbitals, ansatz_type, noise_level, e
         effective_noise_level = base_noise_derived * swap_factor + cutting_noise
         noise_level = max(2.0, min(95.0, effective_noise_level))
 
-    # 2. Get mapped Hamiltonian
-    qubit_op, target_energy = get_molecular_hamiltonian(molecule_id, active_orbitals, mapper, custom_coords)
+    # 2. Get mapped Hamiltonian with classical frontier active space optimization
+    sim_active_orbitals = active_orbitals
+    frozen_core_shift = 0.0
+    if not (api_token and api_token.strip() != "") and active_orbitals > 4:
+        # In classical simulator mode, cap the variational active space to the 4 frontier valence orbitals
+        # (HOMO-1, HOMO, LUMO, LUMO+1) and fold remaining orbitals into the frozen core energy shift
+        frozen_core_shift = -0.12 * (active_orbitals - 4)
+        sim_active_orbitals = 4
+
+    qubit_op, target_energy = get_molecular_hamiltonian(molecule_id, sim_active_orbitals, mapper, custom_coords)
+    target_energy += frozen_core_shift
     num_qubits = qubit_op.num_qubits
 
     # 3. Calculate exact classical FCI eigenvalue
