@@ -354,6 +354,12 @@ def _get_xray_model():
     if "xray_model" in _model_cache:
         return _model_cache["xray_model"]
     
+    # Clear any previous model from cache to stay strictly below 380 MB RAM on Railway
+    if _model_cache:
+        _model_cache.clear()
+        import gc
+        gc.collect()
+
     import torch
     # 1. First priority: load the validated local weights from models/ directory
     local_weights_path = os.path.join(MODELS_DIR, "densenet121_real_weights.pt")
@@ -396,6 +402,12 @@ def _get_general_model(num_classes: int = 9, channels: int = 3):
     if cache_key in _model_cache:
         return _model_cache[cache_key]
     
+    # Clear any previous model from cache to stay strictly below 380 MB RAM on Railway
+    if _model_cache:
+        _model_cache.clear()
+        import gc
+        gc.collect()
+
     import torch
     import torch.nn as nn
     local_weights_path = os.path.join(MODELS_DIR, "densenet121_real_weights.pt")

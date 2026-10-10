@@ -37,6 +37,7 @@ COPY utils.py .
 COPY custom_targets.json .
 COPY pretrained.rnn.pth .
 COPY qrl_policy_checkpoint.npy .
+COPY qrl_circuit_precomputed.json .
 COPY smiles_lstm/ ./smiles_lstm/
 COPY models/ ./models/
 COPY data/ ./data/

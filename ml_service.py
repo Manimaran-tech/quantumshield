@@ -60,6 +60,28 @@ def _store_cached(key, value):
             _response_cache.popitem(last=False)
 
 
+def _free_memory():
+    """Forces aggressive garbage collection and releases OS memory on Linux."""
+    import gc
+    gc.collect()
+    try:
+        import ctypes
+        ctypes.CDLL('libc.so.6').malloc_trim(0)
+    except Exception:
+        pass
+
+
+def _purge_heavy_models():
+    """Purges large DenseNet image models to maintain strict RAM headroom under 400 MB."""
+    try:
+        from disease_detector import _model_cache
+        if _model_cache:
+            _model_cache.clear()
+    except Exception:
+        pass
+    _free_memory()
+
+
 # ─── Shared utility functions ────────────────────────────────────────────────
 
 def fetch_pubchem_smiles(drug_name):
@@ -151,6 +173,8 @@ def simulate():
     if cached is not None:
         return jsonify(cached)
 
+    _purge_heavy_models()
+
     try:
         from simulation import run_vqe_simulation
         result = run_vqe_simulation(
@@ -167,6 +191,7 @@ def simulate():
             pathogen_name=pathogen_name
         )
         _store_cached(cache_key, result)
+        _free_memory()
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -182,6 +207,8 @@ def generate_molecules():
     cached = _cached(cache_key, 15 * 60)
     if cached is not None:
         return jsonify(cached)
+
+    _purge_heavy_models()
 
     molecular_generator = get_generator()
 
@@ -293,6 +320,7 @@ def generate_molecules():
             "candidates": candidates
         }
         _store_cached(cache_key, payload)
+        _free_memory()
         return jsonify(payload)
     except Exception as e:
         return jsonify({"error": f"Evolution failed: {str(e)}"}), 500
@@ -383,6 +411,13 @@ def qrl_optimize():
 # ─── QRL Circuit ─────────────────────────────────────────────────────────────
 
 _qrl_circuit_cached_payload = None
+try:
+    _precomp_path = os.path.join(os.path.dirname(__file__), "qrl_circuit_precomputed.json")
+    if os.path.exists(_precomp_path):
+        with open(_precomp_path, "r", encoding="utf-8") as _f:
+            _qrl_circuit_cached_payload = json.load(_f)
+except Exception as _e:
+    print(f"Warning: could not load precomputed QRL circuit: {_e}")
 
 @app.route('/api/qrl/circuit', methods=['POST'])
 def qrl_circuit():
@@ -616,12 +651,25 @@ def run_validation():
                     "atoms": cleaned_atoms
                 }
                 candidates = [full_cand]
-                other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=3, pocket_residues=pocket_residues)
-                candidates.extend(other_cands)
+                cached_gen = _cached(('generation', disease_info['name'].lower()), 15 * 60)
+                if cached_gen and cached_gen.get('candidates'):
+                    other_cands = [c for c in cached_gen['candidates'] if c.get('smiles') != cand_smiles][:3]
+                    candidates.extend(other_cands)
+                else:
+                    other_cands = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=2, pocket_residues=pocket_residues)
+                    candidates.extend(other_cands)
             else:
-                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
+                cached_gen = _cached(('generation', disease_info['name'].lower()), 15 * 60)
+                if cached_gen and cached_gen.get('candidates'):
+                    candidates = cached_gen['candidates']
+                else:
+                    candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=3, pocket_residues=pocket_residues)
         else:
-            candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=4, pocket_residues=pocket_residues)
+            cached_gen = _cached(('generation', disease_info['name'].lower()), 15 * 60)
+            if cached_gen and cached_gen.get('candidates'):
+                candidates = cached_gen['candidates']
+            else:
+                candidates = molecular_generator.evolve(pathogen_name=disease_info['name'], num_candidates=3, pocket_residues=pocket_residues)
 
         fda = disease_info.get('fda_drug_details')
         if fda:
@@ -664,6 +712,8 @@ def run_validation():
             "candidates": candidates, "steps": steps
         }
         _store_cached(cache_key, payload)
+        import gc
+        gc.collect()
         return jsonify(payload)
     except Exception as e:
         return jsonify({"error": f"Validation run failed: {str(e)}"}), 500
